@@ -36,6 +36,7 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean }):
     envMapIntensity: env.wet ? 1.2 : 0.35,
   });
   const road = new THREE.Mesh(roadGeo, roadMat);
+  road.name = 'road';
   road.receiveShadow = true;
   group.add(road);
   disposables.push(roadGeo, roadMat);
@@ -49,6 +50,7 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean }):
   for (const side of [-1, 1] as const) {
     const g = ribbon(track, side * halfW, side * (halfW + 4.5), -0.06, (i) => i * track.spacing / 6, true, side > 0 ? -0.25 : 0, side > 0 ? 0 : -0.25);
     const m = new THREE.Mesh(g, shoulderMat);
+    m.name = 'shoulder';
     m.receiveShadow = true;
     group.add(m);
     disposables.push(g);
@@ -89,7 +91,7 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean }):
   const barrierTex = barrierTexture(env.barrierColor, spec.theme === 'city' ? '#ffd400' : '#e8e8e8', '#111');
   barrierTex.repeat.set(1, 1);
   disposables.push(barrierTex);
-  const barrierMat = new THREE.MeshStandardMaterial({ map: barrierTex, roughness: 0.7, metalness: 0.15 });
+  const barrierMat = new THREE.MeshStandardMaterial({ map: barrierTex, roughness: 0.7, metalness: 0.15, side: THREE.DoubleSide });
   disposables.push(barrierMat);
   for (const side of [-1, 1] as const) {
     const g = wall(track, side * barrierOff, 1.05, side < 0, 0.16);
@@ -218,6 +220,7 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean }):
   disposables.push(gTex);
   const gMat = new THREE.MeshStandardMaterial({ map: gTex, roughness: spec.theme === 'snow' ? 0.7 : 0.98, metalness: 0, color: '#ffffff' });
   const terrain = new THREE.Mesh(tg, gMat);
+  terrain.name = 'terrain';
   terrain.receiveShadow = true;
   group.add(terrain);
   disposables.push(tg, gMat);
@@ -273,9 +276,14 @@ function ribbonRange(
     const vv = vAt(k);
     uv.push(0, vv, 1, vv);
   }
+  // winding: decide from the actual geometry so the ribbon always faces up (lat order varies)
+  const bx = v[3] - v[0], bz = v[5] - v[2], cx = v[6] - v[0], cz = v[8] - v[2];
+  const ny = bz * cx - bx * cz; // y of (B−A)×(C−A) for triangle (a, a+1, a+2)
+  const flipFinal = ny <= 0;
+  void flip;
   for (let k = 0; k < len; k++) {
     const a = k * 2;
-    if (!flip) idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+    if (!flipFinal) idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
     else idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
   }
   void closed;

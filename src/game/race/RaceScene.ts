@@ -255,6 +255,30 @@ export class RaceScene implements SceneController {
     window.__spg.knobs.skipCountdown = () => {
       this.countdownT = 0.01;
     };
+    window.__spg.knobs.probe = () => {
+      const c = this.player.car;
+      const s = this.track.samples[this.player.idx];
+      const box = new THREE.Box3().setFromObject(this.mesh.road);
+      const wheels = this.player.vis.wheels.map((w) => { const pv = w.getWorldPosition(new THREE.Vector3()); const b = new THREE.Box3().setFromObject(w); const bc = b.getCenter(new THREE.Vector3()); const bs = b.getSize(new THREE.Vector3()); return { pivot: [pv.x - c.x, pv.y - c.y, pv.z - c.z].map((v) => +v.toFixed(2)), center: [bc.x - c.x, bc.y - c.y, bc.z - c.z].map((v) => +v.toFixed(2)), size: [bs.x, bs.y, bs.z].map((v) => +v.toFixed(2)), rot: +w.rotation.x.toFixed(2) }; });
+      const ray = new THREE.Raycaster(new THREE.Vector3(c.x, c.y + 5, c.z), new THREE.Vector3(0, -1, 0));
+      const hits = ray.intersectObjects(this.mesh.group.children, true).map((h) => ({ name: h.object.name || h.object.type, y: +h.point.y.toFixed(3) }));
+      const rp = this.mesh.road.geometry.attributes.position.array as Float32Array;
+      let best = Infinity, bi = 0;
+      for (let i = 0; i < rp.length; i += 3) { const d = (rp[i] - c.x) ** 2 + (rp[i + 2] - c.z) ** 2; if (d < best) { best = d; bi = i; } }
+      const ri = this.mesh.road.geometry.index!.array;
+      let nan = 0;
+      for (let i = 0; i < rp.length; i++) if (!Number.isFinite(rp[i])) nan++;
+      const ray2 = new THREE.Raycaster(new THREE.Vector3(rp[bi], rp[bi + 1] + 5, rp[bi + 2] + 0.01), new THREE.Vector3(0, -1, 0));
+      const roadHit = ray2.intersectObject(this.mesh.road, false).map((h) => +h.point.y.toFixed(3));
+      const bs = this.mesh.road.geometry.boundingSphere;
+      const nearest = { roadHit, nan, idx0: Array.from(ri.slice(0, 6)), idxCount: ri.length, bs: bs ? [+bs.center.x.toFixed(1), +bs.center.y.toFixed(1), +bs.center.z.toFixed(1), +bs.radius.toFixed(1)] : null, roadMatSide: (this.mesh.road.material as THREE.Material).side, dist: Math.sqrt(best), v: [rp[bi], rp[bi + 1], rp[bi + 2]], count: rp.length / 3, car: [c.x, c.y, c.z], sample: [s.pos.x, s.pos.y, s.pos.z], left: [s.left.x, s.left.z], first: [rp[0], rp[1], rp[2]] };
+      return { nearest, hits, wheels, wheelSpin: c.wheelSpin, carY: c.y, sampleY: s.pos.y, terrainY: this.mesh.terrainHeight(c.x, c.z), roadVisible: this.mesh.road.visible, roadBoxY: [box.min.y, box.max.y], roadTris: (this.mesh.road.geometry.index?.count ?? 0) / 3, groupChildren: this.mesh.group.children.length, camY: this.cam.camera.position.y, mat: (() => { const m = this.mesh.road.material as THREE.MeshStandardMaterial; const img = m.map?.image as HTMLCanvasElement | undefined; return { hasMap: !!m.map, imgW: img?.width, color: m.color.getHexString(), rough: m.roughness, metal: m.metalness, visible: m.visible, opacity: m.opacity, transparent: m.transparent, uv: !!this.mesh.road.geometry.attributes.uv, uvSample: Array.from((this.mesh.road.geometry.attributes.uv.array as Float32Array).slice(0, 8)) }; })() };
+    };
+    window.__spg.knobs.hide = (name: unknown) => {
+      const o = this.mesh.group.getObjectByName(String(name));
+      if (o) o.visible = !o.visible;
+      return o ? o.visible : null;
+    };
     window.__spg.knobs.finishNow = () => {
       this.player.lap = this.params.laps + 1;
       this.player.finished = true;
