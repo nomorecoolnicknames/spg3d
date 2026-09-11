@@ -32,7 +32,7 @@ export function Balance() {
 
 export function Screen({ title, back = 'menu', children, layer = 'tint', right, className = '' }: { title: string; back?: ScreenId | null; children: ReactNode; layer?: 'tint' | 'tint-right' | 'solid' | 'dim'; right?: ReactNode; className?: string }) {
   return (
-    <div className={`ui-layer ${layer} stripes`}>
+    <div className={`ui-layer ${layer} sub stripes ${className ? className + '-layer' : ''}`}>
       <div className={`screen ${className}`}>
         <div className="screen-head">
           {back && (

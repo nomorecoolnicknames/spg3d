@@ -124,7 +124,8 @@ export class ShowcaseScene implements SceneController {
     (this.ring.material as THREE.MeshBasicMaterial).color.setHSL(0.98, 0.85, 0.5 + 0.08 * Math.sin(this.t * 2));
     // camera: menu = car on the right side, low 3/4; garage = centered, orbiting slightly
     const target = this.mode === 'garage' ? this.camTarget.set(0, 0.7, 0) : this.camTarget.set(-1.6, 0.7, 0);
-    const want = this.mode === 'garage' ? new THREE.Vector3(Math.sin(this.t * 0.12) * 7.2, 2.0, Math.cos(this.t * 0.12) * 7.2) : new THREE.Vector3(5.2, 1.6, 6.6);
+    const dist = window.innerHeight < 520 ? 9.5 : 7.2;
+    const want = this.mode === 'garage' ? new THREE.Vector3(Math.sin(this.t * 0.12) * dist, 2.2, Math.cos(this.t * 0.12) * dist) : new THREE.Vector3(5.2, 1.6, 6.6);
     this.camPos.lerp(want, 1 - Math.exp(-dt * 2.5));
     this.camera.position.copy(this.camPos);
     this.camera.lookAt(target);

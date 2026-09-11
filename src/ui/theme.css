@@ -584,3 +584,28 @@ body.touch-boss .boss-br { bottom: calc(160px + var(--sab)); }
 @media (max-height: 520px) {
   .menu-foot { display: none; }
 }
+
+/* ─── Phones / short screens: solid panels, scrollable bodies, stacked columns ───── */
+@media (pointer: coarse), (max-height: 520px) {
+  .ui-layer.tint.sub { background: rgba(11, 12, 16, 0.93); }
+  .ui-layer.tint.sub.garage-screen-layer { background: linear-gradient(90deg, rgba(11, 12, 16, 0.94) 0 44%, rgba(11, 12, 16, 0.25) 52% 62%, rgba(11, 12, 16, 0.94) 70%); }
+  .panel, .stage, .track-card, .car-row, .tune, .story, .overlay .box { background: var(--panel-solid); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .screen-body { display: block; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding-bottom: 12px; }
+  .screen-body > * { margin-bottom: 10px; }
+  .quick-right { max-width: none; min-width: 0; }
+  .quick-right .btn.primary.lg { order: -1; }
+  .garage-body { display: flex; flex-direction: row; gap: 12px; }
+  .garage-left { flex: 0 1 420px; }
+  .garage-right { flex: 0 1 300px; min-width: 200px; }
+  .car-list { overflow: visible; }
+  .two-col { grid-template-columns: 1fr; }
+  .career-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .results-wrap { overflow-y: auto; align-items: flex-start; touch-action: pan-y; }
+  .results { grid-template-columns: 1fr; }
+  .results .head { grid-column: auto; }
+  .set-row { padding: 4px 0; grid-template-columns: 110px 1fr; }
+  .seg button { min-height: 32px; padding: 6px 8px; }
+  .track-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .track-card .map { aspect-ratio: 2.4; }
+  .btn.lg { min-height: 46px; padding: 12px 20px; }
+}

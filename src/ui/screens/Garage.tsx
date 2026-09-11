@@ -23,7 +23,7 @@ export function Garage() {
   const maxes = { power: 620, speed: 96, grip: 1.2, handling: 1.18, drift: 1.15 };
 
   return (
-    <Screen title={S.garage.title}>
+    <Screen title={S.garage.title} className="garage-screen">
       <div className="garage-body">
         <div className="garage-left">
           <div className="car-title">

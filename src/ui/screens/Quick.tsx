@@ -3,6 +3,7 @@ import { TRACKS, TRACK_BY_ID } from '@/data/tracks';
 import { CAR_BY_ID } from '@/data/cars';
 import { S } from '@/data/strings';
 import { Screen, Stars, TrackMap, click } from '../common';
+import { useIsTouchLayout } from './Misc';
 import { IFlag, ILock } from '../icons';
 
 export function Quick() {
@@ -13,9 +14,14 @@ export function Quick() {
   const car = CAR_BY_ID[carId];
   const track = TRACK_BY_ID[quick.trackId];
   const set = (p: Partial<typeof quick>) => setState({ quick: { ...quick, ...p } });
+  const touch = useIsTouchLayout();
+  const start = () => {
+    click();
+    startRace({ trackId: quick.trackId, carId, color, laps: quick.laps, opponents: quick.timeAttack ? 0 : quick.opponents, difficulty: quick.difficulty, career: false, timeAttack: quick.timeAttack });
+  };
   const diffIdx = quick.difficulty < 0.95 ? 0 : quick.difficulty > 1.05 ? 2 : 1;
   return (
-    <Screen title={S.menu.quick}>
+    <Screen title={S.menu.quick} right={touch ? <button className="btn primary" onClick={start}><IFlag /> {S.tracks.start}</button> : undefined}>
       <div className="quick-left">
         <div className="track-cards">
           {TRACKS.map((t, i) => {
@@ -111,15 +117,11 @@ export function Quick() {
             </button>
           </div>
         </div>
-        <button
-          className="btn primary lg"
-          onClick={() => {
-            click();
-            startRace({ trackId: quick.trackId, carId, color, laps: quick.laps, opponents: quick.timeAttack ? 0 : quick.opponents, difficulty: quick.difficulty, career: false, timeAttack: quick.timeAttack });
-          }}
-        >
-          <IFlag /> {S.tracks.start}
-        </button>
+        {!touch && (
+          <button className="btn primary lg" onClick={start}>
+            <IFlag /> {S.tracks.start}
+          </button>
+        )}
       </div>
     </Screen>
   );
