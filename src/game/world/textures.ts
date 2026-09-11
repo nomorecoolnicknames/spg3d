@@ -46,7 +46,8 @@ export function asphaltTexture(base: string, lineColor: string, wet: boolean): {
   ctx.putImageData(img, 0, 0);
   // patches / repairs
   for (let k = 0; k < 14; k++) {
-    ctx.fillStyle = `rgba(${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},${rnd() > 0.5 ? 255 : 0},${0.02 + rnd() * 0.03})`;
+    const v = rnd() > 0.5 ? 255 : 0;
+    ctx.fillStyle = `rgba(${v},${v},${v},${0.02 + rnd() * 0.03})`;
     ctx.fillRect(rnd() * W, rnd() * H, 40 + rnd() * 120, 20 + rnd() * 60);
   }
   // cracks

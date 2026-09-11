@@ -200,7 +200,7 @@ export function Results() {
               <h1 className={results.won ? 'win' : ''}>{results.won ? S.results.bossWin : S.results.bossLose}</h1>
               <div className="sub">{S.boss.name} · {fmtTime(results.time)}</div>
             </div>
-            <div className="panel">
+            <div className="panel" style={{ gridColumn: 'span 2', maxWidth: 520 }}>
               <h2>{S.results.rewards}</h2>
               <div className="reward">
                 <span>{S.boss.sub}</span>
@@ -209,8 +209,7 @@ export function Results() {
                 <b className="tot">{money(results.reward)}</b>
               </div>
               {results.won && <p className="muted" style={{ marginTop: 10 }}>{S.results.unlockAll}</p>}
-            </div>
-            <div className="panel">
+              <div className="hr" />
               <div className="btn-row">
                 <button className="btn primary" onClick={() => { click(); goto('career'); }}>{S.results.next}</button>
                 <button className="btn ghost" onClick={() => { click(); goto('menu'); }}>{S.results.menu}</button>
