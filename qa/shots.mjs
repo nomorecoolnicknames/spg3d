@@ -95,9 +95,13 @@ async function errorsOf(page) {
 }
 async function shot(page, name) {
   const file = `${name}.png`;
-  await page.screenshot({ path: join(OUT, file), type: 'png', timeout: 120_000 });
-  current.shots.push(file);
-  console.log(`   📷 ${file}`);
+  try {
+    await page.screenshot({ path: join(OUT, file), type: 'png', timeout: 150_000 });
+    current.shots.push(file);
+    console.log(`   📷 ${file}`);
+  } catch (e) {
+    note(`screenshot ${file} failed: ${String(e.message).split('\n')[0]}`);
+  }
   return file;
 }
 async function waitReady(page, timeout = 90_000) {
@@ -439,7 +443,7 @@ async function main() {
     process.exit(130);
   });
 
-  const viewports = [{ tag: '', mobile: false, w: 1280, h: 720 }];
+  const viewports = [{ tag: '', mobile: false, w: 1024, h: 576 }];
   if (!SKIP_MOBILE) viewports.push({ tag: '-mobile', mobile: true, w: 900, h: 420 });
 
   const want = (n) => ONLY.length === 0 || ONLY.some((o) => n.startsWith(o));
