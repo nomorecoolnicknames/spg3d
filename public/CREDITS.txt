@@ -1,0 +1,12 @@
+СУПЕР ПИЗДАНУТЫЕ ГОНКИ 3Д — CREDITS
+
+3D-модели автомобилей (2020 BMW M8, BMW 2018, Bugatti Bolide 2024,
+Toyota Supra MK4 A80, Ford GT40, Lancia 037 Stradale 1978):
+  repo: https://github.com/Vivekkk-1/3D-Models
+  license: Boost Software License 1.0 (https://www.boost.org/LICENSE_1_0.txt)
+  Copyright Vivekkk-1 and model authors. Included with attribution.
+
+CarConcept / ToyCar (Khronos glTF-Sample-Assets):
+  https://github.com/KhronosGroup/glTF-Sample-Assets
+
+Музыка: madk1d / Тёмный Принц (remixxx by dj dubstep 2012)
