@@ -1,0 +1,4 @@
+/* owner: ui fork — design tokens + global styles */
+html,body,#root{height:100%;margin:0;background:#0b0c10;color:#f2f3f7;font-family:Inter,system-ui,sans-serif}
+.spg-viewport{position:fixed;inset:0;z-index:0}
+.spg-canvas{display:block}
