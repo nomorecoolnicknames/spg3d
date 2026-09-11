@@ -50,8 +50,9 @@ export class TrackData {
 
   constructor(readonly spec: TrackSpec) {
     this.halfW = spec.roadWidth / 2;
+    const sc = spec.scale ?? 1;
     this.curve = new THREE.CatmullRomCurve3(
-      spec.points.map(([x, z, y]) => new THREE.Vector3(x, y, z)),
+      spec.points.map(([x, z, y]) => new THREE.Vector3(x * sc, y, z * sc)),
       true,
       'catmullrom',
       0.55,
@@ -143,7 +144,7 @@ export class TrackData {
     }
     this.smoothField('lineOffset', Math.round(18 / this.spacing), 3);
     for (const s of this.samples) s.lineOffset = THREE.MathUtils.clamp(s.lineOffset, -maxOff, maxOff);
-    this.computeSpeedProfile(9.0 * this.spec.env.grip, 9.5, 5.5);
+    this.computeSpeedProfile(7.6 * this.spec.env.grip, 9.0, 5.5);
   }
 
   /** Curvature-limited speeds with backward braking pass and forward acceleration pass. */

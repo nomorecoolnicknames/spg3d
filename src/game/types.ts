@@ -102,6 +102,8 @@ export interface TrackSpec {
   roadWidth: number;
   /** control points [x, z, y] — y is elevation (m) */
   points: [number, number, number][];
+  /** xz scale applied to the control points */
+  scale?: number;
   /** difficulty 1..3 */
   difficulty: number;
   env: TrackEnv;
