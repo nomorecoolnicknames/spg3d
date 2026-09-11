@@ -35,8 +35,9 @@ export class RaceCamera {
     switch (this.mode) {
       case 1: {
         // hood
-        target = base.clone().addScaledVector(f, 0.9).add(new THREE.Vector3(0, 1.05, 0));
-        look = base.clone().addScaledVector(f, 30).add(new THREE.Vector3(0, 0.9, 0));
+        // bumper cam: just ahead of the nose, low
+        target = base.clone().addScaledVector(f, car.wheelbase * 0.5 + 1.4).add(new THREE.Vector3(0, 0.75, 0));
+        look = base.clone().addScaledVector(f, 40).add(new THREE.Vector3(0, 0.6, 0));
         fovT = 68 + (this.fovKick ? ratio * 14 + (car.nitroActive ? 7 : 0) : 0);
         k = 30;
         kl = 30;
