@@ -80,6 +80,12 @@ android/                — Capacitor-проект
 Фазы: 1) ракетные залпы + шаги; 2) миньоны + телеграфируемый лазер; 3) ярость: удар в землю с
 ударной волной, ускорение. Смерть игрока — рестарт фазы. Победа — многоступенчатый взрыв, разблокировка всех машин.
 
+## Состояние (2026-09-11)
+Реализовано: трассы с рельефом, велосипедная физика + ИИ (настраивались headless-симом `qa/sim.ts`),
+6 машин с крутящимися колёсами (оптимизатор `scripts/optimize-glb.mjs`), синтез-звук, весь UI,
+босс-мех МЭДКИД (3 фазы, миньоны, лазер, удар), тач-управление, Capacitor/Android.
+Проверка — только headless (SwiftShader): `qa/shot.mjs`, `qa/shots.mjs`. Ручной плейтест на GPU ещё не делался.
+
 ## QA-хуки (`window.__spg`)
 ```ts
 interface SpgDebug {
@@ -88,11 +94,13 @@ interface SpgDebug {
   goto(screen: ScreenId, params?: Record<string, unknown>): void; // 'race' {track, car, laps, opponents}, 'boss'
   setAutopilot(on: boolean): void; // ИИ ведёт игрока / бойца
   setTimeScale(k: number): void;   // ускорение симуляции (1..8)
+  setMaxDt(k: number): void;       // верхняя граница шага (0.5 для медленных рендеров)
   snapshot(): SpgSnapshot;         // HUD, позиции, hp босса, fps, счётчик draw calls
   errors: string[];                // console.error/unhandled
 }
 ```
-URL-параметры: `?screen=race&track=neon&car=supra&auto=1&laps=1&opp=5`, `?screen=boss&auto=1`.
+URL-параметры: `?screen=race&track=neon&car=supra&auto=1&laps=1&opp=5`, `?screen=boss&auto=1`,
+плюс `q=low|medium|high`, `ts=3`, `maxdt=0.5`, `pose=0.7` (гараж).
 
 ## Правила качества
 - Никаких эмодзи и «rounded-2xl» градиентных кнопок: токены из `theme.css`, иконки — inline SVG.

@@ -12,7 +12,14 @@ const server = spawn('node', ['scripts/serve.mjs', '--dir', 'dist', '--port', St
 process.on('exit', () => server.kill());
 const T0 = Date.now();
 const log = (...a) => console.log(`[+${((Date.now() - T0) / 1000).toFixed(1)}s]`, ...a);
-await new Promise((r) => setTimeout(r, 700));
+// wait until the static server answers (the box can be heavily loaded)
+for (let i = 0; i < 60; i++) {
+  try {
+    const r = await fetch(`http://localhost:${port}/`);
+    if (r.ok) break;
+  } catch {}
+  await new Promise((r) => setTimeout(r, 500));
+}
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage({ viewport: { width: Number(w), height: Number(h) } });
 const logs = [];
