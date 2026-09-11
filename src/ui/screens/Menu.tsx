@@ -6,6 +6,7 @@ import logoUrl from '@/assets/logo.jpg';
 import { IFlag, ICar, IWrench, ITrophy, ISettings } from '../icons';
 import { Balance, click } from '../common';
 import type { ScreenId } from '@/game/types';
+import { useIsTouchLayout } from './Misc';
 import { audio } from '@/game/audio';
 
 const ITEMS: { id: ScreenId; t: string; h: string; icon: typeof IFlag }[] = [
@@ -42,6 +43,7 @@ export function Boot() {
 
 export function Menu() {
   const wins = useStore((s) => s.save.careerWins.length);
+  const touch = useIsTouchLayout();
   const [active, setActive] = useState(0);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -91,7 +93,7 @@ export function Menu() {
           </div>
         </div>
         <div className="menu-foot">
-          <div className="keys">{S.menu.controls}</div>
+          <div className="keys">{touch ? S.menu.controlsTouch : S.menu.controls}</div>
         </div>
       </div>
     </div>

@@ -164,12 +164,12 @@ export class RaceScene implements SceneController {
     // world
     this.sky = createSky(env);
     this.scene.add(this.sky.group);
-    this.mesh = buildTrackMesh(this.track, { shadows: q.shadows });
+    this.mesh = buildTrackMesh(this.track, { shadows: q.shadows, low: q.level === 'low' });
     this.scene.add(this.mesh.group);
     this.props = buildProps(this.track, this.mesh.terrainHeight, { shadows: q.shadows, level: q.level });
     this.scene.add(this.props.group);
     if (env.rain || env.snow) {
-      this.weather = createWeather(env.rain ? 'rain' : 'snow', q.level === 'low' ? 700 : 1600);
+      this.weather = createWeather(env.rain ? 'rain' : 'snow', q.level === 'low' ? 350 : 1600);
       this.scene.add(this.weather.group);
     }
 
@@ -408,7 +408,7 @@ export class RaceScene implements SceneController {
 
     // HUD ~20 Hz
     this.hudT += dt;
-    if (this.hudT > 0.05) {
+    if (this.hudT > (this.vp.quality.level === 'low' ? 0.09 : 0.05)) {
       this.hudT = 0;
       this.sendHUD();
     }

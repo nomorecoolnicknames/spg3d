@@ -12,8 +12,11 @@ import sharp from 'sharp';
 import { readdirSync, mkdirSync, statSync } from 'node:fs';
 import { join as pjoin } from 'node:path';
 
+// usage: node scripts/optimize-glb.mjs [outDir] [simplifyRatio] [textureSize]
 const src = 'src/assets/cars-src';
-const out = 'src/assets/cars';
+const out = process.argv[2] ?? 'src/assets/cars';
+const RATIO = Number(process.argv[3] ?? 0.55);
+const TEX = Number(process.argv[4] ?? 1024);
 mkdirSync(out, { recursive: true });
 await MeshoptEncoder.ready;
 await MeshoptSimplifier.ready;
@@ -158,9 +161,9 @@ for (const f of readdirSync(src).filter((x) => x.endsWith('.glb'))) {
     flatten(),
     join({ keepNamed: false, keepMeshes: false }),
     weld(),
-    simplify({ simplifier: MeshoptSimplifier, ratio: 0.55, error: 0.0008 }),
+    simplify({ simplifier: MeshoptSimplifier, ratio: RATIO, error: RATIO < 0.4 ? 0.003 : 0.0008 }),
     prune(),
-    textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [1024, 1024] }),
+    textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [TEX, TEX] }),
     meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
   );
   const meshes = doc.getRoot().listMeshes().length;

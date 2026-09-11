@@ -157,7 +157,7 @@ export class CarPhysics {
     let reversing = false;
     if (brake > 0 && this.vx < 0.8 && throttle === 0) {
       reversing = true;
-      fDrive = -Math.min(brake * m * 3.5, this.vx > -9 ? m * 3.5 : 0);
+      fDrive = -Math.min(brake * m * 5.5, this.vx > -12 ? m * 5.5 : 0);
     }
     const fBrake = reversing ? 0 : brake * mu * m * G * 0.95 * Math.sign(this.vx);
     const fDrag = this.dragK * this.vx * Math.abs(this.vx) + 0.013 * m * G * Math.sign(this.vx) * Math.min(1, v);

@@ -43,11 +43,13 @@ export interface SaveData {
   settings: Settings;
 }
 
+const touchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
 export const DEFAULT_SETTINGS: Settings = {
-  quality: 'high',
-  shadows: true,
-  bloom: true,
-  reflections: true,
+  quality: touchDevice ? 'low' : 'high',
+  shadows: !touchDevice,
+  bloom: !touchDevice,
+  reflections: !touchDevice,
   master: 0.9,
   music: 0.45,
   sfx: 0.8,

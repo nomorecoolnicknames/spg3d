@@ -9,14 +9,21 @@ import lanciaUrl from '@/assets/cars/lancia_037_stradale_1978.glb';
 import bmwM8Url from '@/assets/cars/2020_bmw_m8.glb';
 import gt40Url from '@/assets/cars/ford_gt40.glb';
 import bolideUrl from '@/assets/cars/bugatti_bolide_2024.glb';
+import bmw2018Lod from '@/assets/cars-lod/BMW_2018.glb';
+import supraLod from '@/assets/cars-lod/toyota_supra_mk4_a80.glb';
+import lanciaLod from '@/assets/cars-lod/lancia_037_stradale_1978.glb';
+import bmwM8Lod from '@/assets/cars-lod/2020_bmw_m8.glb';
+import gt40Lod from '@/assets/cars-lod/ford_gt40.glb';
+import bolideLod from '@/assets/cars-lod/bugatti_bolide_2024.glb';
 import xbotUrl from '@/assets/Xbot.glb';
+import { getState } from '@/state/store';
 import madkidFaceUrl from '@/assets/madk1d_face_big.jpg';
 
 /**
  * Central asset registry. Everything heavy is loaded once, progress is byte-based
  * (no fake percentages). Consumers clone scenes; never mutate the cached originals.
  */
-const MODEL_URLS: Record<string, string> = {
+const MODEL_URLS_HI: Record<string, string> = {
   BMW_2018: bmw2018Url,
   toyota_supra_mk4_a80: supraUrl,
   lancia_037_stradale_1978: lanciaUrl,
@@ -25,6 +32,17 @@ const MODEL_URLS: Record<string, string> = {
   bugatti_bolide_2024: bolideUrl,
   Xbot: xbotUrl,
 };
+// low quality (phones): ~5x fewer triangles, 512 px textures
+const MODEL_URLS_LOD: Record<string, string> = {
+  BMW_2018: bmw2018Lod,
+  toyota_supra_mk4_a80: supraLod,
+  lancia_037_stradale_1978: lanciaLod,
+  '2020_bmw_m8': bmwM8Lod,
+  ford_gt40: gt40Lod,
+  bugatti_bolide_2024: bolideLod,
+  Xbot: xbotUrl,
+};
+const MODEL_URLS = getState().save.settings.quality === 'low' ? MODEL_URLS_LOD : MODEL_URLS_HI;
 
 const gltfs = new Map<string, GLTF>();
 const textures = new Map<string, THREE.Texture>();

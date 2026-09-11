@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore, setPaused, goto, restartSession, getState } from '@/state/store';
+import { useIsTouchLayout } from './screens/Misc';
 import type { BossHUD as BossHUDState, GameEvent, RaceHUD as RaceHUDState } from '@/game/types';
 import { TRACK_BY_ID } from '@/data/tracks';
 import { S } from '@/data/strings';
@@ -296,6 +297,7 @@ export function BossHUD({ hud }: { hud: BossHUDState }) {
 // ───────────────────────────────────────────── Pause
 export function PauseOverlay() {
   const screen = useStore((s) => s.screen);
+  const touch = useIsTouchLayout();
   return (
     <div className="overlay">
       <div className="box">
@@ -303,7 +305,7 @@ export function PauseOverlay() {
         <button className="btn primary" onClick={() => { click(); setPaused(false); }}>{S.race.resume}</button>
         <button className="btn" onClick={() => { click(); setPaused(false); restartSession(); }}>{S.race.restart}</button>
         <button className="btn ghost" onClick={() => { click(); setPaused(false); goto(getState().race?.career || screen === 'boss' ? 'career' : 'menu'); }}>{S.race.quit}</button>
-        <div className="keys">{screen === 'boss' ? S.boss.controls : S.menu.controls}</div>
+        <div className="keys">{screen === 'boss' ? (touch ? S.boss.controlsTouch : S.boss.controls) : touch ? S.menu.controlsTouch : S.menu.controls}</div>
       </div>
     </div>
   );

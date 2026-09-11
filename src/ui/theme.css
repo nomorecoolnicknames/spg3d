@@ -571,3 +571,9 @@ body.touch-race .hud-br { bottom: calc(150px + var(--sab)); }
 body.touch-race .hud-tl .lb { display: none; }
 body.touch-boss .boss-bl { bottom: calc(180px + var(--sab)); }
 body.touch-boss .boss-br { bottom: calc(160px + var(--sab)); }
+
+/* phones: backdrop blur is expensive in WebView */
+@media (pointer: coarse) {
+  .hud .box, .tbtn, .panel, .overlay, .toast { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .hud .box { background: rgba(10, 11, 16, 0.72); }
+}

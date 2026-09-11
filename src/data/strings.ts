@@ -30,7 +30,8 @@ export const S = {
     settingsHint: 'Графика, звук, управление',
     balance: 'Баланс',
     wins: 'Побед',
-    controls: 'W A S D — руль и газ · Space — ручник · Shift — нитро · C — камера · Esc — пауза',
+    controls: 'W A S D — руль и газ · Space — ручник · Shift — нитро · C — камера · R — на трассу · Esc — пауза',
+    controlsTouch: 'Кнопки на экране: руль слева, газ и тормоз справа, дрифт и нитро над ними. Тормоз до остановки — задний ход.',
   },
   garage: {
     title: 'Гараж',
@@ -97,6 +98,7 @@ export const S = {
     newBest: 'Лучший круг',
     pause: 'Пауза',
     resume: 'Продолжить',
+    respawn: 'На трассу',
     restart: 'Заново',
     quit: 'В меню',
     positions: 'Позиции',

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { input, type TouchState } from '@/game/input/Input';
-import { IArrowLeft, IArrowRight, IArrowUp, IArrowDown, INitro, IFire, IRun } from './icons';
+import { IArrowLeft, IArrowRight, IArrowUp, IArrowDown, INitro, IFire, IRun, IRefresh } from './icons';
+import { viewport } from '@/game/Viewport';
 
 type Key = 'left' | 'right' | 'throttle' | 'brake' | 'handbrake' | 'nitro' | 'fire' | 'sprint';
 
@@ -16,7 +17,7 @@ function HoldBtn({ k, className, children, style }: { k: Key; className?: string
       style={style}
       onPointerDown={(e) => {
         e.preventDefault();
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        e.currentTarget.setPointerCapture(e.pointerId);
         set(true);
       }}
       onPointerUp={() => set(false)}
@@ -39,6 +40,7 @@ export function RaceTouch() {
       <HoldBtn k="throttle" style={{ right: 'calc(20px + var(--sar))', bottom: 'calc(24px + var(--sab))' }}><IArrowUp /></HoldBtn>
       <HoldBtn k="brake" style={{ right: 'calc(104px + var(--sar))', bottom: 'calc(24px + var(--sab))' }}><IArrowDown /></HoldBtn>
       <HoldBtn k="nitro" className="cyan sm" style={{ right: 'calc(62px + var(--sar))', bottom: 'calc(112px + var(--sab))' }}><INitro /></HoldBtn>
+      <button className="tbtn sm" style={{ left: 'calc(50% - 30px)', top: 'calc(48px + var(--sat))', width: 60, height: 40 }} onClick={() => (viewport.getController() as { respawn?: () => void } | null)?.respawn?.()} aria-label="respawn"><IRefresh /></button>
     </div>
   );
 }

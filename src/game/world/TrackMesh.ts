@@ -15,7 +15,7 @@ export interface TrackMesh {
  * Builds road ribbon (with elevation), shoulders, corner curbs, barriers, start line and a
  * terrain heightfield that follows the road near it and rolls away from it.
  */
-export function buildTrackMesh(track: TrackData, quality: { shadows: boolean }): TrackMesh {
+export function buildTrackMesh(track: TrackData, quality: { shadows: boolean; low?: boolean }): TrackMesh {
   const spec = track.spec;
   const env = spec.env;
   const group = new THREE.Group();
@@ -177,7 +177,7 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean }):
 
   // ---- terrain heightfield ----
   const size = track.bounds.span * 2.4 + 500;
-  const segs = 240;
+  const segs = quality.low ? 120 : 240;
   const cx = (track.bounds.minX + track.bounds.maxX) / 2;
   const cz = (track.bounds.minZ + track.bounds.maxZ) / 2;
   const amp = spec.theme === 'city' ? 0 : spec.theme === 'desert' ? 26 : 16;
