@@ -30,7 +30,7 @@ export class ShowcaseScene implements SceneController {
     this.pmrem = pm.fromScene(new RoomEnvironment(), 0.04).texture;
     pm.dispose();
     this.scene.environment = this.pmrem;
-    this.scene.environmentIntensity = 0.55;
+    this.scene.environmentIntensity = 0.45;
     this.scene.background = new THREE.Color('#07070b');
     this.scene.fog = new THREE.Fog('#07070b', 14, 60);
 
@@ -56,7 +56,7 @@ export class ShowcaseScene implements SceneController {
     this.scene.add(ring2);
     this.disposables.push(ring2Mat, ring2.geometry);
 
-    const key = new THREE.SpotLight('#fff4e6', 520, 40, 0.5, 0.5, 1.6);
+    const key = new THREE.SpotLight('#fff4e6', 380, 40, 0.5, 0.5, 1.6);
     key.position.set(6, 9, 5);
     key.castShadow = true;
     key.shadow.mapSize.set(1024, 1024);

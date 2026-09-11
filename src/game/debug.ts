@@ -34,7 +34,9 @@ declare global {
 export function installDebug(): void {
   const dbg: SpgDebug = {
     ready: false,
-    screen: 'boot',
+    get screen() {
+      return getState().screen;
+    },
     autopilot: new URLSearchParams(location.search).get('auto') === '1',
     goto(screen, params = {}) {
       const s = getState();

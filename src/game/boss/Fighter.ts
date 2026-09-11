@@ -60,8 +60,8 @@ export class Humanoid {
         const baz = this.makeBazooka();
         if (hand) {
           // hand bone space is in centimetres (Mixamo): scale down the launcher
-          baz.scale.setScalar(100);
-          baz.position.set(8, 2, 6);
+          baz.scale.setScalar(140);
+          baz.position.set(10, 4, 8);
           baz.rotation.set(-0.3, 1.45, 1.6);
           hand.add(baz);
         } else {
@@ -141,7 +141,7 @@ export class Humanoid {
     this.mixer?.update(dt);
     if (this.bazooka && this.recoil > 0) {
       this.recoil = Math.max(0, this.recoil - dt * 6);
-      this.bazooka.position.z = 6 - Math.sin(this.recoil * Math.PI) * 4;
+      this.bazooka.position.z = 8 - Math.sin(this.recoil * Math.PI) * 4;
     }
   }
 
