@@ -104,6 +104,12 @@ export class ShowcaseScene implements SceneController {
     this.carId = carId;
     this.color = col;
     this.fade = 0;
+    window.__spg.knobs.showcaseProbe = () => {
+      const car = this.car!;
+      car.root.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(car.root).getSize(new THREE.Vector3());
+      return { carId, size: [box.x, box.y, box.z].map((v) => +v.toFixed(2)), wheels: car.wheels.map((w) => { const pv = w.getWorldPosition(new THREE.Vector3()); const b = new THREE.Box3().setFromObject(w); const c = b.getCenter(new THREE.Vector3()); const sz = b.getSize(new THREE.Vector3()); return { pivot: [pv.x, pv.y, pv.z].map((v) => +v.toFixed(2)), center: [c.x, c.y, c.z].map((v) => +v.toFixed(2)), size: [sz.x, sz.y, sz.z].map((v) => +v.toFixed(2)) }; }) };
+    };
   }
 
   update(dt: number): void {
