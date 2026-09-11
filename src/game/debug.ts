@@ -3,6 +3,7 @@ import { getState, goto, startRace, startBoss, setState, carColor, setSettings }
 import { viewport } from './Viewport';
 import { TRACK_BY_ID } from '@/data/tracks';
 import { audio } from './audio';
+import { input } from './input/Input';
 
 /**
  * window.__spg — QA hooks used by qa/shots.mjs. Also honours URL params on boot:
@@ -85,6 +86,7 @@ export function installDebug(): void {
       },
       audioState: () => ({ unlocked: audio.unlocked, music: audio.music.state.playing, track: audio.music.state.track.title, time: audio.music.state.time }),
       audioPlay: (name: unknown) => audio.play(name as 'ui-click'),
+      setTouch: (k: unknown, v: unknown) => input.setTouch(k as 'brake', v as never),
     },
   };
   window.__spg = dbg;

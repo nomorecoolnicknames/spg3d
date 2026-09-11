@@ -164,6 +164,10 @@ export class Input {
     }
     this.throttleS += (throttleT - this.throttleS) * Math.min(1, 12 * dt);
     this.brakeS += (brakeT - this.brakeS) * Math.min(1, 14 * dt);
+    // snap the exponential tails so "released" really means zero (reverse needs throttle == 0)
+    if (this.throttleS < 0.02 && throttleT === 0) this.throttleS = 0;
+    if (this.brakeS < 0.02 && brakeT === 0) this.brakeS = 0;
+    if (Math.abs(this.steerS) < 0.01 && steerTarget === 0) this.steerS = 0;
     return { steer: this.steerS, throttle: this.throttleS, brake: this.brakeS, handbrake, nitro };
   }
   private padPrev = { cam: false, pause: false, fire: false };

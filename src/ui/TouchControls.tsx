@@ -17,7 +17,11 @@ function HoldBtn({ k, className, children, style }: { k: Key; className?: string
       style={style}
       onPointerDown={(e) => {
         e.preventDefault();
-        e.currentTarget.setPointerCapture(e.pointerId);
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* synthetic or already-released pointer */
+        }
         set(true);
       }}
       onPointerUp={() => set(false)}

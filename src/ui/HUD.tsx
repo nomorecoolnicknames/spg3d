@@ -32,6 +32,7 @@ interface Msg {
 // ───────────────────────────────────────────── Race HUD
 export function RaceHUD({ hud }: { hud: RaceHUDState }) {
   const race = useStore((s) => s.race);
+  const touch = useIsTouchLayout();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [drift, setDrift] = useState<{ pts: number; combo: number; id: number } | null>(null);
   const idRef = useRef(0);
@@ -109,7 +110,7 @@ export function RaceHUD({ hud }: { hud: RaceHUDState }) {
           <div className={`bar ${hud.nitroActive ? 'on' : ''}`}>
             <i style={{ width: `${hud.nitro}%` }} />
           </div>
-          <div className="k">{S.race.nitro} · Shift</div>
+          <div className="k">{touch ? S.race.nitro : `${S.race.nitro} · Shift`}</div>
         </div>
       </div>
       <div className="hud-center">

@@ -570,6 +570,9 @@ p { margin: 0; }
 body.touch-race .hud-br { bottom: calc(150px + var(--sab)); }
 body.touch-race .hud-tl .lb { display: none; }
 body.touch-boss .boss-bl { bottom: calc(180px + var(--sab)); }
+body.touch-boss .boss-top { top: calc(46px + var(--sat)); }
+body.touch-boss .pause-btn, body.touch-race .pause-btn { left: auto; right: calc(14px + var(--sar)); transform: none; top: calc(12px + var(--sat)); }
+body.touch-race .hud-tr { top: calc(48px + var(--sat)); }
 body.touch-boss .boss-br { bottom: calc(160px + var(--sab)); }
 
 /* phones: backdrop blur is expensive in WebView */

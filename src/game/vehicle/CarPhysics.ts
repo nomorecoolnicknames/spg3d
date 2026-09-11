@@ -155,7 +155,7 @@ export class CarPhysics {
     }
     // reverse
     let reversing = false;
-    if (brake > 0 && this.vx < 0.8 && throttle === 0) {
+    if (brake > 0 && this.vx < 0.8 && throttle < 0.05) {
       reversing = true;
       fDrive = -Math.min(brake * m * 5.5, this.vx > -12 ? m * 5.5 : 0);
     }
@@ -163,7 +163,7 @@ export class CarPhysics {
     const fDrag = this.dragK * this.vx * Math.abs(this.vx) + 0.013 * m * G * Math.sign(this.vx) * Math.min(1, v);
     const fSlope = -m * G * Math.sin(surf.slopeAlong);
     // engine braking / coasting
-    const fCoast = throttle === 0 && !reversing ? -0.06 * m * this.vx : 0;
+    const fCoast = throttle < 0.05 && !reversing ? -0.06 * m * this.vx : 0;
 
     // --- lateral tire model ---
     const vxEff = Math.max(1.2, v);
@@ -197,7 +197,7 @@ export class CarPhysics {
     this.vy *= kin + (1 - kin) * Math.max(0, 1 - dt * 12);
 
     // brake to a stop cleanly
-    if (brake > 0 && !reversing && Math.abs(this.vx) < 0.6 && throttle === 0) this.vx *= Math.max(0, 1 - dt * 10);
+    if (brake > 0 && !reversing && Math.abs(this.vx) < 0.6 && throttle < 0.05) this.vx *= Math.max(0, 1 - dt * 10);
 
     this.heading += this.yawRate * dt;
     if (this.heading > Math.PI) this.heading -= Math.PI * 2;

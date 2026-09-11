@@ -18,8 +18,9 @@ await page.evaluate(() => { window.__spg.setMaxDt(0.5); window.__spg.setTimeScal
 await page.waitForTimeout(12000);
 // hold brake to check reverse works through the touch path
 await page.evaluate(() => { window.__spg.setAutopilot(false); });
-const brake = page.locator('.tbtn').nth(4);
-await brake.dispatchEvent('pointerdown', { pointerId: 7, pointerType: 'touch', isPrimary: true });
+await page.evaluate(() => { window.__spg.knobs.setTouch('throttle', true); });
+await page.waitForTimeout(2000);
+await page.evaluate(() => { window.__spg.knobs.setTouch('throttle', false); window.__spg.knobs.setTouch('brake', true); });
 await page.waitForTimeout(6000);
 const snap = await page.evaluate(() => JSON.stringify({ hud: window.__spg.snapshot().hud?.speedKmh, gear: window.__spg.snapshot().hud?.gear, speed: window.__spg.snapshot().playerSpeed, q: window.__spg.snapshot().drawCalls, tris: window.__spg.snapshot().triangles }));
 console.log('after brake hold:', snap);
