@@ -31,6 +31,8 @@ export class Viewport {
   private fpsN = 0;
   fps = 0;
   timeScale = 1;
+  /** max simulated seconds per frame (raised by QA to keep sim time flowing on slow renderers) */
+  maxDt = 0.1;
   quality: QualitySettings = { level: 'high', shadows: true, bloom: true, reflections: true, pixelRatio: Math.min(window.devicePixelRatio || 1, 2) };
   width = 1;
   height = 1;
@@ -111,7 +113,7 @@ export class Viewport {
 
   private loop = (): void => {
     this.raf = requestAnimationFrame(this.loop);
-    const raw = Math.min(this.clock.getDelta(), 0.1);
+    const raw = Math.min(this.clock.getDelta(), this.maxDt);
     if (!this.visible) return;
     const dt = raw * this.timeScale;
     this.elapsed += dt;

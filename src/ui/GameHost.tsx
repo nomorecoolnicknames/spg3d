@@ -7,7 +7,9 @@ import { RaceScene } from '@/game/race/RaceScene';
 import { BossScene } from '@/game/boss/BossScene';
 import { ShowcaseScene } from '@/game/menu/ShowcaseScene';
 import { audio } from '@/game/audio';
+import { S } from '@/data/strings';
 import type { GameEvent, SceneCallbacks } from '@/game/types';
+import { emitHudEvent } from '@/ui/HUD';
 
 const SHOWCASE_SCREENS = new Set(['menu', 'garage', 'career', 'quick', 'records', 'settings', 'story', 'results']);
 
@@ -44,7 +46,8 @@ export function GameHost() {
     const cb: SceneCallbacks = {
       onHUD: setHUD,
       onEvent: (e: GameEvent) => {
-        if (e.type === 'message') toast(e.text, e.tone ?? 'info');
+        emitHudEvent(e);
+        if (e.type === 'boss-phase') toast(`${S.boss.phaseMsg[e.phase - 1]}`, 'warn');
       },
       onFinish: finishSession,
     };

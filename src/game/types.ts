@@ -292,4 +292,5 @@ export interface SpgSnapshot {
   playerPos?: [number, number, number];
   playerSpeed?: number;
   extra?: Record<string, unknown>;
+  extra2?: Record<string, unknown>;
 }

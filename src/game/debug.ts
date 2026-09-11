@@ -1,5 +1,5 @@
 import type { ScreenId, SpgSnapshot } from './types';
-import { getState, goto, startRace, startBoss, setState, carColor } from '@/state/store';
+import { getState, goto, startRace, startBoss, setState, carColor, setSettings } from '@/state/store';
 import { viewport } from './Viewport';
 import { TRACK_BY_ID } from '@/data/tracks';
 
@@ -78,8 +78,15 @@ export function installDebug(): void {
     dbg.errors.push(a.map((x) => (x instanceof Error ? x.message : String(x))).join(' '));
     origError(...a);
   };
-  const ts = Number(new URLSearchParams(location.search).get('ts') ?? 1);
+  const q = new URLSearchParams(location.search);
+  const ts = Number(q.get('ts') ?? 1);
   if (ts > 0 && ts !== 1) viewport.timeScale = ts;
+  const maxdt = Number(q.get('maxdt') ?? 0);
+  if (maxdt > 0) viewport.maxDt = Math.min(1, maxdt);
+  const quality = q.get('q');
+  if (quality === 'low' || quality === 'medium' || quality === 'high') {
+    setSettings({ quality, shadows: quality === 'high', bloom: quality !== 'low', reflections: quality === 'high' });
+  }
 }
 
 /** Called by App once assets are loaded and the menu is visible. Applies URL routing. */

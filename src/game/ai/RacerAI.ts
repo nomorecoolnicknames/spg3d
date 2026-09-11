@@ -43,7 +43,7 @@ export class RacerAI {
     const t = this.track;
     const n = t.count;
     const v = Math.max(0, car.vx);
-    const idx = Math.floor(ctx.progress);
+    const idx = ((Math.floor(ctx.progress) % n) + n) % n;
 
     // --- avoidance: look for a car ahead within 14 m in roughly the same lane ---
     this.avoidT -= dt;

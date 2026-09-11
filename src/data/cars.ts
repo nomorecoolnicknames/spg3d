@@ -20,7 +20,7 @@ export const CARS: CarSpec[] = [
     nitro: 1.0,
     price: 0,
     unlockWins: 0,
-    colors: ['#5b6b9c', '#101014', '#c8102e', '#e8e8ee', '#2f8f6b', '#f2b01c'],
+    colors: ['#2b5bd7', '#111116', '#c8102e', '#e8e8ee', '#1f9d6a', '#f2b01c'],
     paintMaterials: ['m_carpaint_max'],
     length: 4.98,
   },
