@@ -20,6 +20,9 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/cli": "^7.6.9",
+    "@capacitor/core": "^7.6.9",
     "@gltf-transform/cli": "^4.2.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
