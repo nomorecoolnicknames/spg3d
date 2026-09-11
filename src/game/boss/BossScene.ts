@@ -303,12 +303,12 @@ export class BossScene implements SceneController {
     this.timer += dt;
     this.acc += dt;
     let steps = 0;
-    while (this.acc >= PHYS_DT && steps < 10) {
+    while (this.acc >= PHYS_DT && steps < 240) {
       this.step(PHYS_DT, foot);
       this.acc -= PHYS_DT;
       steps++;
     }
-    if (steps === 10) this.acc = 0;
+    if (steps === 240) this.acc = 0;
     // visuals
     this.fighter.root.position.copy(this.playerPos);
     this.fighter.root.rotation.y = this.playerYaw;

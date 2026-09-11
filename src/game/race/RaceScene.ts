@@ -365,12 +365,12 @@ export class RaceScene implements SceneController {
     // fixed-step simulation
     this.acc += dt;
     let steps = 0;
-    while (this.acc >= PHYS_DT && steps < 12) {
+    while (this.acc >= PHYS_DT && steps < 240) {
       this.stepAll(PHYS_DT);
       this.acc -= PHYS_DT;
       steps++;
     }
-    if (steps === 12) this.acc = 0;
+    if (steps === 240) this.acc = 0;
 
     // finish sequence
     if (this.finishT >= 0 && !this.resultsSent) {

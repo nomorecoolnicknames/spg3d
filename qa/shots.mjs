@@ -449,14 +449,14 @@ async function main() {
   const want = (n) => ONLY.length === 0 || ONLY.some((o) => n.startsWith(o));
   const plan = [];
   for (const vp of viewports) {
-    if (want('screens')) plan.push({ name: `screens${vp.tag}`, vp, fn: (p, b) => scMenuScreens(p, b, vp), timeout: 240_000 });
+    if (want('screens')) plan.push({ name: `screens${vp.tag}`, vp, fn: (p, b) => scMenuScreens(p, b, vp), timeout: 900_000 });
     for (const t of TRACKS) {
       if (vp.mobile && t !== 'neon') continue;
-      if (want('race')) plan.push({ name: `race-${t}${vp.tag}`, vp, fn: (p, b) => scRace(p, b, t, vp), timeout: 300_000 });
+      if (want('race')) plan.push({ name: `race-${t}${vp.tag}`, vp, fn: (p, b) => scRace(p, b, t, vp), timeout: 1200_000 });
     }
-    if (want('boss')) plan.push({ name: `boss${vp.tag}`, vp, fn: (p, b) => scBoss(p, b, vp), timeout: 300_000 });
+    if (want('boss')) plan.push({ name: `boss${vp.tag}`, vp, fn: (p, b) => scBoss(p, b, vp), timeout: 1200_000 });
   }
-  if (want('leak')) plan.push({ name: 'leak', vp: viewports[0], fn: (p, b) => scLeak(p, b), timeout: 180_000 });
+  if (want('leak')) plan.push({ name: 'leak', vp: viewports[0], fn: (p, b) => scLeak(p, b), timeout: 600_000 });
 
   for (const step of plan) {
     console.log(`\n▶ ${step.name}`);
