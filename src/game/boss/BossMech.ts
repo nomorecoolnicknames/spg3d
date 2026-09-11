@@ -31,7 +31,7 @@ function panelTextures(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture
   const W = 512, H = 512;
   const [c, ctx] = canvas(W, H);
   const [r, rctx] = canvas(W, H);
-  ctx.fillStyle = '#2a2d36';
+  ctx.fillStyle = '#4a4e5a';
   ctx.fillRect(0, 0, W, H);
   rctx.fillStyle = '#7a7a7a';
   rctx.fillRect(0, 0, W, H);
@@ -40,7 +40,7 @@ function panelTextures(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture
   const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
   for (let i = 0; i < 26; i++) {
     const x = rnd() * W, y = rnd() * H, w = 60 + rnd() * 160, h = 40 + rnd() * 120;
-    const v = 34 + rnd() * 18;
+    const v = 58 + rnd() * 26;
     ctx.fillStyle = `rgb(${v},${v + 2},${v + 8})`;
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = 'rgba(0,0,0,0.55)';
@@ -164,8 +164,8 @@ export class BossMech {
   constructor(faceTex: THREE.Texture | undefined, shadows: boolean) {
     const tex = panelTextures();
     this.textures.push(tex.map, tex.rough);
-    const gun = new THREE.MeshStandardMaterial({ map: tex.map, roughnessMap: tex.rough, roughness: 1, metalness: 0.85, color: '#c9ccd6', envMapIntensity: 0.9 });
-    const gunDark = new THREE.MeshStandardMaterial({ map: tex.map, roughnessMap: tex.rough, roughness: 1, metalness: 0.9, color: '#6a6e7a', envMapIntensity: 0.7 });
+    const gun = new THREE.MeshStandardMaterial({ map: tex.map, roughnessMap: tex.rough, roughness: 1, metalness: 0.7, color: '#e6e9f2', envMapIntensity: 1.0 });
+    const gunDark = new THREE.MeshStandardMaterial({ map: tex.map, roughnessMap: tex.rough, roughness: 1, metalness: 0.8, color: '#8a8e9c', envMapIntensity: 0.8 });
     const gold = new THREE.MeshStandardMaterial({ color: '#f2c14e', metalness: 1, roughness: 0.22, envMapIntensity: 1.4 });
     const black = new THREE.MeshStandardMaterial({ color: '#0b0b0e', metalness: 0.6, roughness: 0.25 });
     const felt = new THREE.MeshStandardMaterial({ color: '#17141a', roughness: 0.95, metalness: 0 });

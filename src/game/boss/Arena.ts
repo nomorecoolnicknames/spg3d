@@ -45,10 +45,10 @@ function pavingTextures(): { map: THREE.CanvasTexture; rough: THREE.CanvasTextur
   const [rc, rctx] = canvas(512, 512);
   rctx.fillStyle = '#b0b0b0';
   rctx.fillRect(0, 0, 512, 512);
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < 10; i++) {
     const g = rctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-    g.addColorStop(0, '#202020');
-    g.addColorStop(0.7, '#303030');
+    g.addColorStop(0, '#606060');
+    g.addColorStop(0.7, '#707070');
     g.addColorStop(1, '#b0b0b0');
     rctx.save();
     rctx.translate(Math.random() * 512, Math.random() * 512);
@@ -191,7 +191,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean }): A
   sun.shadow.bias = -0.0005;
   sun.shadow.normalBias = 0.05;
   group.add(sun, sun.target);
-  const hemi = new THREE.HemisphereLight('#3a1f4a', '#0a0c14', 0.55);
+  const hemi = new THREE.HemisphereLight('#4a2a5a', '#14161e', 0.9);
   group.add(hemi);
   // rim from the neon signs
   const fill = new THREE.DirectionalLight('#2ee6ff', 0.35);
@@ -270,7 +270,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean }): A
     poles.setMatrixAt(i, m4);
     lamps.setMatrixAt(i, m4);
     if (i % 3 === 0) {
-      const pl = new THREE.PointLight('#ffd9a0', 30, 40, 1.7);
+      const pl = new THREE.PointLight('#ffd9a0', 12, 34, 1.9);
       pl.position.set(Math.cos(a) * (r - 2), 8.5, Math.sin(a) * (r - 2));
       group.add(pl);
     }

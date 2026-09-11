@@ -174,8 +174,8 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean }):
   }
 
   // ---- terrain heightfield ----
-  const size = track.bounds.span * 2.6 + 600;
-  const segs = 140;
+  const size = track.bounds.span * 2.4 + 500;
+  const segs = 240;
   const cx = (track.bounds.minX + track.bounds.maxX) / 2;
   const cz = (track.bounds.minZ + track.bounds.maxZ) / 2;
   const amp = spec.theme === 'city' ? 0 : spec.theme === 'desert' ? 26 : 16;
@@ -201,8 +201,9 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean }):
   };
   const terrainHeight = (x: number, z: number): number => {
     const [d, ry] = distAndHeight(x, z);
-    const t = THREE.MathUtils.smoothstep(d, halfW + 5, halfW + 60);
-    return THREE.MathUtils.lerp(ry - 0.35, terrainNoise(x, z) - 0.6, t);
+    // flat band wide enough to always contain a vertex ring, then blend into the hills
+    const t = THREE.MathUtils.smoothstep(d, halfW + 14, halfW + 80);
+    return THREE.MathUtils.lerp(ry - 0.55, terrainNoise(x, z) - 0.6, t);
   };
   const tg = new THREE.PlaneGeometry(size, size, segs, segs);
   tg.rotateX(-Math.PI / 2);

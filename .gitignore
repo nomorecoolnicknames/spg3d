@@ -7,3 +7,5 @@ android/.gradle
 android/app/src/main/assets/public
 .omc
 *.log
+release/
+android/app/src/main/assets/public

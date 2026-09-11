@@ -29,7 +29,7 @@ export function createWeather(kind: 'rain' | 'snow', count = 1600): WeatherRig {
     depthWrite: false,
     uniforms: {
       color: { value: new THREE.Color(kind === 'rain' ? '#9fc4ff' : '#ffffff') },
-      size: { value: kind === 'rain' ? 1.6 : 3.2 },
+      size: { value: kind === 'rain' ? 0.9 : 1.1 },
       stretch: { value: kind === 'rain' ? 6.0 : 1.0 },
       fogColor: { value: new THREE.Color('#000000') },
       fogDensity: { value: 0.003 },

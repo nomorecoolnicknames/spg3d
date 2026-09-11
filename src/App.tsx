@@ -65,7 +65,7 @@ export default function App() {
           <div key={toast.id} className={`toast ${toast.tone}`}>{toast.text}</div>
         </div>
       )}
-      {(!inGame || paused) && screen !== 'boot' && <MusicWidget mini={screen !== 'menu'} />}
+      {(screen === 'menu' || screen === 'results' || (inGame && paused)) && <MusicWidget mini={screen !== 'menu'} />}
     </>
   );
 }

@@ -63,14 +63,27 @@ for (const f of readdirSync(src).filter((x) => x.endsWith('.glb'))) {
   await doc.transform(dedup());
   const wheels = findWheelNodes(doc);
   console.log(f, 'wheel nodes:', wheels.length, wheels.map((w) => w.getName()).join(' | ').slice(0, 120));
-  // give each wheel subtree its own material copies
+  // give each wheel subtree its own material copies; meshes shared between wheel nodes
+  // (instanced wheels) are made unique first, otherwise all wheels would collapse into one
+  const meshUsers = new Map();
+  for (const n of doc.getRoot().listNodes()) {
+    const m = n.getMesh();
+    if (m) meshUsers.set(m, (meshUsers.get(m) ?? 0) + 1);
+  }
   wheels.forEach((w, wi) => {
     const nodes = [w];
     w.traverse((n) => nodes.push(n));
     const matMap = new Map();
     for (const n of nodes) {
-      const mesh = n.getMesh();
+      let mesh = n.getMesh();
       if (!mesh) continue;
+      if ((meshUsers.get(mesh) ?? 0) > 1) {
+        const copy = doc.createMesh(mesh.getName());
+        for (const prim of mesh.listPrimitives()) copy.addPrimitive(prim.clone());
+        n.setMesh(copy);
+        meshUsers.set(mesh, meshUsers.get(mesh) - 1);
+        mesh = copy;
+      }
       for (const prim of mesh.listPrimitives()) {
         const m = prim.getMaterial();
         if (!m) continue;
