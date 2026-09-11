@@ -3,7 +3,7 @@
 # Output: release/spg3d-<version>-release.apk (+ sha256). Gradle output goes to /mnt/ramdisk/spg3d-android.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export JAVA_HOME=/home/n8n/tools/jdk-21.0.11+10
 export ANDROID_HOME=/home/n8n/android-sdk
 export ANDROID_SDK_ROOT=$ANDROID_HOME
 VERSION=$(node -p "require('./package.json').version")

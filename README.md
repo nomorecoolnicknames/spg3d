@@ -54,6 +54,6 @@ UI, босс. Музыка — десять mp3 (madk1d / Тёмный Прин�
 scripts/build-apk.sh   # dist → cap sync → gradle assembleRelease → release/spg3d-<ver>-release.apk
 ```
 
-Требуется JDK 17 (`/usr/lib/jvm/java-17-openjdk-amd64`) и Android SDK (`/home/n8n/android-sdk`).
+Требуется JDK 21 (`/home/n8n/tools/jdk-21.0.11+10`) и Android SDK (`/home/n8n/android-sdk`).
 Ключ подписи — `android/keystore/spg3d.jks` (пароль `spg3d2026`), приложение — landscape,
 immersive, `ru.spg3d.game`. Вывод gradle идёт в `/mnt/ramdisk/spg3d-android`.

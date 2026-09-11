@@ -56,7 +56,7 @@ export class ShowcaseScene implements SceneController {
     this.scene.add(ring2);
     this.disposables.push(ring2Mat, ring2.geometry);
 
-    const key = new THREE.SpotLight('#fff4e6', 900, 40, 0.5, 0.5, 1.6);
+    const key = new THREE.SpotLight('#fff4e6', 520, 40, 0.5, 0.5, 1.6);
     key.position.set(6, 9, 5);
     key.castShadow = true;
     key.shadow.mapSize.set(1024, 1024);

@@ -60,7 +60,7 @@ export const CARS: CarSpec[] = [
     price: 18000,
     unlockWins: 1,
     colors: ['#ffde00', '#e63946', '#f1faee', '#1d3557', '#6d597a', '#14213d'],
-    paintMaterials: [],
+    paintMaterials: ['meshpart3mtl'],
     length: 3.92,
   },
   {
@@ -98,7 +98,7 @@ export const CARS: CarSpec[] = [
     price: 26000,
     unlockWins: 2,
     colors: ['#0047ab', '#e8e8ee', '#c8102e', '#f2f2f2', '#ffd400', '#101014'],
-    paintMaterials: [],
+    paintMaterials: ['paint1mtl'],
     length: 4.18,
   },
   {

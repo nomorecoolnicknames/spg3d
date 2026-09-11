@@ -2,6 +2,7 @@ import type { ScreenId, SpgSnapshot } from './types';
 import { getState, goto, startRace, startBoss, setState, carColor, setSettings } from '@/state/store';
 import { viewport } from './Viewport';
 import { TRACK_BY_ID } from '@/data/tracks';
+import { audio } from './audio';
 
 /**
  * window.__spg — QA hooks used by qa/shots.mjs. Also honours URL params on boot:
@@ -15,6 +16,8 @@ export interface SpgDebug {
   goto(screen: ScreenId, params?: Record<string, unknown>): void;
   setAutopilot(on: boolean): void;
   setTimeScale(k: number): void;
+  /** max simulated seconds per frame (QA on slow renderers) */
+  setMaxDt(k: number): void;
   snapshot(): SpgSnapshot;
   errors: string[];
   /** engine-specific knobs (set by scenes): e.g. { setBossHP(n), skipCountdown() } */
@@ -63,6 +66,9 @@ export function installDebug(): void {
     setTimeScale(k) {
       viewport.timeScale = Math.max(0.1, Math.min(8, k));
     },
+    setMaxDt(k) {
+      viewport.maxDt = Math.max(0.02, Math.min(1, k));
+    },
     snapshot() {
       const snap = viewport.snapshot();
       snap.screen = getState().screen;
@@ -70,7 +76,14 @@ export function installDebug(): void {
       return snap;
     },
     errors: window.__spgErrors ?? [],
-    knobs: {},
+    knobs: {
+      audioUnlock: () => {
+        audio.unlock();
+        return audio.unlocked;
+      },
+      audioState: () => ({ unlocked: audio.unlocked, music: audio.music.state.playing, track: audio.music.state.track.title, time: audio.music.state.time }),
+      audioPlay: (name: unknown) => audio.play(name as 'ui-click'),
+    },
   };
   window.__spg = dbg;
   const origError = console.error.bind(console);

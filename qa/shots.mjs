@@ -26,6 +26,8 @@ const BASE = opt('--base', '');
 const NO_BUILD = flag('--no-build') || !!BASE;
 const SKIP_MOBILE = flag('--skip-mobile');
 const TS = Number(opt('--ts', 3));
+const MAXDT = Number(opt('--maxdt', 0.5));
+const QUALITY = opt('--quality', 'low');
 const HEADED = flag('--headed');
 const RUN = opt('--run', new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19));
 const OUT = join(ROOT, 'qa', 'out', RUN);
@@ -93,7 +95,7 @@ async function errorsOf(page) {
 }
 async function shot(page, name) {
   const file = `${name}.png`;
-  await page.screenshot({ path: join(OUT, file), type: 'png' });
+  await page.screenshot({ path: join(OUT, file), type: 'png', timeout: 120_000 });
   current.shots.push(file);
   console.log(`   📷 ${file}`);
   return file;
@@ -126,7 +128,7 @@ async function gotoScreen(page, screenId, params = {}) {
 }
 async function openBase(page, url) {
   const t0 = Date.now();
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
+  await page.goto(`${url}?q=${QUALITY}&maxdt=${MAXDT}`, { waitUntil: 'domcontentloaded', timeout: 120_000 });
   const ready = await waitReady(page);
   check('assets loaded (__spg.ready)', ready, `${((Date.now() - t0) / 1000).toFixed(1)} s`);
   return ready;
@@ -178,6 +180,19 @@ async function scMenuScreens(page, base, vp) {
       await shot(page, `story-2${vp.tag}`);
     }
   }
+  // audio smoke: unlock via a real click, fire a few one-shots, start music
+  await gotoScreen(page, 'menu');
+  await sleep(400);
+  await page.mouse.click(30, 30);
+  const audioState = await page.evaluate(async () => {
+    const k = window.__spg.knobs;
+    k.audioUnlock?.();
+    for (const n of ['ui-click', 'count-beep', 'hit-wall', 'explosion', 'mech-roar', 'rocket-launch']) k.audioPlay?.(n);
+    await new Promise((r) => setTimeout(r, 1500));
+    return k.audioState?.();
+  });
+  check('audio unlocked after click', !!audioState?.unlocked, JSON.stringify(audioState));
+  check('music plays after unlock', !!audioState?.music && (audioState?.time ?? 0) > 0, JSON.stringify(audioState));
   assertNoErrors(await pushPageErrors(page));
   const s = await snap(page);
   if (s) current.snapshots.menu = s;
@@ -186,10 +201,11 @@ async function scMenuScreens(page, base, vp) {
 async function raceStart(page, base, track, extra = {}) {
   if (!(await openBase(page, base))) return false;
   await gotoScreen(page, 'race', { track, laps: 1, opp: 5, auto: true, ...extra });
-  await page.evaluate((ts) => {
+  await page.evaluate(([ts, md]) => {
     window.__spg.setAutopilot(true);
     window.__spg.setTimeScale(ts);
-  }, TS);
+    window.__spg.setMaxDt?.(md);
+  }, [TS, MAXDT]);
   const h = await waitFor(page, async () => (await hud(page))?.kind === 'race', 15_000);
   check('race HUD appeared', !!h);
   return !!h;
@@ -246,7 +262,7 @@ async function scRace(page, base, track, vp) {
     current.snapshots.at45 = s45;
   }
   // wait for finish: up to 150 s sim (≈ 150/TS wall) but never more than 90 s wall
-  const wallCap = Math.min(90_000, (150 / TS) * 1000 + 5000);
+  const wallCap = Math.min(150_000, (150 / TS) * 1000 + 30000);
   const done = await waitFor(
     page,
     async () => {
@@ -274,10 +290,11 @@ async function scBoss(page, base, vp) {
   if (!(await openBase(page, base))) return;
   await gotoScreen(page, 'boss', { auto: true });
   const bossTS = Math.min(TS, 2);
-  await page.evaluate((ts) => {
+  await page.evaluate(([ts, md]) => {
     window.__spg.setAutopilot(true);
     window.__spg.setTimeScale(ts);
-  }, bossTS);
+    window.__spg.setMaxDt?.(md);
+  }, [bossTS, MAXDT]);
   const h0 = await waitFor(page, async () => (await hud(page))?.kind === 'boss', 15_000);
   check('boss HUD appeared', !!h0);
   if (!h0) return;
@@ -422,7 +439,7 @@ async function main() {
     process.exit(130);
   });
 
-  const viewports = [{ tag: '', mobile: false, w: 1600, h: 900 }];
+  const viewports = [{ tag: '', mobile: false, w: 1280, h: 720 }];
   if (!SKIP_MOBILE) viewports.push({ tag: '-mobile', mobile: true, w: 900, h: 420 });
 
   const want = (n) => ONLY.length === 0 || ONLY.some((o) => n.startsWith(o));

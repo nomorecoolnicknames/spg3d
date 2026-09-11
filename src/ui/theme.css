@@ -201,12 +201,12 @@ p { margin: 0; }
 
 /* ─── Menu ───────────────────────────────────────────────────────────── */
 .menu { display: flex; flex-direction: column; gap: 0; }
-.menu-logo { width: min(440px, 46vw); margin-bottom: 8px; filter: drop-shadow(0 6px 30px rgba(0, 0, 0, 0.7)); }
+.menu-logo { width: min(400px, 42vw); max-height: 30vh; object-fit: contain; object-position: left; margin-bottom: 6px; filter: drop-shadow(0 6px 30px rgba(0, 0, 0, 0.7)); }
 .menu-tagline { color: var(--muted); font-size: 12px; letter-spacing: 0.08em; margin: 2px 0 22px 4px; }
 .menu-list { display: flex; flex-direction: column; position: relative; width: min(460px, 46vw); }
 .menu-item {
   display: grid; grid-template-columns: 26px 1fr; align-items: center; column-gap: 14px;
-  text-align: left; padding: 11px 16px 11px 12px; position: relative;
+  text-align: left; padding: clamp(5px, 1.2vh, 11px) 16px clamp(5px, 1.2vh, 11px) 12px; position: relative;
   border-left: 3px solid transparent; transition: border-color 0.12s, background 0.12s;
 }
 .menu-item svg { width: 20px; height: 20px; color: var(--muted); grid-row: span 2; }
@@ -215,7 +215,7 @@ p { margin: 0; }
 .menu-item:hover, .menu-item.active { border-left-color: var(--red); background: linear-gradient(90deg, rgba(229, 35, 58, 0.16), transparent 70%); }
 .menu-item:hover svg, .menu-item.active svg { color: var(--red); }
 .menu-strip { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
-.menu-foot { position: absolute; left: calc(var(--gutter) + var(--sal)); right: calc(var(--gutter) + var(--sar)); bottom: calc(12px + var(--sab)); display: flex; justify-content: flex-end; }
+.menu-foot { position: absolute; left: calc(var(--gutter) + var(--sal)); right: 320px; bottom: calc(12px + var(--sab)); display: flex; justify-content: flex-start; }
 .menu-foot .keys { font-size: 11px; color: var(--faint); letter-spacing: 0.04em; }
 .menu-foot .keys b { color: var(--muted); font-weight: 500; font-family: var(--mono); }
 
@@ -467,7 +467,7 @@ p { margin: 0; }
 
 /* ─── Music widget (Winamp) ──────────────────────────────────────────── */
 .wa {
-  position: fixed; left: calc(12px + var(--sal)); bottom: calc(12px + var(--sab)); z-index: 15; width: 292px;
+  position: fixed; right: calc(12px + var(--sar)); bottom: calc(12px + var(--sab)); z-index: 15; width: 292px;
   background: #16171c; border: 1px solid #2c2e37; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   font-family: var(--mono); color: #cfd2da; font-size: 10px; padding: 3px;
 }
