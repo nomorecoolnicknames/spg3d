@@ -4,6 +4,8 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { BOSS_ENV } from '@/data/tracks';
 import { ParticlePool } from './fx';
+import { GeoBuilder, createCityMaterial, type CityMaterialUniforms } from '../world/city/kit';
+import { BUILD, LOT_SIZE, type Archetype, type Lot } from '../world/city/buildings';
 
 export const ARENA_RADIUS = 70;
 
@@ -88,24 +90,6 @@ function hazardTexture(): THREE.CanvasTexture {
   return t;
 }
 
-function windowTexture(lit: string): THREE.CanvasTexture {
-  const [c, ctx] = canvas(64, 128);
-  ctx.fillStyle = '#05060a';
-  ctx.fillRect(0, 0, 64, 128);
-  for (let y = 4; y < 124; y += 8) {
-    for (let x = 4; x < 60; x += 8) {
-      const on = Math.random() < 0.38;
-      ctx.fillStyle = on ? lit : '#0b0f1a';
-      ctx.globalAlpha = on ? 0.5 + Math.random() * 0.5 : 1;
-      ctx.fillRect(x, y, 5, 5);
-    }
-  }
-  ctx.globalAlpha = 1;
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
 function neonSign(text: string, color: string, w: number, h: number): THREE.Mesh {
   const [c, ctx] = canvas(1024, 256);
   ctx.fillStyle = '#000';
@@ -148,6 +132,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
   const disposables: THREE.Texture[] = [];
   const obstacles: Arena['obstacles'] = [];
 
+  let cityUniforms: CityMaterialUniforms | null = null;
   scene.fog = new THREE.FogExp2(env.fog, env.fogDensity);
   scene.background = new THREE.Color(env.skyTop);
 
@@ -329,39 +314,49 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
     group.add(cr);
   }
 
-  // ---- skyline ----
-  const winA = windowTexture('#ffd9a0');
-  const winB = windowTexture('#9fe8ff');
-  disposables.push(winA, winB);
-  const bGeo = new THREE.BoxGeometry(1, 1, 1);
-  bGeo.translate(0, 0.5, 0);
-  const bMats = [
-    new THREE.MeshStandardMaterial({ color: '#0a0c14', roughness: 0.6, emissive: '#ffffff', emissiveMap: winA, emissiveIntensity: 0.8 }),
-    new THREE.MeshStandardMaterial({ color: '#0d0a14', roughness: 0.6, emissive: '#ffffff', emissiveMap: winB, emissiveIntensity: 0.7 }),
-  ];
-  bMats.forEach((mat, mi) => {
-    const n = 70;
-    const inst = new THREE.InstancedMesh(bGeo, mat, n);
-    let placed = 0, guard = 0;
-    while (placed < n && guard++ < 3000) {
-      const a = Math.random() * Math.PI * 2;
-      const r = 130 + Math.random() * 420;
-      const x = Math.cos(a) * r, z = Math.sin(a) * r;
-      if (z > 90 && Math.abs(x) < 220) continue; // keep the waterfront open on +Z
-      const h = 25 + Math.random() * 110 * (r > 300 ? 1.5 : 1);
-      const w = 12 + Math.random() * 22;
-      m4.makeScale(w, h, w * (0.6 + Math.random() * 0.8));
-      m4.setPosition(x, -1.5, z);
-      inst.setMatrixAt(placed++, m4);
+  // ---- the embankment around the plaza: Neon City kit buildings (shared city material) ----
+  {
+    let seed = 7331;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const builders = new Map<string, GeoBuilder>();
+    const gb = (x: number, z: number) => {
+      const k = `${Math.sign(x)},${Math.sign(z)}`;
+      let b = builders.get(k);
+      if (!b) builders.set(k, (b = new GeoBuilder()));
+      return b;
+    };
+    const row = (from: number, to: number, line: number, axis: 'x' | 'z', rot: number, pick: () => Archetype, y0 = 0) => {
+      for (let t = from; t < to; ) {
+        const arch = pick();
+        const [lmin, lmax, depth] = LOT_SIZE[arch];
+        const len = lmin + rnd() * (lmax - lmin);
+        const mid = t + len / 2;
+        const back = depth / 2;
+        const lot: Lot = axis === 'x'
+          ? { cx: mid, cz: line + (rot === 0 ? -back : back), y0, rot, len, depth, seed: rnd() }
+          : { cx: line + (rot === Math.PI / 2 ? -back : back), cz: mid, y0, rot, len, depth, seed: rnd() };
+        BUILD[arch](gb(lot.cx, lot.cz), lot, rnd);
+        t += len + 3 + rnd() * 6;
+      }
+    };
+    // north: stalinka front with towers behind; the MEDKID sign hangs on the middle facade
+    row(-250, 250, -118, 'x', 0, () => (rnd() < 0.8 ? 'stalinka' : 'brick5'));
+    row(-300, 300, -175, 'x', 0, () => (rnd() < 0.45 ? 'tower' : 'panel9'));
+    // west / east sides facing the plaza
+    row(-110, 70, -122, 'z', Math.PI / 2, () => (rnd() < 0.6 ? 'stalinka' : 'panel9'));
+    row(-110, 70, 122, 'z', -Math.PI / 2, () => (rnd() < 0.6 ? 'stalinka' : 'panel9'));
+    // far bank across the water
+    row(-320, 320, 250, 'x', Math.PI, () => (rnd() < 0.6 ? 'stalinka' : 'panel9'));
+    const city = createCityMaterial(true);
+    // the arena is lit hard (sign lights, moon): keep the facades in the dark
+    city.material.color.set('#565a66');
+    for (const b of builders.values()) {
+      const mesh = new THREE.Mesh(b.toGeometry(), city.material);
+      mesh.name = 'arena:city';
+      group.add(mesh);
     }
-    inst.count = placed;
-    inst.position.y = mi * 0.01;
-    group.add(inst);
-  });
-  // skyline glow band
-  const glow = new THREE.Mesh(new THREE.CylinderGeometry(560, 560, 40, 64, 1, true), new THREE.MeshBasicMaterial({ color: '#3a1030', transparent: true, opacity: 0.35, side: THREE.BackSide, depthWrite: false, fog: false }));
-  glow.position.y = 8;
-  group.add(glow);
+    cityUniforms = city.uniforms;
+  }
 
   // ---- neon signs ----
   const signs: THREE.Mesh[] = [];
@@ -377,12 +372,6 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
     signs.push(s);
     group.add(s);
     disposables.push((s.material as THREE.MeshBasicMaterial).map!);
-    // backing building plate
-    const back = new THREE.Mesh(new THREE.BoxGeometry(s.geometry.boundingBox ? 1 : 60, 16, 3), new THREE.MeshStandardMaterial({ color: '#0b0c12', roughness: 0.8 }));
-    back.position.copy(s.position).add(new THREE.Vector3(0, 0, 0));
-    back.rotation.copy(s.rotation);
-    back.translateZ(-2);
-    group.add(back);
   }
   const signLight = new THREE.PointLight('#ff1e3c', 250, 220, 1.4);
   signLight.position.set(0, 30, -100);
@@ -435,6 +424,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
       rain.update(dt);
       const scan = (t * 0.6) % 1;
       (s1.material as THREE.MeshBasicMaterial).opacity = 0.85 + Math.sin(t * 30) * 0.05 + (scan < 0.02 ? -0.5 : 0);
+      if (cityUniforms) cityUniforms.time.value = t;
       sun.target.position.set(camPos.x, 0, camPos.z);
       sun.position.set(camPos.x - 40, 90, camPos.z - 30);
     },

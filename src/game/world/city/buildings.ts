@@ -190,7 +190,7 @@ export function tower(g: GeoBuilder, lot: Lot, rnd: Rnd): number {
   const c = P(0, 0, -(lot.depth - d) / 2);
   g.box(c.x, c.z, lot.y0 + PODIUM, w, d, floors * FLOOR, lot.rot, {
     front: { cell, tile: [bw, floors] }, back: { cell, tile: [bw, floors] }, left: { cell, tile: [bd, floors] }, right: { cell, tile: [bd, floors] }, top: { cell: 'roofGravel', tile: [2, 2] },
-  }, lot.seed);
+  }, lot.seed + 10); // +10 flags office glass for the city shader
   g.box(c.x, c.z, lot.y0 + h, w - 2, d - 2, 2.4, lot.rot, {
     front: { cell: rnd() < 0.5 ? 'towerLed' : 'towerCrown', tile: [bw, 1] }, back: { cell: 'towerLed', tile: [bw, 1] },
     left: { cell: 'towerLed', tile: [bd, 1] }, right: { cell: 'towerLed', tile: [bd, 1] }, top: { cell: 'roofBitumen', tile: [2, 2] },

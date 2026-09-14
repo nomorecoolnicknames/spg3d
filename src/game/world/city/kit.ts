@@ -238,10 +238,11 @@ vec4 cityEmis;`,
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
 	{
-		vec2 wid = floor(vTile) + vec2(vSeed * 131.0, vSeed * 71.0);
-		// office glass (the whole module is glass): light whole floor bands, dimmer
-		float office = step(0.9, textureGrad(tEmis, vCell.xy + vec2(0.02, 0.02) * vCell.zw, gdx, gdy).r);
-		wid.x = mix(wid.x, vSeed * 131.0, office);
+		// aSeed = random in [0,1) (+10 on office curtain walls: whole floors light together, dimmer)
+		float office = step(9.5, vSeed);
+		float sd = fract(vSeed);
+		vec2 wid = floor(vTile) + vec2(sd * 131.0, sd * 71.0);
+		wid.x = mix(wid.x, sd * 131.0, office);
 		float h = cityHash(wid);
 		float lit = step(h, litRatio * mix(1.0, 0.7, office));
 		vec3 warm = mix(vec3(1.0, 0.72, 0.42), vec3(1.0, 0.86, 0.62), cityHash(wid + 7.1));
@@ -249,7 +250,7 @@ vec4 cityEmis;`,
 		vec3 wc = mix(warm, cool, step(0.86, cityHash(wid + 3.3)));
 		totalEmissiveRadiance += cityEmis.r * lit * windowGain * mix(1.0, 0.45, office) * wc * (0.55 + 0.45 * cityHash(wid + 1.9));
 		// a few signs flicker like tired neon, a few blink on and off
-		float sh = cityHash(floor(vTile * 0.5) + vec2(vSeed * 17.0, 5.0));
+		float sh = cityHash(floor(vTile * 0.5) + vec2(sd * 17.0, 5.0));
 		float flick = sh < 0.08 ? step(0.25, fract(sin(floor(time * 14.0) + sh * 91.0) * 43758.5)) : sh < 0.14 ? step(0.5, fract(time * 0.45 + sh * 7.0)) : 1.0;
 		totalEmissiveRadiance += cityEmis.g * signGain * diffuseColor.rgb * 2.0 * flick;
 		if (vLamp.w > 0.0) {
