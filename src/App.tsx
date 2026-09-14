@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useStore, setLoadProgress, goto } from '@/state/store';
+import { useStore, useHud, setLoadProgress, goto } from '@/state/store';
 import { loadAllAssets, onAssetProgress } from '@/game/assets';
 import { debugBootRouting } from '@/game/debug';
 import { audio } from '@/game/audio';
@@ -14,9 +14,21 @@ import { RaceTouch, BossTouch } from '@/ui/TouchControls';
 import { MusicWidget } from '@/ui/MusicWidget';
 import { PerfOverlay } from '@/ui/PerfOverlay';
 
+/** The only subscriber to the HUD store — updates here never touch the rest of the tree. */
+function HudLayer({ screen, touch, paused }: { screen: 'race' | 'boss'; touch: boolean; paused: boolean }) {
+  const hud = useHud((h) => h);
+  return (
+    <>
+      {screen === 'race' && hud?.kind === 'race' && <RaceHUD hud={hud} />}
+      {screen === 'boss' && hud?.kind === 'boss' && <BossHUD hud={hud} />}
+      {screen === 'race' && touch && !paused && <RaceTouch />}
+      {screen === 'boss' && touch && !paused && hud?.kind === 'boss' && !hud.dead && !hud.intro && <BossTouch />}
+    </>
+  );
+}
+
 export default function App() {
   const screen = useStore((s) => s.screen);
-  const hud = useStore((s) => s.hud);
   const paused = useStore((s) => s.paused);
   const toast = useStore((s) => s.toast);
   const touch = useIsTouchLayout();
@@ -56,10 +68,7 @@ export default function App() {
       {screen === 'settings' && <Settings />}
       {screen === 'story' && <Story />}
       {screen === 'results' && <Results />}
-      {screen === 'race' && hud?.kind === 'race' && <RaceHUD hud={hud} />}
-      {screen === 'boss' && hud?.kind === 'boss' && <BossHUD hud={hud} />}
-      {screen === 'race' && touch && !paused && <RaceTouch />}
-      {screen === 'boss' && touch && !paused && hud?.kind === 'boss' && !hud.dead && !hud.intro && <BossTouch />}
+      {inGame && <HudLayer screen={screen} touch={touch} paused={paused} />}
       {inGame && paused && <PauseOverlay />}
       {toast && (
         <div className="toasts">

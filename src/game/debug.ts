@@ -1,5 +1,5 @@
 import type { ScreenId, SpgSnapshot } from './types';
-import { getState, goto, startRace, startBoss, setState, carColor, setSettings } from '@/state/store';
+import { getState, goto, startRace, startBoss, setState, carColor, setSettings, getHUD } from '@/state/store';
 import { viewport } from './Viewport';
 import { TRACK_BY_ID } from '@/data/tracks';
 import { audio } from './audio';
@@ -76,7 +76,7 @@ export function installDebug(): void {
     snapshot() {
       const snap = viewport.snapshot();
       snap.screen = getState().screen;
-      snap.hud = getState().hud;
+      snap.hud = getHUD();
       return snap;
     },
     errors: window.__spgErrors ?? [],

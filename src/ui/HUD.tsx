@@ -178,11 +178,17 @@ function Minimap({ track, dots }: { track: { id: string }; dots: RaceHUDState['m
   const ref = useRef<HTMLCanvasElement>(null);
   const pathRef = useRef<{ x: number; y: number }[] | null>(null);
   const idRef = useRef('');
+  const drawnAt = useRef(0);
   useEffect(() => {
     if (idRef.current !== track.id) {
       pathRef.current = new TrackData(TRACK_BY_ID[track.id]).minimap(5);
       idRef.current = track.id;
+      drawnAt.current = 0;
     }
+    // dots arrive with every HUD update; a 5 Hz redraw is plenty for a minimap
+    const now = performance.now();
+    if (now - drawnAt.current < 200) return;
+    drawnAt.current = now;
     const c = ref.current;
     if (!c || !pathRef.current) return;
     const ctx = c.getContext('2d')!;

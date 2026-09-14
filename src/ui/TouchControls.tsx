@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { memo, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { input, type TouchState } from '@/game/input/Input';
 import { IArrowLeft, IArrowRight, IArrowUp, IArrowDown, INitro, IFire, IRun, IRefresh } from './icons';
 import { viewport } from '@/game/Viewport';
@@ -34,7 +34,7 @@ function HoldBtn({ k, className, children, style }: { k: Key; className?: string
   );
 }
 
-export function RaceTouch() {
+export const RaceTouch = memo(function RaceTouch() {
   useEffect(() => () => input.reset(), []);
   return (
     <div className="touch">
@@ -47,9 +47,9 @@ export function RaceTouch() {
       <button className="tbtn sm" style={{ left: 'calc(50% - 30px)', top: 'calc(48px + var(--sat))', width: 60, height: 40 }} onClick={() => (viewport.getController() as { respawn?: () => void } | null)?.respawn?.()} aria-label="respawn"><IRefresh /></button>
     </div>
   );
-}
+});
 
-export function BossTouch() {
+export const BossTouch = memo(function BossTouch() {
   const stickRef = useRef<HTMLDivElement>(null);
   const knobRef = useRef<HTMLElement>(null);
   const stickId = useRef<number | null>(null);
@@ -111,4 +111,4 @@ export function BossTouch() {
       <HoldBtn k="sprint" className="cyan sm" style={{ right: 'calc(120px + var(--sar))', bottom: 'calc(30px + var(--sab))' }}><IRun /></HoldBtn>
     </div>
   );
-}
+});

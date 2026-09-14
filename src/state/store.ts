@@ -19,7 +19,6 @@ export interface AppState {
   save: SaveData;
   loadProgress: number; // 0..1
   loaded: boolean;
-  hud: HUDState | null;
   results: GameResults | null;
   story: StoryCtx | null;
   race: RaceParams | null;
@@ -43,7 +42,6 @@ let state: AppState = {
   save: loadSave(),
   loadProgress: 0,
   loaded: false,
-  hud: null,
   results: null,
   story: null,
   race: null,
@@ -95,19 +93,23 @@ export function toast(text: string, tone: 'info' | 'good' | 'warn' = 'info'): vo
 // ---------- navigation ----------
 
 export function goto(screen: ScreenId): void {
-  setState((s) => ({ prevScreen: s.screen, screen, paused: false, hud: screen === 'race' || screen === 'boss' ? s.hud : null }));
+  if (screen !== 'race' && screen !== 'boss') setHUD(null);
+  setState((s) => ({ prevScreen: s.screen, screen, paused: false }));
 }
 
 export function startRace(params: RaceParams): void {
-  setState((s) => ({ race: params, boss: null, sessionKey: s.sessionKey + 1, hud: null, results: null, prevScreen: s.screen, screen: 'race', paused: false }));
+  setHUD(null);
+  setState((s) => ({ race: params, boss: null, sessionKey: s.sessionKey + 1, results: null, prevScreen: s.screen, screen: 'race', paused: false }));
 }
 
 export function startBoss(params: BossParams): void {
-  setState((s) => ({ boss: params, race: null, sessionKey: s.sessionKey + 1, hud: null, results: null, prevScreen: s.screen, screen: 'boss', paused: false }));
+  setHUD(null);
+  setState((s) => ({ boss: params, race: null, sessionKey: s.sessionKey + 1, results: null, prevScreen: s.screen, screen: 'boss', paused: false }));
 }
 
 export function restartSession(): void {
-  setState((s) => ({ sessionKey: s.sessionKey + 1, hud: null, paused: false }));
+  setHUD(null);
+  setState((s) => ({ sessionKey: s.sessionKey + 1, paused: false }));
 }
 
 export function setPaused(p: boolean): void {
@@ -270,9 +272,9 @@ export function finishSession(r: GameResults): void {
   const rivalId = story?.rivalId ?? (race?.career ? CAREER.find((c) => c.trackId === race.trackId)?.rivalId : undefined);
   const won = r.kind === 'race' ? r.player.place === 1 : r.won;
   if (rivalId && RIVALS[rivalId] && (race?.career || r.kind === 'boss')) {
-    setState({ results: r, story: { rivalId, phase: 'after', won }, prevScreen: state.screen, screen: 'story', hud: null });
+    setState({ results: r, story: { rivalId, phase: 'after', won }, prevScreen: state.screen, screen: 'story' });
   } else {
-    setState({ results: r, story: null, prevScreen: state.screen, screen: 'results', hud: null });
+    setState({ results: r, story: null, prevScreen: state.screen, screen: 'results' });
   }
 }
 
@@ -280,9 +282,28 @@ export function setLoadProgress(p: number): void {
   setState({ loadProgress: p, loaded: p >= 1 });
 }
 
+// HUD lives in its own tiny store: it changes 10–20 times a second and must only
+// re-render the HUD layer, never the whole app tree.
+let hudState: HUDState | null = null;
+const hudListeners = new Set<Listener>();
+function subscribeHud(l: Listener): () => void {
+  hudListeners.add(l);
+  return () => hudListeners.delete(l);
+}
+
 export function setHUD(h: HUDState | null): void {
-  state = { ...state, hud: h };
-  emit();
+  if (h === hudState) return;
+  hudState = h;
+  for (const l of hudListeners) l();
+}
+
+export function getHUD(): HUDState | null {
+  return hudState;
+}
+
+/** Selector must return a primitive or the HUD object itself (stable between updates). */
+export function useHud<T>(sel: (h: HUDState | null) => T): T {
+  return useSyncExternalStore(subscribeHud, () => sel(hudState), () => sel(hudState));
 }
 
 export function setInitials(v: string): void {

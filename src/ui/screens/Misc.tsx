@@ -295,7 +295,7 @@ export function Results() {
             )}
             <div className="hr" />
             <div className="btn-row">
-              <button className="btn primary" onClick={() => { click(); if (race) { restartSession(); setState({ prevScreen: 'results', screen: 'race', hud: null, results: null }); } }}>{S.results.again}</button>
+              <button className="btn primary" onClick={() => { click(); if (race) { restartSession(); setState({ prevScreen: 'results', screen: 'race', results: null }); } }}>{S.results.again}</button>
               {r.career && <button className="btn" onClick={() => { click(); goto('career'); }}>{S.results.next}</button>}
               <button className="btn ghost" onClick={() => { click(); goto('menu'); }}>{S.results.menu}</button>
             </div>
