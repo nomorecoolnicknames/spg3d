@@ -90,6 +90,8 @@ function colourTint(tag: string): [number, number, number] | null {
 interface Facade {
   main: CellName;
   ground?: CellName;
+  /** shop fronts: the ground floor splits into runs of a few bays, each with a random module from the list */
+  groundMix?: CellName[];
   groundH: number;
   cap?: CellName;
   capH: number;
@@ -115,7 +117,7 @@ function facadeFor(style: OsmStyle, kind: number, h: number, footprint: number, 
     // low 19th-century depots and warehouses (Ligovsky 50 and the like): bare red brick
     if (h <= 11 && kind !== K.house && kind !== K.religious) return { ...f, main: pick(['redWin', 'redWin', 'brickWin'] as const), ground: 'redDoor', groundH: 4.2, cap: 'brickTop', capH: 0.7, floor: 3.6, bay: 3.4, roof: 'metalVent' };
     const tint = paint ?? tintOf(pick(SPB_PAINT));
-    return { ...f, main: pick(['plWin', 'plWinPed', 'plWin'] as const), ground: kind === K.commercial || kind === K.station ? 'stalShop' : 'plRustic', groundH: 4.4, cap: 'plCornice', capH: 1.4, floor: 3.7, bay: 3.4, tint, roof: 'metalVent' };
+    return { ...f, main: pick(['plWin', 'plWinPed', 'plWin'] as const), ground: 'plRustic', groundMix: kind === K.commercial || kind === K.station ? ['stalShop', 'stalShop', 'plRustic'] : undefined, groundH: 4.4, cap: 'plCornice', capH: 1.4, floor: 3.7, bay: 3.4, tint, roof: 'metalVent' };
   }
   if (style === 'waw') {
     if (h >= 60) return { ...f, main: pick(['glassBlue', 'glassDark', 'glassSpandrel'] as const), ground: 'glassLobby', groundH: 6, floor: 3.8, bay: 3.2, office: true, roof: 'roofGravel' };
@@ -126,7 +128,7 @@ function facadeFor(style: OsmStyle, kind: number, h: number, footprint: number, 
   // Shchyolkovo: prefab panel blocks, brick five-storeys, late-Soviet and new commercial centres
   if (kind === K.commercial) {
     if (h >= 16) return { ...f, main: pick(['glassSpandrel', 'towerWin'] as const), ground: 'glassLobby', groundH: 4.5, floor: 3.4, office: true };
-    return { ...f, main: pick(['brickWin', 'redWin'] as const), ground: pick(SHOPS_RU), groundH: 4, cap: 'brickTop', capH: 0.8, floor: 3.2 };
+    return { ...f, main: pick(['brickWin', 'redWin'] as const), ground: 'brickDoor', groundMix: [...SHOPS_RU, 'brickBlank'], groundH: 4, cap: 'brickTop', capH: 0.8, floor: 3.2 };
   }
   if (kind === K.civic || kind === K.station || kind === K.religious) return { ...f, main: pick(['stalWin', 'stalWinPed'] as const), ground: 'stalRustic', groundH: 3.6, cap: 'stalCornice', capH: 1.2, floor: 3.4, bay: 3.2, tint: paint ?? tintOf(pick(['#e9e0cc', '#e6d3a3', '#d9a38f'])) };
   if (h >= 24) return { ...f, main: pick(['panelWin', 'panelLoggia', 'panelWinB', 'panelLoggiaB'] as const), cap: 'panelTop', capH: 1.2, floor: 2.8, bay: 3.2 };
@@ -484,7 +486,18 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
         if (y1 - y0 < 0.2) return;
         b.quadFacing(dir, v(p.x, y0, p.z), v(q.x, y0, q.z), v(q.x, y1, q.z), v(p.x, y1, p.z), cell, [bays, rows], eseed, [0, 0], lamp);
       };
-      if (groundTop > base) band(base, groundTop, fa.ground!, 1);
+      if (groundTop > base && fa.groundMix && bays >= 2) {
+        // shop fronts in runs of 1–3 bays along the edge
+        let k = 0;
+        while (k < bays) {
+          const run = Math.min(bays - k, 1 + Math.floor(rnd() * 3));
+          const t0 = k / bays, t1 = (k + run) / bays;
+          const p0 = v(p.x + dx * t0, base, p.z + dz * t0), p1 = v(p.x + dx * t1, base, p.z + dz * t1);
+          const ls = lamp && { ...lamp, s0: lamp.s0 + (lamp.s1 - lamp.s0) * t0, s1: lamp.s0 + (lamp.s1 - lamp.s0) * t1 };
+          b.quadFacing(dir, p0, p1, v(p1.x, groundTop, p1.z), v(p0.x, groundTop, p0.z), pick(fa.groundMix), [run, 1], eseed + k * 0.013, [0, 0], ls);
+          k += run;
+        }
+      } else if (groundTop > base) band(base, groundTop, fa.ground!, 1);
       const floors = Math.max(1, Math.round((capBottom - groundTop) / fa.floor));
       band(groundTop, capBottom, fa.main, floors);
       if (capBottom < h) band(capBottom, h, fa.cap!, 1);
@@ -737,7 +750,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
       const geo = mergeGeometries(pools)!;
       pools.forEach((p) => p.dispose());
       const tex = softSpriteTexture(1, 0);
-      const mat = new THREE.MeshBasicMaterial({ map: tex, color: '#ffb25c', transparent: true, opacity: 0.2, depthWrite: false, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -2 });
+      const mat = new THREE.MeshBasicMaterial({ map: tex, color: '#ffb25c', transparent: true, opacity: 0.13, depthWrite: false, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -2 });
       const mesh = new THREE.Mesh(geo, mat);
       mesh.renderOrder = 2;
       mesh.name = 'osm:pools';

@@ -212,8 +212,16 @@ function mergeShort(pts, minLen) {
     const n = pts.length;
     for (let i = 0; i < n; i++) {
       const a = pts[i], b = pts[(i + 1) % n];
-      if (dist(a, b) >= minLen) continue;
       const p = pts[(i - 1 + n) % n], q = pts[(i + 2) % n];
+      const len = dist(a, b);
+      // a short link between two turns the same way (a slip lane at a junction) is one corner too
+      const turn = (u, w, z) => {
+        const ax = w[0] - u[0], az = w[1] - u[1], bx = z[0] - w[0], bz = z[1] - w[1];
+        return Math.atan2(ax * bz - az * bx, ax * bx + az * bz);
+      };
+      const ta = turn(p, a, b), tb = turn(a, b, q);
+      const sameWay = Math.sign(ta) === Math.sign(tb) && Math.abs(ta) > 0.35 && Math.abs(tb) > 0.35;
+      if (len >= minLen && !(sameWay && len < 34)) continue;
       // intersect line p→a with line q→b
       const d1 = [a[0] - p[0], a[1] - p[1]], d2 = [b[0] - q[0], b[1] - q[1]];
       const den = d1[0] * d2[1] - d1[1] * d2[0];

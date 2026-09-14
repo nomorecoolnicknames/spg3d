@@ -186,7 +186,12 @@ export class RaceScene implements SceneController {
     this.mesh = buildTrackMesh(this.track, { shadows: q.shadows, low: q.level === 'low' });
     this.scene.add(this.mesh.group);
     const world = spec.map ? getMapWorld(spec.map) : undefined;
-    this.props = world ? buildOsmCity(this.track, world, q) : spec.theme === 'city' ? buildCity(this.track, q) : buildProps(this.track, this.mesh.terrainHeight, { shadows: q.shadows, level: q.level });
+    const worldT0 = performance.now();
+    const osm = world ? buildOsmCity(this.track, world, q) : null;
+    this.props = osm ?? (spec.theme === 'city' ? buildCity(this.track, q) : buildProps(this.track, this.mesh.terrainHeight, { shadows: q.shadows, level: q.level }));
+    const worldMs = Math.round(performance.now() - worldT0);
+    // QA: how long the world took to build (phones are a few times slower than the headless desktop)
+    window.__spg.knobs.worldStats = () => ({ ms: worldMs, ...(osm?.stats ?? {}) });
     this.scene.add(this.props.group);
     if (spec.theme === 'desert' && spec.features) this.features = buildCanyonFeatures(this.track, this.mesh.terrainHeight, q);
     if (spec.theme === 'snow' && spec.features) this.features = buildAlpineFeatures(this.track, this.mesh.terrainHeight, q);
@@ -950,6 +955,7 @@ export class RaceScene implements SceneController {
     delete window.__spg.knobs.skipCountdown;
     delete window.__spg.knobs.finishNow;
     delete window.__spg.knobs.viewFrom;
+    delete window.__spg.knobs.worldStats;
     this.scene.clear();
   }
 }
