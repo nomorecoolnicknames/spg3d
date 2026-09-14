@@ -88,9 +88,25 @@ export function GameHost() {
       const p = getState().boss;
       if (!p) return;
       showcaseRef.current = null;
-      const scene = new BossScene(p, cb);
-      viewport.setController(scene);
-      window.__spg.knobs.scene = () => scene;
+      const launch = () => {
+        const scene = new BossScene(p, cb);
+        viewport.setController(scene);
+        window.__spg.knobs.scene = () => scene;
+      };
+      // the final is fought in the yard of Ligovsky 50: it needs the Ligovsky map data
+      if (getMapWorld('ligovsky')) {
+        launch();
+        return;
+      }
+      let cancelled = false;
+      loadMapWorld('ligovsky')
+        .catch((err) => console.error('map load failed', err))
+        .finally(() => {
+          if (!cancelled) launch();
+        });
+      return () => {
+        cancelled = true;
+      };
     } else if (SHOWCASE_SCREENS.has(screen)) {
       if (!showcaseRef.current) {
         showcaseRef.current = new ShowcaseScene();

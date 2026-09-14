@@ -112,6 +112,8 @@ function facadeFor(style: OsmStyle, kind: number, h: number, footprint: number, 
   if (kind === K.industrial) return { ...f, main: pick(['corrGrey', 'corrBlue', 'wareWin', 'brickBlank'] as const), floor: 4.2, bay: 4, roof: 'roofGravel' };
   if (style === 'spb') {
     if ((kind === K.commercial && footprint > 2500) || h > 40) return { ...f, main: pick(['glassSpandrel', 'glassDark'] as const), ground: 'glassLobby', groundH: 5, floor: 3.8, bay: 3.4, office: true };
+    // low 19th-century depots and warehouses (Ligovsky 50 and the like): bare red brick
+    if (h <= 11 && kind !== K.house && kind !== K.religious) return { ...f, main: pick(['redWin', 'redWin', 'brickWin'] as const), ground: 'redDoor', groundH: 4.2, cap: 'brickTop', capH: 0.7, floor: 3.6, bay: 3.4, roof: 'metalVent' };
     const tint = paint ?? tintOf(pick(SPB_PAINT));
     return { ...f, main: pick(['plWin', 'plWinPed', 'plWin'] as const), ground: kind === K.commercial || kind === K.station ? 'stalShop' : 'plRustic', groundH: 4.4, cap: 'plCornice', capH: 1.4, floor: 3.7, bay: 3.4, tint, roof: 'metalVent' };
   }
@@ -132,11 +134,20 @@ function facadeFor(style: OsmStyle, kind: number, h: number, footprint: number, 
   return { ...f, main: pick(['brickWin', 'brickBalcony', 'redWin'] as const), cap: 'brickTop', capH: 0.8, floor: 3, bay: 3.2 };
 }
 
-export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level: 'low' | 'medium' | 'high' }): OsmCityRig {
+export interface OsmCityOptions {
+  /** boss courtyard: keep this circle clear (buildings slide out of it) and build only `reach` metres around it */
+  arena?: { x: number; z: number; r: number; reach: number };
+}
+
+/** `track` = the race route (pavements, lamps, bridges, signs); null builds the surroundings of an arena */
+export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: { level: 'low' | 'medium' | 'high' }, opts: OsmCityOptions = {}): OsmCityRig {
   seed = 20260915;
   const style = world.style;
   const SEC = world.sector;
-  const HALF = track.halfW;
+  const HALF = track?.halfW ?? 8;
+  const arena = opts.arena;
+  const inReach = (x: number, z: number, margin = 0) => !arena || Math.hypot(x - arena.x, z - arena.z) < arena.reach + margin;
+  const inArena = (x: number, z: number, margin = 0) => !!arena && Math.hypot(x - arena.x, z - arena.z) < arena.r + margin;
   const LAMP_OFF = HALF + 3.3;
   const waterY = WATER_Y[style];
   const group = new THREE.Group();
@@ -155,13 +166,14 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
   // ── route lookup: nearest centreline sample, lateral offset and lap distance of a point
   const HASH = 24;
   const hash = new Map<string, number[]>();
-  track.samples.forEach((s, i) => {
+  track?.samples.forEach((s, i) => {
     const k = `${Math.floor(s.pos.x / HASH)},${Math.floor(s.pos.z / HASH)}`;
     const list = hash.get(k);
     if (list) list.push(i);
     else hash.set(k, [i]);
   });
   const near = (x: number, z: number, reach = 1): { i: number; d: number; lat: number; s: number } => {
+    if (!track) return { i: -1, d: Infinity, lat: 0, s: 0 };
     const cx = Math.floor(x / HASH), cz = Math.floor(z / HASH);
     let best = -1, bd = Infinity;
     for (let dx = -reach; dx <= reach; dx++) {
@@ -192,6 +204,7 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
   for (let x = bx0; x < bx1; x += SEC) {
     for (let z = bz0; z < bz1; z += SEC) {
       const sx = Math.round(x / SEC), sz = Math.round(z / SEC);
+      if (!inReach(x + SEC / 2, z + SEC / 2, SEC * 0.75)) continue;
       const b = gb(x + SEC / 2, z + SEC / 2);
       const polys = wetSectors.get(`${sx},${sz}`);
       if (!polys) {
@@ -220,7 +233,8 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
   // ── water surface
   if (world.water.length) {
     const pos: number[] = [], idx: number[] = [];
-    for (const [, , polys] of world.water) {
+    for (const [wsx, wsz, polys] of world.water) {
+      if (!inReach((wsx + 0.5) * SEC, (wsz + 0.5) * SEC, SEC * 0.75)) continue;
       for (const poly of polys) {
         const rings = poly.map(decode);
         const { pts, tris } = triangulate(rings[0], rings.slice(1));
@@ -258,6 +272,7 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
       cx += p.x;
       cz += p.z;
     }
+    if (!inReach(cx / outer.length, cz / outer.length) || inArena(cx / outer.length, cz / outer.length)) continue;
     const { pts, tris } = triangulate(outer, holes);
     gb(cx / outer.length, cz / outer.length).flatPoly(pts, tris, AREA_Y[kind], cell[0], cell[1]);
     if (kind === 1) greenAreas.push(outer);
@@ -274,6 +289,7 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
       const a = line[i], c = line[i + 1];
       const dx = c.x - a.x, dz = c.z - a.z, l = Math.hypot(dx, dz);
       if (l < 0.1) continue;
+      if (!inReach((a.x + c.x) / 2, (a.z + c.z) / 2) || inArena((a.x + c.x) / 2, (a.z + c.z) / 2, w / 2 + 1)) continue;
       const ux = dx / l, uz = dz / l, nx = -uz * (w / 2), nz = ux * (w / 2);
       const ex = ux * (w / 2), ez = uz * (w / 2);
       const quad = [{ x: a.x + nx - ex, z: a.z + nz - ez }, { x: c.x + nx + ex, z: c.z + nz + ez }, { x: c.x - nx + ex, z: c.z - nz + ez }, { x: a.x - nx - ex, z: a.z - nz - ez }];
@@ -297,9 +313,9 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
       const dx = c.x - a.x, dz = c.z - a.z, l = Math.hypot(dx, dz);
       if (l < 0.1) continue;
       const mx = (a.x + c.x) / 2, mz = (a.z + c.z) / 2;
+      if (!inReach(mx, mz) || inArena(mx, mz, 1)) continue;
       const r = near(mx, mz);
-      const onRoute = r.d < HALF - 0.8;
-      const y = onRoute ? track.samples[r.i].pos.y + 0.02 : kind === 1 ? STREET_Y + 0.05 : AREA_Y[3] + 0.05;
+      const y = track && r.d < HALF - 0.8 ? track.samples[r.i].pos.y + 0.02 : kind === 1 ? STREET_Y + 0.05 : AREA_Y[3] + 0.05;
       const ux = dx / l, uz = dz / l;
       const b = gb(mx, mz);
       for (const off of [-0.72, 0.72]) {
@@ -312,100 +328,102 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
   }
 
   // ── route: raised pavements with curbs, bridge decks, street lamps
-  const n = track.count;
-  const L = LAMP_OFF - HALF;
   const lamps: Lamp[] = [];
   const lampPosts: { x: number; y: number; z: number; side: number; i: number }[] = [];
   const pinkLights: Lamp[] = [];
-  {
-    const STEP = 3;
-    for (let i = 0; i < n; i += STEP) {
-      const j = Math.min(i + STEP, n);
-      const sa = track.samples[i], sb = track.samples[j % n];
-      const da = sa.dist, db = j === n ? track.length : sb.dist;
-      for (const side of [-1, 1]) {
-        const at = (s: typeof sa, lat: number, y: number) => v(s.pos.x + s.left.x * lat * side, s.pos.y + y, s.pos.z + s.left.z * lat * side);
-        const b = gb(sa.pos.x + sa.left.x * side * (HALF + 2), sa.pos.z + sa.left.z * side * (HALF + 2));
-        const lamp: LampSpace = { s0: da, s1: db, perp0: -L, perp1: PAVE - L, spacing: LAMP_SPACING, height: LAMP_H, k: 1 };
-        b.quadFacing(UP, at(sa, HALF, CURB), at(sb, HALF, CURB), at(sb, HALF + PAVE, CURB), at(sa, HALF + PAVE, CURB), style === 'spb' ? 'granite' : 'pavement', [(db - da) / 3, PAVE / 3], 0, [0, 0], lamp);
-        const seg = db - da;
-        const inward = v(-sa.left.x * side, 0, -sa.left.z * side);
-        b.quadFacing(inward, at(sa, HALF, STREET_Y), at(sb, HALF, STREET_Y), at(sb, HALF, CURB), at(sa, HALF, CURB), 'granite', [seg / 2, 0.1]);
-        const bridge = sa.pos.y > 0.05 || sb.pos.y > 0.05;
-        const bottom = bridge ? -1.2 : GROUND_Y;
-        b.quadFacing(v(-inward.x, 0, -inward.z), at(sa, HALF + PAVE, bottom), at(sb, HALF + PAVE, bottom), at(sb, HALF + PAVE, CURB), at(sa, HALF + PAVE, CURB), bridge ? 'concrete' : 'granite', [seg / 3, (CURB - bottom) / 3]);
-      }
-      if (sa.pos.y > 0.05 || sb.pos.y > 0.05) {
-        // bridge underside across the full width
-        const b = gb(sa.pos.x, sa.pos.z);
-        const W = HALF + PAVE;
-        const at = (s: typeof sa, lat: number) => v(s.pos.x + s.left.x * lat, s.pos.y - 1.2, s.pos.z + s.left.z * lat);
-        b.quadFacing(v(0, -1, 0), at(sa, -W), at(sb, -W), at(sb, W), at(sa, W), 'concrete', [W / 3, (db - da) / 3]);
-      }
-    }
-    // piers under bridges where there is water below, and the pink LED line of Shchyolkovo's Proletarsky bridge
-    let run: number[] = [];
-    const flushBridge = () => {
-      if (run.length < 4) {
-        run = [];
-        return;
-      }
-      const spanLen = run.length * track.spacing;
-      const pink = style === 'shch' && spanLen > 45;
-      for (let k = 0; k < run.length; k += Math.max(1, Math.round(16 / track.spacing))) {
-        const s = track.samples[run[k]];
-        const heading = Math.atan2(s.tan.x, s.tan.z);
-        const pierH = s.pos.y - 1.2 - (waterY - 1);
-        gb(s.pos.x, s.pos.z).box(s.pos.x, s.pos.z, waterY - 1, (HALF + PAVE) * 1.6, 1.6, pierH, heading, { front: { cell: 'concrete', tile: [3, 1] }, back: { cell: 'concrete', tile: [3, 1] }, left: { cell: 'concrete', tile: [0.5, 1] }, right: { cell: 'concrete', tile: [0.5, 1] } });
-      }
-      if (pink) {
-        const pos: number[] = [];
-        for (let k = 0; k + 1 < run.length; k++) {
-          const a = track.samples[run[k]], c = track.samples[run[k + 1]];
-          for (const side of [-1, 1]) {
-            const W = (HALF + PAVE + 0.05) * side;
-            const ax = a.pos.x + a.left.x * W, az = a.pos.z + a.left.z * W, cx2 = c.pos.x + c.left.x * W, cz2 = c.pos.z + c.left.z * W;
-            const y0 = a.pos.y - 1.1, y1 = a.pos.y - 0.75, y2 = c.pos.y - 1.1, y3 = c.pos.y - 0.75;
-            pos.push(ax, y0, az, cx2, y2, cz2, cx2, y3, cz2, ax, y0, az, cx2, y3, cz2, ax, y1, az);
-          }
-          if (k % Math.max(1, Math.round(14 / track.spacing)) === 0) {
-            for (const side of [-1, 1]) pinkLights.push({ x: a.pos.x + a.left.x * side * (HALF + 1), y: a.pos.y - 2.2, z: a.pos.z + a.left.z * side * (HALF + 1), color: '#ff3fd2', range: 22, intensity: 1.4 });
-          }
+  if (track) {
+    const n = track.count;
+    const L = LAMP_OFF - HALF;
+    {
+      const STEP = 3;
+      for (let i = 0; i < n; i += STEP) {
+        const j = Math.min(i + STEP, n);
+        const sa = track.samples[i], sb = track.samples[j % n];
+        const da = sa.dist, db = j === n ? track.length : sb.dist;
+        for (const side of [-1, 1]) {
+          const at = (s: typeof sa, lat: number, y: number) => v(s.pos.x + s.left.x * lat * side, s.pos.y + y, s.pos.z + s.left.z * lat * side);
+          const b = gb(sa.pos.x + sa.left.x * side * (HALF + 2), sa.pos.z + sa.left.z * side * (HALF + 2));
+          const lamp: LampSpace = { s0: da, s1: db, perp0: -L, perp1: PAVE - L, spacing: LAMP_SPACING, height: LAMP_H, k: 1 };
+          b.quadFacing(UP, at(sa, HALF, CURB), at(sb, HALF, CURB), at(sb, HALF + PAVE, CURB), at(sa, HALF + PAVE, CURB), style === 'spb' ? 'granite' : 'pavement', [(db - da) / 3, PAVE / 3], 0, [0, 0], lamp);
+          const seg = db - da;
+          const inward = v(-sa.left.x * side, 0, -sa.left.z * side);
+          b.quadFacing(inward, at(sa, HALF, STREET_Y), at(sb, HALF, STREET_Y), at(sb, HALF, CURB), at(sa, HALF, CURB), 'granite', [seg / 2, 0.1]);
+          const bridge = sa.pos.y > 0.05 || sb.pos.y > 0.05;
+          const bottom = bridge ? -1.2 : GROUND_Y;
+          b.quadFacing(v(-inward.x, 0, -inward.z), at(sa, HALF + PAVE, bottom), at(sb, HALF + PAVE, bottom), at(sb, HALF + PAVE, CURB), at(sa, HALF + PAVE, CURB), bridge ? 'concrete' : 'granite', [seg / 3, (CURB - bottom) / 3]);
         }
-        const g = new THREE.BufferGeometry();
-        g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-        const m = new THREE.MeshBasicMaterial({ color: '#ff40d0', side: THREE.DoubleSide, toneMapped: false });
-        const mesh = new THREE.Mesh(g, m);
-        mesh.name = 'osm:bridge-led';
-        group.add(mesh);
-        disposables.push(g, m);
+        if (sa.pos.y > 0.05 || sb.pos.y > 0.05) {
+          // bridge underside across the full width
+          const b = gb(sa.pos.x, sa.pos.z);
+          const W = HALF + PAVE;
+          const at = (s: typeof sa, lat: number) => v(s.pos.x + s.left.x * lat, s.pos.y - 1.2, s.pos.z + s.left.z * lat);
+          b.quadFacing(v(0, -1, 0), at(sa, -W), at(sb, -W), at(sb, W), at(sa, W), 'concrete', [W / 3, (db - da) / 3]);
+        }
       }
-      run = [];
-    };
-    for (let i = 0; i < n; i++) {
-      if (track.samples[i].pos.y > 0.3) run.push(i);
-      else flushBridge();
-    }
-    flushBridge();
+      // piers under bridges where there is water below, and the pink LED line of Shchyolkovo's Proletarsky bridge
+      let run: number[] = [];
+      const flushBridge = () => {
+        if (run.length < 4) {
+          run = [];
+          return;
+        }
+        const spanLen = run.length * track.spacing;
+        const pink = style === 'shch' && spanLen > 45;
+        for (let k = 0; k < run.length; k += Math.max(1, Math.round(16 / track.spacing))) {
+          const s = track.samples[run[k]];
+          const heading = Math.atan2(s.tan.x, s.tan.z);
+          const pierH = s.pos.y - 1.2 - (waterY - 1);
+          gb(s.pos.x, s.pos.z).box(s.pos.x, s.pos.z, waterY - 1, (HALF + PAVE) * 1.6, 1.6, pierH, heading, { front: { cell: 'concrete', tile: [3, 1] }, back: { cell: 'concrete', tile: [3, 1] }, left: { cell: 'concrete', tile: [0.5, 1] }, right: { cell: 'concrete', tile: [0.5, 1] } });
+        }
+        if (pink) {
+          const pos: number[] = [];
+          for (let k = 0; k + 1 < run.length; k++) {
+            const a = track.samples[run[k]], c = track.samples[run[k + 1]];
+            for (const side of [-1, 1]) {
+              const W = (HALF + PAVE + 0.05) * side;
+              const ax = a.pos.x + a.left.x * W, az = a.pos.z + a.left.z * W, cx2 = c.pos.x + c.left.x * W, cz2 = c.pos.z + c.left.z * W;
+              const y0 = a.pos.y - 1.1, y1 = a.pos.y - 0.75, y2 = c.pos.y - 1.1, y3 = c.pos.y - 0.75;
+              pos.push(ax, y0, az, cx2, y2, cz2, cx2, y3, cz2, ax, y0, az, cx2, y3, cz2, ax, y1, az);
+            }
+            if (k % Math.max(1, Math.round(14 / track.spacing)) === 0) {
+              for (const side of [-1, 1]) pinkLights.push({ x: a.pos.x + a.left.x * side * (HALF + 1), y: a.pos.y - 2.2, z: a.pos.z + a.left.z * side * (HALF + 1), color: '#ff3fd2', range: 22, intensity: 1.4 });
+            }
+          }
+          const g = new THREE.BufferGeometry();
+          g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+          const m = new THREE.MeshBasicMaterial({ color: '#ff40d0', side: THREE.DoubleSide, toneMapped: false });
+          const mesh = new THREE.Mesh(g, m);
+          mesh.name = 'osm:bridge-led';
+          group.add(mesh);
+          disposables.push(g, m);
+        }
+        run = [];
+      };
+      for (let i = 0; i < n; i++) {
+        if (track.samples[i].pos.y > 0.3) run.push(i);
+        else flushBridge();
+      }
+      flushBridge();
 
-    for (let k = 0; ; k++) {
-      const s = (k + 0.5) * LAMP_SPACING;
-      if (s > track.length - LAMP_SPACING / 2) break;
-      const i = Math.floor(s / track.spacing) % n;
-      const sm = track.samples[i];
-      for (const side of [-1, 1]) lampPosts.push({ x: sm.pos.x + sm.left.x * side * LAMP_OFF, y: sm.pos.y + CURB, z: sm.pos.z + sm.left.z * side * LAMP_OFF, side, i });
+      for (let k = 0; ; k++) {
+        const s = (k + 0.5) * LAMP_SPACING;
+        if (s > track.length - LAMP_SPACING / 2) break;
+        const i = Math.floor(s / track.spacing) % n;
+        const sm = track.samples[i];
+        for (const side of [-1, 1]) lampPosts.push({ x: sm.pos.x + sm.left.x * side * LAMP_OFF, y: sm.pos.y + CURB, z: sm.pos.z + sm.left.z * side * LAMP_OFF, side, i });
+      }
     }
-  }
-  const pole = { cell: 'metalVent' as CellName, tile: [0.1, 2] as [number, number] };
-  const head = { cell: 'tunnelCeil' as CellName, tile: [0.1, 0.12] as [number, number], start: [0.45, 0.78] as [number, number] };
-  for (const l of lampPosts) {
-    const b = gb(l.x, l.z);
-    const sm = track.samples[l.i];
-    b.box(l.x, l.z, l.y, 0.28, 0.28, LAMP_H, 0, { front: pole, back: pole, left: pole, right: pole });
-    const ax = -sm.left.x * l.side * 1.6, az = -sm.left.z * l.side * 1.6;
-    const heading = Math.atan2(sm.tan.x, sm.tan.z);
-    b.box(l.x + ax, l.z + az, l.y + LAMP_H - 0.25, 0.5, 3.2, 0.3, heading + Math.PI / 2, { front: head, back: head, left: head, right: head, top: { cell: 'metalVent', tile: [0.2, 0.2] } });
-    lamps.push({ x: l.x + ax * 1.8, y: l.y + LAMP_H - 0.35, z: l.z + az * 1.8, color: style === 'waw' ? '#ffd9a8' : '#ffc58a', range: 26 });
+    const pole = { cell: 'metalVent' as CellName, tile: [0.1, 2] as [number, number] };
+    const head = { cell: 'tunnelCeil' as CellName, tile: [0.1, 0.12] as [number, number], start: [0.45, 0.78] as [number, number] };
+    for (const l of lampPosts) {
+      const b = gb(l.x, l.z);
+      const sm = track.samples[l.i];
+      b.box(l.x, l.z, l.y, 0.28, 0.28, LAMP_H, 0, { front: pole, back: pole, left: pole, right: pole });
+      const ax = -sm.left.x * l.side * 1.6, az = -sm.left.z * l.side * 1.6;
+      const heading = Math.atan2(sm.tan.x, sm.tan.z);
+      b.box(l.x + ax, l.z + az, l.y + LAMP_H - 0.25, 0.5, 3.2, 0.3, heading + Math.PI / 2, { front: head, back: head, left: head, right: head, top: { cell: 'metalVent', tile: [0.2, 0.2] } });
+      lamps.push({ x: l.x + ax * 1.8, y: l.y + LAMP_H - 0.35, z: l.z + az * 1.8, color: style === 'waw' ? '#ffd9a8' : '#ffc58a', range: 26 });
+    }
   }
 
   // ── buildings
@@ -425,6 +443,18 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
     }
     cx /= ring.length;
     cz /= ring.length;
+    if (!inReach(cx, cz) && h < 40) continue;
+    if (arena) {
+      // the yard is cleared for the fight: walls inside the circle slide out to its rim
+      if (inArena(cx, cz, -arena.r * 0.15)) continue;
+      const a0 = Math.abs(area(ring));
+      const R = arena.r + 2.5;
+      ring = ring.map((p) => {
+        const dx = p.x - arena.x, dz = p.z - arena.z, d = Math.hypot(dx, dz);
+        return d >= R ? p : { x: arena.x + (dx / (d || 1)) * R, z: arena.z + (dz / (d || 1)) * R };
+      });
+      if (Math.abs(area(ring)) < Math.max(20, a0 * 0.3)) continue;
+    }
     const fp = Math.abs(area(ring));
     const fa = facadeFor(style, kind, h, fp, colour, landmark);
     const b = gb(cx, cz);
@@ -439,7 +469,7 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
       if (len < 0.3) continue;
       const dir = v(dz / len, 0, -dx / len);
       let lamp: LampSpace | undefined;
-      if (nearC.d < 60) {
+      if (track && nearC.d < 60) {
         const ra = near(p.x, p.z, 2), rq = near(q.x, q.z, 2);
         const mid = near((p.x + q.x) / 2, (p.z + q.z) / 2, 2);
         if (ra.i >= 0 && rq.i >= 0 && mid.d < 45 && Math.abs(ra.s - rq.s) < len * 1.5 + 4) {
@@ -508,24 +538,26 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
   }
 
   // ── street furniture: traffic lights at signalised junctions on the route, bus stops
-  const furnitureY = (i: number) => track.samples[i].pos.y + CURB;
-  for (let k = 0; k + 1 < world.signals.length; k += 2) {
-    const x = world.signals[k] / 10, z = world.signals[k + 1] / 10;
-    const r = near(x, z, 2);
-    if (r.i < 0) continue;
-    const sm = track.samples[r.i];
-    for (const side of [-1, 1]) {
-      const px = sm.pos.x + sm.left.x * side * (HALF + 2.5), pz = sm.pos.z + sm.left.z * side * (HALF + 2.5);
-      trafficLight(gb, px, pz, furnitureY(r.i), Math.atan2(-sm.left.x * side, -sm.left.z * side));
+  if (track) {
+    const furnitureY = (i: number) => track.samples[i].pos.y + CURB;
+    for (let k = 0; k + 1 < world.signals.length; k += 2) {
+      const x = world.signals[k] / 10, z = world.signals[k + 1] / 10;
+      const r = near(x, z, 2);
+      if (r.i < 0) continue;
+      const sm = track.samples[r.i];
+      for (const side of [-1, 1]) {
+        const px = sm.pos.x + sm.left.x * side * (HALF + 2.5), pz = sm.pos.z + sm.left.z * side * (HALF + 2.5);
+        trafficLight(gb, px, pz, furnitureY(r.i), Math.atan2(-sm.left.x * side, -sm.left.z * side));
+      }
     }
-  }
-  for (let k = 0; k + 1 < world.stops.length; k += 2) {
-    const x = world.stops[k] / 10, z = world.stops[k + 1] / 10;
-    const r = near(x, z, 2);
-    if (r.i < 0 || Math.abs(((r.s % LAMP_SPACING) + LAMP_SPACING) % LAMP_SPACING - LAMP_SPACING / 2) < 5) continue;
-    const sm = track.samples[r.i];
-    const side = Math.sign(r.lat) || 1;
-    busStop(gb, sm.pos.x + sm.left.x * side * (HALF + 3.6), sm.pos.z + sm.left.z * side * (HALF + 3.6), furnitureY(r.i), Math.atan2(-sm.left.x * side, -sm.left.z * side));
+    for (let k = 0; k + 1 < world.stops.length; k += 2) {
+      const x = world.stops[k] / 10, z = world.stops[k + 1] / 10;
+      const r = near(x, z, 2);
+      if (r.i < 0 || Math.abs(((r.s % LAMP_SPACING) + LAMP_SPACING) % LAMP_SPACING - LAMP_SPACING / 2) < 5) continue;
+      const sm = track.samples[r.i];
+      const side = Math.sign(r.lat) || 1;
+      busStop(gb, sm.pos.x + sm.left.x * side * (HALF + 3.6), sm.pos.z + sm.left.z * side * (HALF + 3.6), furnitureY(r.i), Math.atan2(-sm.left.x * side, -sm.left.z * side));
+    }
   }
 
   // ── landmark models (scripts/blender/landmarks.py) and their floodlights, in model space [x, y, z, colour, range]
@@ -538,9 +570,9 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
   const lib = getGLTF('landmarks');
   for (const [name, xdm, zdm, rotDeg] of world.models) {
     const src = lib?.scene.getObjectByName(name);
-    if (!src) continue;
-    const obj = src.clone(true);
     const x = xdm / 10, z = zdm / 10, rot = (rotDeg * Math.PI) / 180;
+    if (!src || !inReach(x, z) || inArena(x, z, 12)) continue;
+    const obj = src.clone(true);
     obj.position.set(x, GROUND_Y, z);
     obj.rotation.set(0, rot, 0);
     obj.name = `osm:lm:${name}`;
@@ -557,7 +589,7 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
   }
 
   // ── illuminated signs on the facade of a building that faces the route
-  for (const [label, color, topDm, ringF] of world.signs) {
+  if (track) for (const [label, color, topDm, ringF] of world.signs) {
     let ring = decode(ringF);
     if (area(ring) < 0) ring = ring.reverse();
     let best: { score: number; p: P2; q: P2; n: P2; len: number } | null = null;
@@ -634,7 +666,8 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
     const clear = HALF + PAVE + 1.5;
     for (let k = 0; k + 1 < world.trees.length; k += 2) {
       const x = world.trees[k] / 10, z = world.trees[k + 1] / 10;
-      const d = near(x, z, 3).d;
+      if (!inReach(x, z) || inArena(x, z, 3)) continue;
+      const d = arena ? Math.hypot(x - arena.x, z - arena.z) : near(x, z, 3).d;
       if (d > clear) spots.push({ x, y: GROUND_Y, z, s: 0.8 + rnd() * 0.5, d });
     }
     for (const outer of greenAreas) {
@@ -650,7 +683,8 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
       for (let t = 0, got = 0; t < want * 4 && got < want; t++) {
         const p = { x: minx + rnd() * (maxx - minx), z: minz + rnd() * (maxz - minz) };
         if (!inside(p, outer)) continue;
-        const d = near(p.x, p.z, 3).d;
+        if (!inReach(p.x, p.z) || inArena(p.x, p.z, 3)) continue;
+        const d = arena ? Math.hypot(p.x - arena.x, p.z - arena.z) : near(p.x, p.z, 3).d;
         if (d < clear) continue;
         spots.push({ x: p.x, y: AREA_Y[1], z: p.z, s: 0.8 + rnd() * 0.6, d });
         got++;
@@ -670,13 +704,13 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
         for (let i = 0; i + 1 < line.length; i++) {
           const a = line[i], c = line[i + 1];
           const l = Math.hypot(c.x - a.x, c.z - a.z);
-          if (routeDist(a.x, a.z) > 110) continue;
+          if ((arena ? Math.hypot(a.x - arena.x, a.z - arena.z) - arena.r : routeDist(a.x, a.z)) > 110) continue;
           const ux = (c.x - a.x) / l, uz = (c.z - a.z) / l;
           for (let s = 4; s < l - 4; s += 6.2) {
             for (const side of [-1, 1]) {
               if (rnd() > 0.45) continue;
               const x = a.x + ux * s - uz * off * side, z = a.z + uz * s + ux * off * side;
-              if (routeDist(x, z) < HALF + PAVE + 2.5) continue;
+              if (arena ? inArena(x, z, 3) : routeDist(x, z) < HALF + PAVE + 2.5) continue;
               cars.push({ x, y: STREET_Y, z, rot: Math.atan2(ux * side, uz * side) });
             }
           }
@@ -689,7 +723,7 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
   }
 
   // ── light pools on the race road under the lamps
-  {
+  if (track) {
     const pools: THREE.BufferGeometry[] = [];
     for (const l of lampPosts) {
       const sm = track.samples[l.i];

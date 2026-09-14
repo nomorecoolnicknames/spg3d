@@ -6,8 +6,18 @@ import { BOSS_ENV } from '@/data/tracks';
 import { ParticlePool } from './fx';
 import { GeoBuilder, createCityMaterial, type CityMaterialUniforms } from '../world/city/kit';
 import { BUILD, LOT_SIZE, type Archetype, type Lot } from '../world/city/buildings';
+import { buildOsmCity } from '../world/osm/OsmCity';
+import type { OsmWorld } from '../world/osm/types';
 
-export const ARENA_RADIUS = 70;
+/**
+ * The final: the yard of Ligovsky 50 in Saint Petersburg at the entrance of club 1703 (PLAN_V4, stage H).
+ * Arena space is centred in the driveway east of the club door; the real loft warehouses stand around it
+ * (world/osm from the Ligovsky map data), the door with the 1703 sign is on the rim straight ahead of the
+ * player (−z). Without map data the old fictional plaza is built.
+ */
+export const ARENA_RADIUS = 48;
+/** Ligovsky map frame: centre of the fight and the club door (OSM node 6471066191 «1703») */
+const LIG50 = { centre: [36, 50] as const, door: [-10.4, 34.6] as const };
 
 function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas');
@@ -126,10 +136,12 @@ export interface Arena {
   dispose(): void;
 }
 
-export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low: boolean }): Arena {
+export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low: boolean }, world?: OsmWorld): Arena {
   const env = BOSS_ENV;
   const group = new THREE.Group();
   const disposables: THREE.Texture[] = [];
+  const disposers: (() => void)[] = [];
+  let yardFrame: THREE.Group | null = null;
   const obstacles: Arena['obstacles'] = [];
 
   let cityUniforms: CityMaterialUniforms | null = null;
@@ -195,18 +207,20 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
   ground.receiveShadow = true;
   group.add(ground);
   // outer dark asphalt + water beyond
-  const outer = new THREE.Mesh(new THREE.RingGeometry(ARENA_RADIUS + 14, 400, 64), new THREE.MeshStandardMaterial({ color: '#0a0b10', roughness: 0.9, metalness: 0.1 }));
-  outer.rotation.x = -Math.PI / 2;
-  outer.position.y = -0.02;
-  group.add(outer);
-  const water = new THREE.Mesh(new THREE.CircleGeometry(900, 48), new THREE.MeshStandardMaterial({ color: '#06080f', roughness: 0.25, metalness: 0.6, envMapIntensity: 1.2 }));
-  water.rotation.x = -Math.PI / 2;
-  water.position.y = -1.5;
-  group.add(water);
+  if (!world) {
+    const outer = new THREE.Mesh(new THREE.RingGeometry(ARENA_RADIUS + 14, 400, 64), new THREE.MeshStandardMaterial({ color: '#0a0b10', roughness: 0.9, metalness: 0.1 }));
+    outer.rotation.x = -Math.PI / 2;
+    outer.position.y = -0.02;
+    group.add(outer);
+    const water = new THREE.Mesh(new THREE.CircleGeometry(900, 48), new THREE.MeshStandardMaterial({ color: '#06080f', roughness: 0.25, metalness: 0.6, envMapIntensity: 1.2 }));
+    water.rotation.x = -Math.PI / 2;
+    water.position.y = -1.5;
+    group.add(water);
+  }
 
   // central plaza inlay: big concentric ring markings (emissive faint)
   const ringMat = new THREE.MeshBasicMaterial({ color: '#2a2f3d', transparent: true, opacity: 0.55, depthWrite: false });
-  for (const r of [12, 30, 48]) {
+  for (const r of [10, 22, 36]) {
     const rg = new THREE.Mesh(new THREE.RingGeometry(r - 0.25, r + 0.25, 128), ringMat);
     rg.rotation.x = -Math.PI / 2;
     rg.position.y = 0.02;
@@ -218,7 +232,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
   disposables.push(hz);
   const barrierMat = new THREE.MeshStandardMaterial({ map: hz, roughness: 0.85, metalness: 0.05 });
   const barrierGeo = new RoundedBoxGeometry(6.2, 1.2, 0.7, 2, 0.08);
-  const nB = 70;
+  const nB = Math.round((Math.PI * 2 * (ARENA_RADIUS + 2)) / 6.3);
   const barriers = new THREE.InstancedMesh(barrierGeo, barrierMat, nB);
   const m4 = new THREE.Matrix4();
   const q = new THREE.Quaternion();
@@ -277,7 +291,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
   const ribs = new THREE.BoxGeometry(12.02, 0.12, 2.62);
   const ribMat = new THREE.MeshStandardMaterial({ color: '#0e0f13', roughness: 0.8 });
   const stacks: [number, number, number, number][] = [
-    [46, 22, 0.5, 2], [-50, 18, -0.4, 1], [10, -55, 1.2, 2], [-30, -48, 0.3, 1], [52, -28, 2.1, 1],
+    [31, 15, 0.5, 2], [-33, 12, -0.4, 1], [22, -26, 1.2, 2], [-21, -30, 0.3, 1], [36, -8, 2.1, 1],
   ];
   stacks.forEach(([x, z, rot, layers], si) => {
     for (let l = 0; l < layers; l++) {
@@ -296,89 +310,153 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
     obstacles.push({ x, z, r: 6.4 });
   });
 
-  // ---- cranes (silhouettes) ----
-  const craneMat = new THREE.MeshStandardMaterial({ color: '#15161c', roughness: 0.8, metalness: 0.5 });
-  for (const [x, z] of [[-120, -60], [130, -20], [40, -140]]) {
-    const cr = new THREE.Group();
-    const tower = new THREE.Mesh(new THREE.BoxGeometry(4, 60, 4), craneMat);
-    tower.position.y = 30;
-    const jib = new THREE.Mesh(new THREE.BoxGeometry(50, 2.5, 2.5), craneMat);
-    jib.position.set(18, 61, 0);
-    const counter = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 4), craneMat);
-    counter.position.set(-10, 60, 0);
-    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), new THREE.MeshBasicMaterial({ color: '#ff2020' }));
-    beacon.position.set(0, 63, 0);
-    cr.add(tower, jib, counter, beacon);
-    cr.position.set(x, 0, z);
-    cr.rotation.y = Math.random() * Math.PI * 2;
-    group.add(cr);
-  }
-
-  // ---- the embankment around the plaza: Neon City kit buildings (shared city material) ----
-  {
-    let seed = 7331;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    const builders = new Map<string, GeoBuilder>();
-    const gb = (x: number, z: number) => {
-      const k = `${Math.sign(x)},${Math.sign(z)}`;
-      let b = builders.get(k);
-      if (!b) builders.set(k, (b = new GeoBuilder()));
-      return b;
-    };
-    const row = (from: number, to: number, line: number, axis: 'x' | 'z', rot: number, pick: () => Archetype, y0 = 0) => {
-      for (let t = from; t < to; ) {
-        const arch = pick();
-        const [lmin, lmax, depth] = LOT_SIZE[arch];
-        const len = lmin + rnd() * (lmax - lmin);
-        const mid = t + len / 2;
-        const back = depth / 2;
-        const lot: Lot = axis === 'x'
-          ? { cx: mid, cz: line + (rot === 0 ? -back : back), y0, rot, len, depth, seed: rnd() }
-          : { cx: line + (rot === Math.PI / 2 ? -back : back), cz: mid, y0, rot, len, depth, seed: rnd() };
-        BUILD[arch](gb(lot.cx, lot.cz), lot, rnd);
-        t += len + 3 + rnd() * 6;
-      }
-    };
-    // north: stalinka front with towers behind; the MEDKID sign hangs on the middle facade
-    row(-250, 250, -118, 'x', 0, () => (rnd() < 0.8 ? 'stalinka' : 'brick5'));
-    row(-300, 300, -175, 'x', 0, () => (rnd() < 0.45 ? 'tower' : 'panel9'));
-    // west / east sides facing the plaza
-    row(-110, 70, -122, 'z', Math.PI / 2, () => (rnd() < 0.6 ? 'stalinka' : 'panel9'));
-    row(-110, 70, 122, 'z', -Math.PI / 2, () => (rnd() < 0.6 ? 'stalinka' : 'panel9'));
-    // far bank across the water
-    row(-320, 320, 250, 'x', Math.PI, () => (rnd() < 0.6 ? 'stalinka' : 'panel9'));
-    const city = createCityMaterial(true);
-    // the arena is lit hard (sign lights, moon): keep the facades in the dark
-    city.material.color.set('#565a66');
-    for (const b of builders.values()) {
-      const mesh = new THREE.Mesh(b.toGeometry(), city.material);
-      mesh.name = 'arena:city';
-      group.add(mesh);
+  if (world) {
+    // ---- Ligovsky 50: the real loft warehouses, Moskovsky station tracks and Galeria around the yard ----
+    const [cx, cz] = LIG50.centre;
+    const dx = LIG50.door[0] - cx, dz = LIG50.door[1] - cz;
+    const yard = buildOsmCity(null, world, { level: quality.low ? 'low' : 'medium' }, { arena: { x: cx, z: cz, r: ARENA_RADIUS, reach: quality.low ? 220 : 320 } });
+    const frame = new THREE.Group();
+    frame.name = 'arena:lig50';
+    yard.group.position.set(-cx, 0, -cz);
+    frame.add(yard.group);
+    // turn the map so the club door is straight ahead of the player's start (arena −z)
+    frame.rotation.y = Math.atan2(dx, -dz);
+    // added after the static merge below: its sectors stay separate meshes for frustum culling
+    yardFrame = frame;
+    yard.group.traverse((o) => {
+      const mat = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+      if (o.name.startsWith('osm:') && mat && 'color' in mat && !o.name.startsWith('osm:lm')) mat.color.set('#6a6e7a');
+    });
+    disposers.push(() => yard.dispose());
+    const doorDist = Math.hypot(dx, dz);
+    // the club door: a lit portal, the 1703 sign over it and the stage Madkid plays on
+    const door = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.4, 0.4), new THREE.MeshStandardMaterial({ color: '#1a0f10', emissive: '#ff2a3a', emissiveIntensity: 0.35, roughness: 0.4 }));
+    door.position.set(0, 1.7, -doorDist - 0.6);
+    group.add(door);
+    const doorLight = new THREE.PointLight('#ff3040', 60, 30, 1.6);
+    doorLight.position.set(0, 4.5, -doorDist + 3);
+    group.add(doorLight);
+    const stage = new THREE.Group();
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(16, 1.2, 6), new THREE.MeshStandardMaterial({ color: '#16171c', roughness: 0.6, metalness: 0.3 }));
+    deck.position.y = 0.6;
+    stage.add(deck);
+    const trussMat = new THREE.MeshStandardMaterial({ color: '#8a8f99', roughness: 0.35, metalness: 0.9 });
+    for (const sx of [-7.6, 7.6]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.45, 7, 0.45), trussMat);
+      post.position.set(sx, 3.5, -2.6);
+      stage.add(post);
     }
-    cityUniforms = city.uniforms;
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(15.6, 0.45, 0.45), trussMat);
+    beam.position.set(0, 7, -2.6);
+    stage.add(beam);
+    const speakerMat = new THREE.MeshStandardMaterial({ color: '#0b0b0d', roughness: 0.8 });
+    for (const sx of [-6.2, 6.2]) {
+      const sp = new THREE.Mesh(new THREE.BoxGeometry(1.6, 3.2, 1.4), speakerMat);
+      sp.position.set(sx, 2.8, 1.2);
+      stage.add(sp);
+    }
+    stage.position.set(0, 0, -doorDist + 9);
+    group.add(stage);
+    for (const ox of [-6, 0, 6]) obstacles.push({ x: ox, z: -doorDist + 9, r: 3.4 });
+  } else {
+    // ---- cranes (silhouettes) ----
+    const craneMat = new THREE.MeshStandardMaterial({ color: '#15161c', roughness: 0.8, metalness: 0.5 });
+    for (const [x, z] of [[-120, -60], [130, -20], [40, -140]]) {
+      const cr = new THREE.Group();
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(4, 60, 4), craneMat);
+      tower.position.y = 30;
+      const jib = new THREE.Mesh(new THREE.BoxGeometry(50, 2.5, 2.5), craneMat);
+      jib.position.set(18, 61, 0);
+      const counter = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 4), craneMat);
+      counter.position.set(-10, 60, 0);
+      const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), new THREE.MeshBasicMaterial({ color: '#ff2020' }));
+      beacon.position.set(0, 63, 0);
+      cr.add(tower, jib, counter, beacon);
+      cr.position.set(x, 0, z);
+      cr.rotation.y = Math.random() * Math.PI * 2;
+      group.add(cr);
+    }
+
+    // ---- the embankment around the plaza: Neon City kit buildings (shared city material) ----
+    {
+      let seed = 7331;
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      const builders = new Map<string, GeoBuilder>();
+      const gb = (x: number, z: number) => {
+        const k = `${Math.sign(x)},${Math.sign(z)}`;
+        let b = builders.get(k);
+        if (!b) builders.set(k, (b = new GeoBuilder()));
+        return b;
+      };
+      const row = (from: number, to: number, line: number, axis: 'x' | 'z', rot: number, pick: () => Archetype, y0 = 0) => {
+        for (let t = from; t < to; ) {
+          const arch = pick();
+          const [lmin, lmax, depth] = LOT_SIZE[arch];
+          const len = lmin + rnd() * (lmax - lmin);
+          const mid = t + len / 2;
+          const back = depth / 2;
+          const lot: Lot = axis === 'x'
+            ? { cx: mid, cz: line + (rot === 0 ? -back : back), y0, rot, len, depth, seed: rnd() }
+            : { cx: line + (rot === Math.PI / 2 ? -back : back), cz: mid, y0, rot, len, depth, seed: rnd() };
+          BUILD[arch](gb(lot.cx, lot.cz), lot, rnd);
+          t += len + 3 + rnd() * 6;
+        }
+      };
+      // north: stalinka front with towers behind; the MEDKID sign hangs on the middle facade
+      row(-250, 250, -118, 'x', 0, () => (rnd() < 0.8 ? 'stalinka' : 'brick5'));
+      row(-300, 300, -175, 'x', 0, () => (rnd() < 0.45 ? 'tower' : 'panel9'));
+      // west / east sides facing the plaza
+      row(-110, 70, -122, 'z', Math.PI / 2, () => (rnd() < 0.6 ? 'stalinka' : 'panel9'));
+      row(-110, 70, 122, 'z', -Math.PI / 2, () => (rnd() < 0.6 ? 'stalinka' : 'panel9'));
+      // far bank across the water
+      row(-320, 320, 250, 'x', Math.PI, () => (rnd() < 0.6 ? 'stalinka' : 'panel9'));
+      const city = createCityMaterial(true);
+      // the arena is lit hard (sign lights, moon): keep the facades in the dark
+      city.material.color.set('#565a66');
+      for (const b of builders.values()) {
+        const mesh = new THREE.Mesh(b.toGeometry(), city.material);
+        mesh.name = 'arena:city';
+        group.add(mesh);
+      }
+      cityUniforms = city.uniforms;
+    }
   }
 
   // ---- neon signs ----
   const signs: THREE.Mesh[] = [];
   const s1 = neonSign('МЭДКИД', '#ff1e3c', 44, 11);
-  s1.position.set(0, 34, -120);
   const s2 = neonSign('ТЁМНЫЙ ПРИНЦ', '#2ee6ff', 52, 12);
-  s2.position.set(-96, 26, -60);
-  s2.rotation.y = 0.9;
   const s3 = neonSign('SEXYSWAG 2010', '#ff2d78', 40, 10);
-  s3.position.set(100, 22, -54);
-  s3.rotation.y = -0.9;
+  if (world) {
+    // over the club roof, and on the warehouses left and right of the yard
+    s1.position.set(0, 21, -ARENA_RADIUS - 16);
+    s2.position.set(-ARENA_RADIUS - 22, 18, -18);
+    s2.rotation.y = 1.2;
+    s3.position.set(ARENA_RADIUS + 22, 16, -20);
+    s3.rotation.y = -1.2;
+    const club = neonSign('1703', '#ff2a3a', 9, 2.4);
+    club.position.set(0, 6.4, -Math.hypot(LIG50.door[0] - LIG50.centre[0], LIG50.door[1] - LIG50.centre[1]) + 0.2);
+    signs.push(club);
+    group.add(club);
+    disposables.push((club.material as THREE.MeshBasicMaterial).map!);
+  } else {
+    s1.position.set(0, 34, -120);
+    s2.position.set(-96, 26, -60);
+    s2.rotation.y = 0.9;
+    s3.position.set(100, 22, -54);
+    s3.rotation.y = -0.9;
+  }
   for (const s of [s1, s2, s3]) {
     signs.push(s);
     group.add(s);
     disposables.push((s.material as THREE.MeshBasicMaterial).map!);
   }
   const signLight = new THREE.PointLight('#ff1e3c', 250, 220, 1.4);
-  signLight.position.set(0, 30, -100);
+  signLight.position.set(0, world ? 20 : 30, world ? -ARENA_RADIUS - 6 : -100);
   group.add(signLight);
   if (!quality.low) {
     const signLight2 = new THREE.PointLight('#2ee6ff', 160, 200, 1.4);
-    signLight2.position.set(-70, 22, -45);
+    signLight2.position.set(world ? -ARENA_RADIUS - 10 : -70, 22, world ? -18 : -45);
     group.add(signLight2);
   }
 
@@ -389,7 +467,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
     const b = new THREE.Mesh(new THREE.ConeGeometry(14, 260, 16, 1, true), beamMat);
     b.geometry.translate(0, 130, 0);
     const a = (i / 3) * Math.PI * 2 + 0.7;
-    b.position.set(Math.cos(a) * 95, 0, Math.sin(a) * 95);
+    b.position.set(Math.cos(a) * (ARENA_RADIUS + 25), 0, Math.sin(a) * (ARENA_RADIUS + 25));
     group.add(b);
     beams.push(b);
   }
@@ -402,6 +480,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
 
   // static dressing → one mesh per material (beams sweep, the scanning sign flickers)
   mergeStaticMeshes(group, new Set<THREE.Object3D>([...beams, s1]));
+  if (yardFrame) group.add(yardFrame);
   scene.add(group);
 
   let rainT = 0;
@@ -437,6 +516,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
         else mat?.dispose();
       });
       for (const t of disposables) t.dispose();
+      for (const d of disposers) d();
       rain.dispose();
       scene.fog = null;
       scene.background = null;

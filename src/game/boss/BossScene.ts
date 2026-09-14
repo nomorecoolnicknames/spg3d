@@ -5,6 +5,7 @@ import { BOSS_ENV } from '@/data/tracks';
 import type { SceneController, Viewport } from '../Viewport';
 import type { BossHUD, BossParams, SceneCallbacks, SpgSnapshot } from '../types';
 import { buildArena, ARENA_RADIUS, type Arena } from './Arena';
+import { getMapWorld } from '@/data/maps';
 import { BossMech } from './BossMech';
 import { Humanoid } from './Fighter';
 import { LightPool, ParticlePool, Ring, Shaker } from './fx';
@@ -74,7 +75,7 @@ export class BossScene implements SceneController {
   private paused = false;
   private intro = 2.6;
   private introTotal = 2.6;
-  private playerPos = new THREE.Vector3(0, 0, 42);
+  private playerPos = new THREE.Vector3(0, 0, ARENA_RADIUS * 0.72);
   private playerYaw = Math.PI;
   private camYaw = Math.PI;
   private camPitch = 0.12;
@@ -83,7 +84,7 @@ export class BossScene implements SceneController {
   private bossHP = 100;
   private phase: 1 | 2 | 3 = 1;
   private reload = 1;
-  private mechPos = new THREE.Vector3(0, 0, -20);
+  private mechPos = new THREE.Vector3(0, 0, -ARENA_RADIUS * 0.3);
   private mechYaw = 0;
   private mechSpeed = 0;
   private volleyT = 2.5;
@@ -136,7 +137,7 @@ export class BossScene implements SceneController {
       this.scene.environment = this.pmrem;
     }
     this.scene.environmentIntensity = envTex ? 1.0 : 0.4;
-    this.arena = buildArena(this.scene, { shadows: q.shadows, low: q.level === 'low' });
+    this.arena = buildArena(this.scene, { shadows: q.shadows, low: q.level === 'low' }, getMapWorld('ligovsky'));
     this.mech = new BossMech(getTexture('madkidFace'), q.shadows, q.level === 'low');
     this.mech.root.position.copy(this.mechPos);
     this.scene.add(this.mech.root);
@@ -227,7 +228,7 @@ export class BossScene implements SceneController {
     if (!this.dead) return;
     this.dead = false;
     this.playerHP = 100;
-    this.playerPos.set(0, 0, 42);
+    this.playerPos.set(0, 0, ARENA_RADIUS * 0.72);
     this.playerYaw = Math.PI;
     this.camYaw = Math.PI;
     this.bossHP = this.phase === 3 ? 33 : this.phase === 2 ? 66 : 100;
@@ -243,7 +244,7 @@ export class BossScene implements SceneController {
     this.volleyT = 3;
     this.laserCd = 6;
     this.slamCd = 5;
-    this.mechPos.set(0, 0, -20);
+    this.mechPos.set(0, 0, -ARENA_RADIUS * 0.3);
     this.say(S.boss.phaseMsg[this.phase - 1]);
   }
 
