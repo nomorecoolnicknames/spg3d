@@ -159,7 +159,8 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
 
   const sectors = new Map<string, GeoBuilder>();
   const gb = (x: number, z: number): GeoBuilder => {
-    const k = `${Math.floor(x / SEC)},${Math.floor(z / SEC)}`;
+    // around an arena the city surrounds the camera on every side: sector culling saves nothing, one mesh saves draw calls
+    const k = arena ? 'arena' : `${Math.floor(x / SEC)},${Math.floor(z / SEC)}`;
     let b = sectors.get(k);
     if (!b) sectors.set(k, (b = new GeoBuilder()));
     return b;
