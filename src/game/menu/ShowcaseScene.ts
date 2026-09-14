@@ -102,7 +102,7 @@ export class ShowcaseScene implements SceneController {
       this.car.dispose();
     }
     const level = this.vp?.quality.level ?? 'low';
-    this.car = createCarVisual(spec, col, { player: false, shadows: true, night: false, hd: level !== 'low', physical: level === 'high' });
+    this.car = createCarVisual(spec, col, { player: false, shadows: true, night: false, hd: level !== 'low', physical: level === 'high', lod: level === 'high' ? 0 : 1 });
     this.car.setHeadlights(true);
     this.scene.add(this.car.root);
     this.carId = carId;

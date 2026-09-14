@@ -6,12 +6,14 @@ import { softSpriteTexture } from '../world/textures';
 
 /**
  * Car built from the baked GLB (scripts/build-cars.sh):
- *   body_LOD0..2  one skinned mesh per LOD, one atlas material; COLOR_0 = paint / head / brake mask + AO
- *   glass_LOD0..2 one mesh per LOD
+ *   body_LODn     one skinned mesh per LOD, one atlas material; COLOR_0 = paint / head / brake mask + AO
+ *   glass_LODn    one mesh per LOD
+ *   LOD0 60k (hero, high tier) · LOD1 40k (player) · LOD2 12k (near AI) · LOD3 3k (far AI);
+ *   <model>.glb carries LOD1–3, <model>-hd.glb LOD0–1 — a request for a missing LOD takes the nearest one
  *   bones wheel_FL/FR/RL/RR spin and steer the wheels
  * → 2 draw calls per car. Car space: +Z forward, +X left, ground at y = 0.
  */
-export type CarLod = 0 | 1 | 2;
+export type CarLod = 0 | 1 | 2 | 3;
 
 export interface CarVisualOptions {
   player: boolean;
@@ -146,7 +148,7 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
     if (!(o instanceof THREE.Mesh)) return;
     const lod = Number(/_LOD(\d)/.exec(o.name)?.[1] ?? 0);
     o.userData.lod = lod;
-    o.castShadow = opts.shadows && lod <= 1;
+    o.castShadow = opts.shadows && lod <= 2;
     o.receiveShadow = false;
     if (o.name.startsWith('body')) {
       if (!bodyMat) {
@@ -237,7 +239,9 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
   const qSpin = new THREE.Quaternion();
   const qSteer = new THREE.Quaternion();
   const qCar = new THREE.Quaternion();
-  let currentLod: CarLod = opts.lod ?? 0;
+  const available = [...new Set(bodies.map((m) => m.userData.lod as number))].sort((a, b) => a - b);
+  const resolve = (l: CarLod): CarLod => (available.find((a) => a >= l) ?? available[available.length - 1] ?? l) as CarLod;
+  let currentLod: CarLod = resolve(opts.lod ?? 1);
 
   const vis: CarVisual = {
     root,
@@ -275,7 +279,8 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
         w.bone.quaternion.copy(w.parentInCarInv).multiply(qCar).multiply(w.parentInCar).multiply(w.rest);
       }
     },
-    setLod(lod) {
+    setLod(request) {
+      const lod = resolve(request);
       if (lod === currentLod) return;
       currentLod = lod;
       for (const m of bodies) m.visible = m.userData.lod === lod;

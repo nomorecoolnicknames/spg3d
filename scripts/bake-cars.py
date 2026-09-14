@@ -21,7 +21,8 @@ from mathutils import Vector, Matrix
 argv = sys.argv[sys.argv.index('--') + 1:]
 SRC, OUT_DIR, SPEC = argv[0], argv[1], json.loads(argv[2])
 NAME = SPEC['model']
-LODS = SPEC.get('lods', [60000, 14000, 3500])
+# hero (high tier, garage) / player / near AI / far AI — docs/PLAN_V3.md §3 budgets
+LODS = SPEC.get('lods', [60000, 40000, 12000, 3000])
 AO_SAMPLES = int(SPEC.get('aoSamples', 24))
 PAINT = [p.lower() for p in SPEC.get('paint', [])]
 LENGTH = float(SPEC['length'])

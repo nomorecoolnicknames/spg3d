@@ -218,7 +218,7 @@ export class RaceScene implements SceneController {
         hd: isPlayer && q.level !== 'low',
         physical: q.level === 'high',
         opaqueGlass: q.level === 'low',
-        lod: isPlayer ? 0 : 1,
+        lod: isPlayer ? (q.level === 'high' ? 0 : 1) : 2,
       });
       this.scene.add(vis.root);
       const r: Racer = {
@@ -688,7 +688,8 @@ export class RaceScene implements SceneController {
     const cp = this.cam ? this.cam.camera.position : this.player.car;
     const d2 = (cp.x - c.x) ** 2 + (cp.z - c.z) ** 2;
     const low = this.vp.quality.level === 'low';
-    r.vis.setLod(r.isPlayer ? 0 : d2 < (low ? 0 : 22 * 22) ? 0 : d2 < 70 * 70 ? 1 : 2);
+    const hero = this.vp.quality.level === 'high' ? 0 : 1;
+    r.vis.setLod(r.isPlayer ? hero : d2 < (low ? 0 : 22 * 22) ? 1 : d2 < 70 * 70 ? 2 : 3);
     r.vis.setWheels(c.wheelSpin, c.steerAngle);
     r.vis.setBrake(r.input.brake > 0.1 || (r.finished && c.vx > 1));
     r.vis.setNitro(c.nitroActive, this.elapsed);
@@ -696,7 +697,7 @@ export class RaceScene implements SceneController {
   }
 
   private spawnGhost(): void {
-    const vis = createCarVisual(this.player.spec, '#5ac8fa', { player: false, shadows: false, night: false, lod: 1 });
+    const vis = createCarVisual(this.player.spec, '#5ac8fa', { player: false, shadows: false, night: false, lod: 2 });
     vis.setGhost();
     this.scene.add(vis.root);
     this.ghost = vis;

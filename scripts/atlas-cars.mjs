@@ -227,7 +227,11 @@ for (const e of entries.values()) {
 }
 // transparent canvas: compositing 'over' an opaque background would flatten every cutout
 const basePng = await sharp({ create: { width: A, height: A, channels: 4, background: { r: 128, g: 128, b: 128, alpha: 0 } } }).composite(baseLayers).png().toBuffer();
-const ormPng = await sharp({ create: { width: A, height: A, channels: 3, background: { r: 255, g: 180, b: 0 } } }).composite(ormLayers).png().toBuffer();
+// roughness/metalness are low-frequency: the ORM atlas ships at half resolution (same UV layout)
+const ormPng = await sharp(await sharp({ create: { width: A, height: A, channels: 3, background: { r: 255, g: 180, b: 0 } } }).composite(ormLayers).png().toBuffer())
+  .resize(A / 2, A / 2, { kernel: 'lanczos3' })
+  .png()
+  .toBuffer();
 if (SPEC.debugDir) {
   await sharp(basePng).toFile(`${SPEC.debugDir}/${SPEC.model}-${A}-base.png`);
   await sharp(ormPng).toFile(`${SPEC.debugDir}/${SPEC.model}-${A}-orm.png`);
