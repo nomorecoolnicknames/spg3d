@@ -174,7 +174,7 @@ export function createCityMaterial(night: boolean): { material: THREE.MeshStanda
     windowGain: { value: night ? 1.1 : 0 },
     signGain: { value: night ? 1.2 : 0.3 },
     lampGain: { value: night ? 1 : 0 },
-    lampColor: { value: new THREE.Color('#ffb25c') },
+    lampColor: { value: new THREE.Color('#ffc58a') },
     time: { value: 0 },
   };
   const mat = new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0, envMapIntensity: 0.8 });

@@ -221,8 +221,10 @@ export class RaceScene implements SceneController {
         physical: q.level === 'high',
         opaqueGlass: q.level === 'low',
         lod: isPlayer ? (q.level === 'high' ? 0 : 1) : 2,
+        underglow: isPlayer && env.headlights ? env.neonA : undefined,
+        trails: isPlayer && q.level !== 'low',
       });
-      this.scene.add(vis.root);
+      this.scene.add(vis.root, ...vis.extras);
       const r: Racer = {
         name, color, isPlayer, spec: cspec, car, vis,
         ai: isPlayer ? null : new RacerAI(this.track, skill, this.params.difficulty, 0.4 + Math.random() * 0.5),
@@ -687,6 +689,10 @@ export class RaceScene implements SceneController {
     r.vis.setWheels(c.wheelSpin, c.steerAngle);
     r.vis.setBrake(r.input.brake > 0.1 || (r.finished && c.vx > 1));
     r.vis.setNitro(c.nitroActive, this.elapsed);
+    if (r.vis.extras.length) {
+      root.updateMatrixWorld();
+      r.vis.tick(Math.abs(c.vx) * 3.6);
+    }
     void dt;
   }
 

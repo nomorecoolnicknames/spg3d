@@ -26,6 +26,10 @@ export interface CarVisualOptions {
   physical?: boolean;
   /** opaque tinted glass instead of alpha-blended (cheaper, no sorting) */
   opaqueGlass?: boolean;
+  /** neon under the car (player at night) */
+  underglow?: string;
+  /** light streaks behind the tail lights at speed (player, medium/high) */
+  trails?: boolean;
 }
 
 export interface CarVisual {
@@ -38,7 +42,85 @@ export interface CarVisual {
   setWheels(spin: number, steer: number): void;
   setLod(lod: CarLod): void;
   setGhost(): void;
+  /**
+   * World-space extras that must not inherit the car transform (tail-light streaks): add to the
+   * scene next to root. Call tick() once per frame after root's transform is updated.
+   */
+  extras: THREE.Object3D[];
+  tick(speedKmh: number): void;
   dispose(): void;
+}
+
+const TRAIL_N = 26;
+
+/** two additive ribbons following the tail lights in world space */
+function createTrails(halfWidth: number, rearZ: number, height: number) {
+  const verts = TRAIL_N * 2 * 2;
+  const pos = new Float32Array(verts * 3);
+  const fade = new Float32Array(verts);
+  const idx: number[] = [];
+  for (let r = 0; r < 2; r++) {
+    for (let i = 0; i < TRAIL_N; i++) {
+      const base = (r * TRAIL_N + i) * 2;
+      fade[base] = fade[base + 1] = 1 - i / (TRAIL_N - 1);
+      if (i < TRAIL_N - 1) idx.push(base, base + 1, base + 3, base, base + 3, base + 2);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  const posAttr = new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage);
+  geo.setAttribute('position', posAttr);
+  geo.setAttribute('aFade', new THREE.BufferAttribute(fade, 1));
+  geo.setIndex(idx);
+  const strength = { value: 0 };
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { strength, color: { value: new THREE.Color('#ff1a2a') } },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+    vertexShader: 'attribute float aFade; varying float vF; void main(){ vF = aFade; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform float strength; uniform vec3 color; varying float vF; void main(){ gl_FragColor = vec4(color * strength * vF * vF, 1.0); }',
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.frustumCulled = false;
+  mesh.name = 'car:trails';
+  const hist = [new Float32Array(TRAIL_N * 3), new Float32Array(TRAIL_N * 3)];
+  let primed = false;
+  const tmp = new THREE.Vector3();
+  const up = new THREE.Vector3();
+  return {
+    mesh,
+    tick(root: THREE.Object3D, speedKmh: number) {
+      strength.value += (THREE.MathUtils.clamp((speedKmh - 90) / 90, 0, 1) * 0.9 - strength.value) * 0.1;
+      mesh.visible = strength.value > 0.01;
+      up.set(0, 1, 0).transformDirection(root.matrixWorld).multiplyScalar(0.05);
+      for (let r = 0; r < 2; r++) {
+        tmp.set(r ? halfWidth : -halfWidth, height, rearZ).applyMatrix4(root.matrixWorld);
+        const h = hist[r];
+        if (!primed) for (let i = 0; i < TRAIL_N; i++) h.set([tmp.x, tmp.y, tmp.z], i * 3);
+        // shift once the head moved far enough, keep the head glued to the lamp
+        if ((h[0] - tmp.x) ** 2 + (h[2] - tmp.z) ** 2 > 0.36) h.copyWithin(3, 0, (TRAIL_N - 1) * 3);
+        h[0] = tmp.x;
+        h[1] = tmp.y;
+        h[2] = tmp.z;
+        for (let i = 0; i < TRAIL_N; i++) {
+          const o = (r * TRAIL_N + i) * 2 * 3;
+          pos[o] = h[i * 3] - up.x;
+          pos[o + 1] = h[i * 3 + 1] - up.y;
+          pos[o + 2] = h[i * 3 + 2] - up.z;
+          pos[o + 3] = h[i * 3] + up.x;
+          pos[o + 4] = h[i * 3 + 1] + up.y;
+          pos[o + 5] = h[i * 3 + 2] + up.z;
+        }
+      }
+      primed = true;
+      posAttr.needsUpdate = true;
+    },
+    dispose() {
+      geo.dispose();
+      mat.dispose();
+    },
+  };
 }
 
 let flameTex: THREE.Texture | null = null;
@@ -129,6 +211,8 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
       setWheels: () => {},
       setLod: () => {},
       setGhost: () => {},
+      extras: [],
+      tick: () => {},
       dispose: () => {
         geo.dispose();
         mat.dispose();
@@ -236,6 +320,21 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
     disposables.push(geo, mat);
   }
 
+  // neon underglow: a soft additive rectangle on the road under the car
+  if (opts.underglow) {
+    const w = 2.6, l = spec.length + 1.2;
+    const geo = new THREE.PlaneGeometry(w, l);
+    geo.rotateX(-Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({ map: flameTex ?? (flameTex = softSpriteTexture(1, 0)), color: opts.underglow, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
+    const glow = new THREE.Mesh(geo, mat);
+    glow.position.y = 0.05;
+    glow.renderOrder = 3;
+    root.add(glow);
+    disposables.push(geo, mat);
+  }
+  const trails = opts.trails ? createTrails(spec.length * 0.19, -spec.length / 2 + 0.1, 0.78) : null;
+  if (trails) disposables.push(trails);
+
   const qSpin = new THREE.Quaternion();
   const qSteer = new THREE.Quaternion();
   const qCar = new THREE.Quaternion();
@@ -296,6 +395,10 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
       }
       for (const m of glasses) m.visible = false;
       for (const m of bodies) m.castShadow = false;
+    },
+    extras: trails ? [trails.mesh] : [],
+    tick(speedKmh) {
+      trails?.tick(root, speedKmh);
     },
     dispose() {
       for (const d of disposables) d.dispose();
