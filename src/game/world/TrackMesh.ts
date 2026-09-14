@@ -27,7 +27,7 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean; lo
 
   // ---- road ----
   const roadGeo = ribbon(track, -halfW, halfW, 0.0, (i) => i * track.spacing / (halfW * 2));
-  const roadMat = createRoadMaterial(env, { wetness: env.wet ? 0.85 : spec.theme === 'snow' ? 0.25 : 0, lineColor: spec.theme === 'snow' ? '#c9d6e4' : '#d8d8d8', low: !!quality.low });
+  const roadMat = createRoadMaterial(env, { wetness: env.wet ? 0.85 : spec.theme === 'snow' ? 0.5 : 0, lineColor: spec.theme === 'snow' ? '#c9d6e4' : '#d8d8d8', low: !!quality.low });
   const road = new THREE.Mesh(roadGeo, roadMat);
   road.name = 'road';
   road.receiveShadow = true;

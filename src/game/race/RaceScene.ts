@@ -13,6 +13,7 @@ import { createCarVisual, type CarVisual } from '../vehicle/CarVisual';
 import { getEnvMap, type EnvName } from '../assets';
 import { buildCity } from '../world/city/City';
 import { buildCanyonFeatures } from '../world/features/Canyon';
+import { buildAlpineFeatures } from '../world/features/Alpine';
 import { RacerAI, type AIContext, type AIOther } from '../ai/RacerAI';
 import { RaceCamera } from './RaceCamera';
 import { Smoke, Sparks, SkidMarks } from './Fx';
@@ -175,6 +176,7 @@ export class RaceScene implements SceneController {
     this.props = spec.theme === 'city' ? buildCity(this.track, q) : buildProps(this.track, this.mesh.terrainHeight, { shadows: q.shadows, level: q.level });
     this.scene.add(this.props.group);
     if (spec.theme === 'desert' && spec.features) this.features = buildCanyonFeatures(this.track, this.mesh.terrainHeight, q);
+    if (spec.theme === 'snow' && spec.features) this.features = buildAlpineFeatures(this.track, this.mesh.terrainHeight, q);
     if (this.features) this.scene.add(this.features.group);
     if (env.rain || env.snow) {
       this.weather = createWeather(env.rain ? 'rain' : 'snow', q.level === 'low' ? 350 : 1600);
@@ -418,6 +420,7 @@ export class RaceScene implements SceneController {
     this.sun.target.position.set(pp.x, pp.y, pp.z);
     this.sky.update(this.elapsed);
     this.props.update(this.elapsed);
+    this.features?.update(this.elapsed);
     this.weather?.update(dt, this.cam.camera.position, this.tmp2.set(pp.forwardX * pp.vx, 0, pp.forwardZ * pp.vx));
     this.smoke.update(dt);
     this.sparks.update(dt);

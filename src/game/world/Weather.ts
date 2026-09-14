@@ -8,71 +8,74 @@ export interface WeatherRig {
 }
 
 /**
- * Rain streaks or snow flakes in a box that follows the camera. Rain uses stretched
- * line-ish points (custom shader elongates along fall direction).
+ * Rain streaks or snow flakes in a box that follows the camera. Everything moves in the vertex
+ * shader (fall, wind, wrap around the camera), so the CPU only updates two uniforms per frame.
+ * Flakes are capped in screen size and fade out right in front of the lens.
  */
 export function createWeather(kind: 'rain' | 'snow', count = 1600): WeatherRig {
   const group = new THREE.Group();
   const box = new THREE.Vector3(90, 40, 90);
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(count * 3);
-  const spd = new Float32Array(count);
+  const seed = new Float32Array(count * 2);
   for (let i = 0; i < count; i++) {
-    pos[i * 3] = (Math.random() - 0.5) * box.x;
+    pos[i * 3] = Math.random() * box.x;
     pos[i * 3 + 1] = Math.random() * box.y;
-    pos[i * 3 + 2] = (Math.random() - 0.5) * box.z;
-    spd[i] = kind === 'rain' ? 22 + Math.random() * 12 : 2.2 + Math.random() * 2.2;
+    pos[i * 3 + 2] = Math.random() * box.z;
+    seed[i * 2] = kind === 'rain' ? 22 + Math.random() * 12 : 2.2 + Math.random() * 2.2;
+    seed[i * 2 + 1] = Math.random() * 100;
   }
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('aSeed', new THREE.BufferAttribute(seed, 2));
+  const uniforms = {
+    color: { value: new THREE.Color(kind === 'rain' ? '#9fc4ff' : '#ffffff') },
+    size: { value: kind === 'rain' ? 0.9 : 1.0 },
+    maxPx: { value: kind === 'rain' ? 10 : 7 },
+    stretch: { value: kind === 'rain' ? 6.0 : 1.0 },
+    fogDensity: { value: 0.003 },
+    time: { value: 0 },
+    origin: { value: new THREE.Vector3() },
+    box: { value: box },
+    wind: { value: kind === 'rain' ? 3 : 1.2 },
+    sway: { value: kind === 'snow' ? 0.8 : 0 },
+  };
   const mat = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
-    uniforms: {
-      color: { value: new THREE.Color(kind === 'rain' ? '#9fc4ff' : '#ffffff') },
-      size: { value: kind === 'rain' ? 0.9 : 1.1 },
-      stretch: { value: kind === 'rain' ? 6.0 : 1.0 },
-      fogColor: { value: new THREE.Color('#000000') },
-      fogDensity: { value: 0.003 },
-    },
+    uniforms,
     vertexShader: /* glsl */ `
-      uniform float size; varying float vFog; uniform float fogDensity;
-      void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = size * (220.0 / -mv.z); gl_Position = projectionMatrix * mv;
-        vFog = 1.0 - exp(-fogDensity * fogDensity * mv.z * mv.z); }`,
+      attribute vec2 aSeed;
+      uniform float size, maxPx, fogDensity, time, wind, sway;
+      uniform vec3 origin, box;
+      varying float vFade;
+      void main() {
+        vec3 p = position + vec3(wind * time + sin(time * 1.3 + aSeed.y) * sway, -aSeed.x * time, 0.0);
+        p = mod(p - origin, box) + origin;
+        vec4 mv = viewMatrix * vec4(p, 1.0);
+        float z = -mv.z;
+        gl_PointSize = min(maxPx, size * 220.0 / max(z, 0.1));
+        gl_Position = projectionMatrix * mv;
+        float fog = 1.0 - exp(-fogDensity * fogDensity * z * z);
+        vFade = (1.0 - fog) * smoothstep(1.5, 7.0, z);
+      }`,
     fragmentShader: /* glsl */ `
-      uniform vec3 color; uniform float stretch; varying float vFog;
-      void main(){ vec2 c = gl_PointCoord - 0.5; c.x *= stretch; float d = length(c);
-        if (d > 0.5) discard; float a = (1.0 - d * 2.0) * (1.0 - vFog) * 0.7;
-        gl_FragColor = vec4(color, a); }`,
+      uniform vec3 color; uniform float stretch; varying float vFade;
+      void main() {
+        vec2 c = gl_PointCoord - 0.5; c.x *= stretch; float d = length(c);
+        if (d > 0.5) discard;
+        gl_FragColor = vec4(color, (1.0 - d * 2.0) * vFade * 0.7);
+      }`,
   });
   const points = new THREE.Points(geo, mat);
   points.frustumCulled = false;
   group.add(points);
-  const wind = kind === 'rain' ? 3 : 1.2;
-  let phase = 0;
 
   return {
     group,
-    update(dt, cam, vel) {
-      phase += dt;
-      const arr = geo.attributes.position.array as Float32Array;
-      const ox = cam.x - box.x / 2, oz = cam.z - box.z / 2, oy = cam.y - 8;
-      for (let i = 0; i < count; i++) {
-        let x = arr[i * 3], y = arr[i * 3 + 1], z = arr[i * 3 + 2];
-        y -= spd[i] * dt;
-        x += (wind + (kind === 'snow' ? Math.sin(phase * 1.3 + i) * 0.8 : 0)) * dt - vel.x * dt * 0.15;
-        z -= vel.z * dt * 0.15;
-        // wrap into the camera box
-        if (y < oy) y += box.y;
-        if (x < ox) x += box.x;
-        else if (x > ox + box.x) x -= box.x;
-        if (z < oz) z += box.z;
-        else if (z > oz + box.z) z -= box.z;
-        arr[i * 3] = x;
-        arr[i * 3 + 1] = y;
-        arr[i * 3 + 2] = z;
-      }
-      (geo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+    update(dt, cam) {
+      uniforms.time.value += dt;
+      // the wrap box is centred on the camera, a little below it
+      uniforms.origin.value.set(cam.x - box.x / 2, cam.y - 8, cam.z - box.z / 2);
     },
     dispose() {
       geo.dispose();
