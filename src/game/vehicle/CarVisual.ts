@@ -402,6 +402,8 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
     },
     dispose() {
       for (const d of disposables) d.dispose();
+      // every cloned skinned LOD owns a skeleton whose bone matrices live in a DataTexture
+      for (const m of bodies) if (m instanceof THREE.SkinnedMesh) m.skeleton.dispose();
     },
   };
   for (const m of bodies) m.visible = m.userData.lod === currentLod;
