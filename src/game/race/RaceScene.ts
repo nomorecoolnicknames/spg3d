@@ -13,6 +13,7 @@ import { createWeather, type WeatherRig } from '../world/Weather';
 import { buildProps, type PropsRig } from '../world/Props';
 import { CarPhysics } from '../vehicle/CarPhysics';
 import { createCarVisual, type CarVisual } from '../vehicle/CarVisual';
+import { getEnvMap, type EnvName } from '../assets';
 import { RacerAI, type AIContext, type AIOther } from '../ai/RacerAI';
 import { RaceCamera } from './RaceCamera';
 import { Smoke, Sparks, SkidMarks } from './Fx';
@@ -138,12 +139,16 @@ export class RaceScene implements SceneController {
     this.scene.fog = new THREE.FogExp2(env.fog, env.fogDensity);
     this.scene.background = new THREE.Color(env.fog);
 
-    // environment reflections
-    const pm = new THREE.PMREMGenerator(vp.renderer);
-    this.pmrem = pm.fromScene(new RoomEnvironment(), 0.04).texture;
-    pm.dispose();
-    this.scene.environment = this.pmrem;
-    this.scene.environmentIntensity = env.headlights ? 0.35 : 0.8;
+    // environment reflections: the track's HDRI (cached for the session), RoomEnvironment if it failed
+    const envTex = getEnvMap(vp.renderer, spec.id as EnvName);
+    if (envTex) this.scene.environment = envTex;
+    else {
+      const pm = new THREE.PMREMGenerator(vp.renderer);
+      this.pmrem = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+      pm.dispose();
+      this.scene.environment = this.pmrem;
+    }
+    this.scene.environmentIntensity = env.envIntensity ?? (env.headlights ? 0.35 : 0.8);
 
     // lights
     this.sun = new THREE.DirectionalLight(env.sunColor, env.sunIntensity);

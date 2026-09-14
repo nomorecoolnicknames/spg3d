@@ -10,3 +10,12 @@ CarConcept / ToyCar (Khronos glTF-Sample-Assets):
   https://github.com/KhronosGroup/glTF-Sample-Assets
 
 Музыка: madk1d / Тёмный Принц (remixxx by dj dubstep 2012)
+
+HDRI-окружения (отражения и освещение): Poly Haven, лицензия CC0
+  https://polyhaven.com — shanghai_bund, spruit_sunrise, kloppenheim_02,
+  neuer_zollhof, studio_small_09 (уменьшены scripts/env-maps.sh)
+
+Персонаж Xbot (арена босса): three.js examples (Mixamo), MIT
+  https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf
+
+Асфальт (Asphalt031): ambientCG, лицензия CC0 — https://ambientcg.com (scripts/materials.sh)

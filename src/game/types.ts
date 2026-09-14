@@ -84,6 +84,8 @@ export interface TrackEnv {
   stars: boolean;
   aurora: boolean;
   headlights: boolean;
+  /** scene.environmentIntensity for the track HDRI (src/assets/env) */
+  envIntensity?: number;
   rain: boolean;
   snow: boolean;
   /** surface grip multiplier (ice < 1) */

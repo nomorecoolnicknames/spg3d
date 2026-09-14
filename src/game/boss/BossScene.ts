@@ -12,7 +12,7 @@ import { Humanoid } from './Fighter';
 import { LightPool, ParticlePool, Ring, Shaker } from './fx';
 import { input } from '../input/Input';
 import { audio } from '../audio';
-import { getTexture } from '../assets';
+import { getEnvMap, getTexture } from '../assets';
 import { S } from '@/data/strings';
 
 const PHYS_DT = 1 / 120;
@@ -130,11 +130,15 @@ export class BossScene implements SceneController {
   start(vp: Viewport): void {
     this.vp = vp;
     const q = vp.quality;
-    const pm = new THREE.PMREMGenerator(vp.renderer);
-    this.pmrem = pm.fromScene(new RoomEnvironment(), 0.04).texture;
-    pm.dispose();
-    this.scene.environment = this.pmrem;
-    this.scene.environmentIntensity = 0.4;
+    const envTex = getEnvMap(vp.renderer, 'boss');
+    if (envTex) this.scene.environment = envTex;
+    else {
+      const pm = new THREE.PMREMGenerator(vp.renderer);
+      this.pmrem = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+      pm.dispose();
+      this.scene.environment = this.pmrem;
+    }
+    this.scene.environmentIntensity = envTex ? 1.0 : 0.4;
     this.arena = buildArena(this.scene, { shadows: q.shadows, low: q.level === 'low' });
     this.mech = new BossMech(getTexture('madkidFace'), q.shadows, q.level === 'low');
     this.mech.root.position.copy(this.mechPos);

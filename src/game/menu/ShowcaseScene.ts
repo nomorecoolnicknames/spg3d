@@ -4,7 +4,7 @@ import type { SceneController, Viewport } from '../Viewport';
 import { createCarVisual, type CarVisual } from '../vehicle/CarVisual';
 import { CAR_BY_ID, CARS } from '@/data/cars';
 import { groundTexture } from '../world/textures';
-import { getGLTF, loadHdCar } from '../assets';
+import { getEnvMap, getGLTF, loadHdCar } from '../assets';
 
 /**
  * Menu / garage backdrop: a car on a dark studio floor with a light ring, slow turntable,
@@ -29,11 +29,15 @@ export class ShowcaseScene implements SceneController {
 
   start(vp: Viewport): void {
     this.vp = vp;
-    const pm = new THREE.PMREMGenerator(vp.renderer);
-    this.pmrem = pm.fromScene(new RoomEnvironment(), 0.04).texture;
-    pm.dispose();
-    this.scene.environment = this.pmrem;
-    this.scene.environmentIntensity = 0.45;
+    const envTex = getEnvMap(vp.renderer, 'garage');
+    if (envTex) this.scene.environment = envTex;
+    else {
+      const pm = new THREE.PMREMGenerator(vp.renderer);
+      this.pmrem = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+      pm.dispose();
+      this.scene.environment = this.pmrem;
+    }
+    this.scene.environmentIntensity = envTex ? 0.7 : 0.45;
     this.scene.background = new THREE.Color('#07070b');
     this.scene.fog = new THREE.Fog('#07070b', 14, 60);
 

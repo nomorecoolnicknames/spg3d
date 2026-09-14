@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { CARS } from '@/data/cars';
 
 import bmw2018Url from '@/assets/cars/BMW_2018.glb';
@@ -18,6 +19,15 @@ import bolideHd from '@/assets/cars/bugatti_bolide_2024-hd.glb';
 import xbotUrl from '@/assets/Xbot.glb';
 import xbotLodUrl from '@/assets/Xbot-lod.glb';
 import madkidFaceUrl from '@/assets/madk1d_face_big.jpg';
+import envNeon from '@/assets/env/neon.hdr?url';
+import envCanyon from '@/assets/env/canyon.hdr?url';
+import envAurora from '@/assets/env/aurora.hdr?url';
+import envBoss from '@/assets/env/boss.hdr?url';
+import envGarage from '@/assets/env/garage.hdr?url';
+import asphaltAlbedoUrl from '@/assets/materials/asphalt_albedo.jpg';
+import asphaltNormalUrl from '@/assets/materials/asphalt_normal.jpg';
+import asphaltRoughUrl from '@/assets/materials/asphalt_rough.jpg';
+import puddlesUrl from '@/assets/materials/puddles.jpg';
 
 /**
  * Central asset registry. Everything heavy is loaded once, progress is byte-based
@@ -45,6 +55,10 @@ const HD_URLS: Record<string, string> = {
   ford_gt40: gt40Hd,
   bugatti_bolide_2024: bolideHd,
 };
+
+/** CC0 HDRIs (scripts/env-maps.sh) — reflections and image-based light; the visible sky is our own */
+export type EnvName = 'neon' | 'canyon' | 'aurora' | 'boss' | 'garage';
+const ENV_URLS: Record<EnvName, string> = { neon: envNeon, canyon: envCanyon, aurora: envAurora, boss: envBoss, garage: envGarage };
 
 const gltfs = new Map<string, GLTF>();
 const textures = new Map<string, THREE.Texture>();
@@ -136,8 +150,66 @@ export function loadAllAssets(): Promise<void> {
       () => resolve(),
     );
   });
-  loadingPromise = Promise.all([...tasks, tex]).then(() => setProgress(1));
+  // tiling surface textures (scripts/materials.sh): data textures, repeat-wrapped, mipmapped
+  const surfaces = Object.entries({ asphaltAlbedo: asphaltAlbedoUrl, asphaltNormal: asphaltNormalUrl, asphaltRough: asphaltRoughUrl, puddles: puddlesUrl }).map(
+    ([key, url]) =>
+      new Promise<void>((resolve) => {
+        new THREE.TextureLoader().load(
+          url,
+          (t) => {
+            t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            t.colorSpace = THREE.NoColorSpace;
+            t.anisotropy = 4;
+            textures.set(key, t);
+            resolve();
+          },
+          undefined,
+          () => resolve(),
+        );
+      }),
+  );
+  const hdr = new HDRLoader().setDataType(THREE.HalfFloatType);
+  const envs = (Object.keys(ENV_URLS) as EnvName[]).map(
+    (name) =>
+      new Promise<void>((resolve) => {
+        hdr.load(
+          ENV_URLS[name],
+          (t) => {
+            t.mapping = THREE.EquirectangularReflectionMapping;
+            envSources.set(name, t);
+            resolve();
+          },
+          undefined,
+          (err) => {
+            console.error('env load failed', name, err);
+            resolve();
+          },
+        );
+      }),
+  );
+  loadingPromise = Promise.all([...tasks, tex, ...envs, ...surfaces]).then(() => setProgress(1));
   return loadingPromise;
+}
+
+const envSources = new Map<EnvName, THREE.DataTexture>();
+const envMaps = new Map<EnvName, THREE.Texture>();
+
+/**
+ * Prefiltered (PMREM) environment for a scene. Generated on first use and kept for the session —
+ * scenes must not dispose it. Returns null if the HDRI failed to load.
+ */
+export function getEnvMap(renderer: THREE.WebGLRenderer, name: EnvName): THREE.Texture | null {
+  const have = envMaps.get(name);
+  if (have) return have;
+  const src = envSources.get(name);
+  if (!src) return null;
+  const pm = new THREE.PMREMGenerator(renderer);
+  const rt = pm.fromEquirectangular(src);
+  pm.dispose();
+  src.dispose();
+  envSources.delete(name);
+  envMaps.set(name, rt.texture);
+  return rt.texture;
 }
 
 const hdLoads = new Map<string, Promise<GLTF | undefined>>();

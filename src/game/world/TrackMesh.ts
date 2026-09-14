@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { TrackData } from './TrackData';
-import { asphaltTexture, barrierTexture, checkerTexture, curbTexture, groundTexture, reseed, rnd } from './textures';
+import { createRoadMaterial } from './RoadMaterial';
+import { barrierTexture, checkerTexture, curbTexture, groundTexture, reseed, rnd } from './textures';
 
 export interface TrackMesh {
   group: THREE.Group;
@@ -25,16 +26,8 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean; lo
   const track_ = track;
 
   // ---- road ----
-  const roadTex = asphaltTexture(env.roadColor, spec.theme === 'snow' ? '#c9d6e4' : '#d8d8d8', env.wet);
-  disposables.push(roadTex.map, roadTex.rough);
   const roadGeo = ribbon(track, -halfW, halfW, 0.0, (i) => i * track.spacing / (halfW * 2));
-  const roadMat = new THREE.MeshStandardMaterial({
-    map: roadTex.map,
-    roughnessMap: roadTex.rough,
-    roughness: 1,
-    metalness: env.wet ? 0.25 : 0.02,
-    envMapIntensity: env.wet ? 1.2 : 0.35,
-  });
+  const roadMat = createRoadMaterial(env, { wetness: env.wet ? 0.85 : spec.theme === 'snow' ? 0.25 : 0, lineColor: spec.theme === 'snow' ? '#c9d6e4' : '#d8d8d8', low: !!quality.low });
   const road = new THREE.Mesh(roadGeo, roadMat);
   road.name = 'road';
   road.receiveShadow = true;
