@@ -20,6 +20,7 @@ export function createSky(env: TrackEnv, radius = 2400): SkyRig {
     neonB: { value: new THREE.Color(env.neonB) },
     sunDir: { value: new THREE.Vector3(...env.sunDir).normalize() },
     sunColor: { value: new THREE.Color(env.sunColor) },
+    skyline: { value: env.skyline ? 1 : 0 },
   };
   const domeMat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
@@ -36,7 +37,7 @@ export function createSky(env: TrackEnv, radius = 2400): SkyRig {
     `,
     fragmentShader: /* glsl */ `
       uniform vec3 topColor, bottomColor, horizonColor, neonA, neonB, sunColor, sunDir;
-      uniform float time, aurora;
+      uniform float time, aurora, skyline;
       varying vec3 vDir;
       float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       void main() {
@@ -57,6 +58,31 @@ export function createSky(env: TrackEnv, radius = 2400): SkyRig {
           float a1 = smoothstep(0.55, 0.95, band1) * glow;
           float a2 = smoothstep(0.6, 0.98, band2) * glow * 0.7;
           col += neonA * a1 * 0.6 + neonB * a2 * 0.45;
+        }
+        // distant city: two silhouette layers along the horizon with lit windows (fog hides real geometry there)
+        if (skyline > 0.5 && h < 0.2) {
+          float u = atan(vDir.x, vDir.z) / 6.2831853 + 0.5;
+          for (int layer = 0; layer < 2; layer++) {
+            float fl = float(layer);
+            float n = mix(260.0, 120.0, fl);
+            float i = floor(u * n);
+            float f = fract(u * n);
+            float r = hash(vec2(i, 3.1 + fl));
+            float top = mix(0.012, 0.045, fl) + mix(0.03, 0.1, fl) * r * r + step(0.93, r) * mix(0.03, 0.07, fl);
+            float gap = step(0.06 + 0.1 * hash(vec2(i, 9.0)), f) * step(f, 0.97);
+            if (h < top && gap > 0.5) {
+              vec3 body = mix(horizonColor * 0.32, topColor * 0.9, fl * 0.6 + 0.2);
+              // window grid in the silhouette
+              vec2 w = vec2(floor(f * mix(6.0, 9.0, fl)), floor(h * mix(900.0, 700.0, fl)));
+              float lit = step(0.82, hash(w + vec2(i * 7.0, fl * 13.0))) * step(0.004, top - h);
+              vec3 winCol = mix(vec3(1.0, 0.72, 0.4), vec3(0.6, 0.8, 1.0), step(0.7, hash(w + i)));
+              col = body + winCol * lit * mix(0.35, 0.6, fl);
+              // beacons on the tallest towers
+              if (r > 0.93 && top - h < 0.0025 && abs(f - 0.5) < 0.08) col = vec3(1.0, 0.1, 0.08) * (0.5 + 0.5 * step(0.5, fract(time * 0.8 + i * 0.37)));
+            }
+          }
+          // haze where the skyline meets the glow
+          col = mix(col, horizonColor, smoothstep(0.03, -0.01, h) * 0.5);
         }
         // subtle dithering to avoid banding
         col += (hash(gl_FragCoord.xy) - 0.5) / 255.0;

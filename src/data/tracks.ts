@@ -1,23 +1,24 @@
 import type { TrackEnv, TrackSpec } from '@/game/types';
+import { ROAD_WIDTH, routePoints } from '@/game/world/city/layout';
+
+/** Neon City follows the street grid (world/city/layout.ts) */
+const NEON_ROUTE = routePoints();
 
 export const TRACKS: TrackSpec[] = [
   {
     id: 'neon',
     name: 'Неон-Сити',
     subtitle: 'Ночной центр · мокрый асфальт',
-    desc: 'Мегаполис после дождя. Неоновые каньоны небоскрёбов, длинные прямые и две связки шпилек у набережной.',
+    desc: 'Ночной город после дождя: проспект с трамваем, эстакада над путями, панельки, тоннель под площадью у набережной и змейка между гаражами.',
     theme: 'city',
     laps: 2,
-    roadWidth: 17,
-    scale: 1.35,
+    roadWidth: ROAD_WIDTH,
+    runoff: 1.2,
+    spline: 'centripetal',
     difficulty: 1,
     rival: 'sqwore',
-    lengthHint: 1770,
-    points: [
-      [0, -200, 0], [90, -195, 0.5], [160, -150, 1.5], [190, -80, 3], [170, 0, 3.5],
-      [200, 70, 2.5], [180, 150, 1], [110, 190, 0], [30, 200, 0], [-40, 170, 1],
-      [-70, 100, 2.5], [-140, 90, 3], [-190, 40, 2], [-200, -40, 1], [-160, -110, 0.5], [-80, -160, 0],
-    ],
+    lengthHint: Math.round(NEON_ROUTE.reduce((a, p, i) => a + Math.hypot(p.x - NEON_ROUTE[(i + 1) % NEON_ROUTE.length].x, p.z - NEON_ROUTE[(i + 1) % NEON_ROUTE.length].z), 0)),
+    points: NEON_ROUTE.map((p) => [p.x, p.z, p.y]),
     env: {
       skyTop: '#05060f',
       skyBottom: '#1c1238',
@@ -39,6 +40,7 @@ export const TRACKS: TrackSpec[] = [
       stars: true,
       aurora: false,
       headlights: true,
+      skyline: true,
       grade: { exposure: 1.0, contrast: 1.08, saturation: 1.12, lift: [0.008, 0.0, 0.02], gain: [1.02, 0.98, 1.05], vignette: 0.42, bloom: 0.75, bloomThreshold: 0.85 },
       rain: true,
       snow: false,

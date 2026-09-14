@@ -34,19 +34,21 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean; lo
   group.add(road);
   disposables.push(roadGeo, roadMat);
 
-  // ---- shoulders (gravel / sand / snow) ----
-  const shoulderColor = spec.theme === 'city' ? '#1c1d24' : spec.theme === 'desert' ? '#a3693f' : '#dfe8f0';
-  const shoulderTex = groundTexture(shoulderColor, 30);
-  disposables.push(shoulderTex);
-  const shoulderMat = new THREE.MeshStandardMaterial({ map: shoulderTex, roughness: 0.95, metalness: 0 });
-  disposables.push(shoulderMat);
-  for (const side of [-1, 1] as const) {
-    const g = ribbon(track, side * halfW, side * (halfW + 4.5), -0.06, (i) => i * track.spacing / 6, true, side > 0 ? -0.25 : 0, side > 0 ? 0 : -0.25);
-    const m = new THREE.Mesh(g, shoulderMat);
-    m.name = 'shoulder';
-    m.receiveShadow = true;
-    group.add(m);
-    disposables.push(g);
+  // ---- shoulders (gravel / sand / snow); the city builds pavements instead ----
+  if (spec.theme !== 'city') {
+    const shoulderColor = spec.theme === 'desert' ? '#a3693f' : '#dfe8f0';
+    const shoulderTex = groundTexture(shoulderColor, 30);
+    disposables.push(shoulderTex);
+    const shoulderMat = new THREE.MeshStandardMaterial({ map: shoulderTex, roughness: 0.95, metalness: 0 });
+    disposables.push(shoulderMat);
+    for (const side of [-1, 1] as const) {
+      const g = ribbon(track, side * halfW, side * (halfW + 4.5), -0.06, (i) => i * track.spacing / 6, true, side > 0 ? -0.25 : 0, side > 0 ? 0 : -0.25);
+      const m = new THREE.Mesh(g, shoulderMat);
+      m.name = 'shoulder';
+      m.receiveShadow = true;
+      group.add(m);
+      disposables.push(g);
+    }
   }
 
   // ---- curbs on the inside of corners ----
@@ -80,7 +82,7 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean; lo
   }
 
   // ---- barriers ----
-  const barrierOff = halfW + 5.2;
+  const barrierOff = halfW + track.runoff + 0.6;
   const barrierTex = barrierTexture(env.barrierColor, spec.theme === 'city' ? '#ffd400' : '#e8e8e8', '#111');
   barrierTex.repeat.set(1, 1);
   disposables.push(barrierTex);
@@ -168,55 +170,58 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean; lo
     disposables.push(pg, bg, lg, postMat, beamMat, lm);
   }
 
-  // ---- terrain heightfield ----
-  const size = track.bounds.span * 2.4 + 500;
-  const segs = quality.low ? 120 : 240;
-  const cx = (track.bounds.minX + track.bounds.maxX) / 2;
-  const cz = (track.bounds.minZ + track.bounds.maxZ) / 2;
-  const amp = spec.theme === 'city' ? 0 : spec.theme === 'desert' ? 26 : 16;
-  const coarse: THREE.Vector3[] = [];
-  for (let i = 0; i < n; i += 4) coarse.push(track.samples[i].pos);
-  const distAndHeight = (x: number, z: number): [number, number] => {
-    let best = Infinity, by = 0;
-    for (const p of coarse) {
-      const d = (p.x - x) * (p.x - x) + (p.z - z) * (p.z - z);
-      if (d < best) {
-        best = d;
-        by = p.y;
+  // ---- terrain heightfield (the city has its own ground) ----
+  let terrainHeight = (_x: number, _z: number): number => -0.55;
+  if (spec.theme !== 'city') {
+    const size = track.bounds.span * 2.4 + 500;
+    const segs = quality.low ? 120 : 240;
+    const cx = (track.bounds.minX + track.bounds.maxX) / 2;
+    const cz = (track.bounds.minZ + track.bounds.maxZ) / 2;
+    const amp = spec.theme === 'desert' ? 26 : 16;
+    const coarse: THREE.Vector3[] = [];
+    for (let i = 0; i < n; i += 4) coarse.push(track.samples[i].pos);
+    const distAndHeight = (x: number, z: number): [number, number] => {
+      let best = Infinity, by = 0;
+      for (const p of coarse) {
+        const d = (p.x - x) * (p.x - x) + (p.z - z) * (p.z - z);
+        if (d < best) {
+          best = d;
+          by = p.y;
+        }
       }
+      return [Math.sqrt(best), by];
+    };
+    reseed(5);
+    const terrainNoise = (x: number, z: number): number => {
+      const a = Math.sin(x * 0.011 + 1.3) * Math.cos(z * 0.009 - 0.7);
+      const b = Math.sin(x * 0.027 - z * 0.019) * 0.5;
+      const c = Math.sin((x + z) * 0.05) * 0.2;
+      return (a + b + c) * amp + amp * 0.4;
+    };
+    terrainHeight = (x: number, z: number): number => {
+      const [d, ry] = distAndHeight(x, z);
+      // flat band wide enough to always contain a vertex ring, then blend into the hills
+      const t = THREE.MathUtils.smoothstep(d, halfW + 14, halfW + 80);
+      return THREE.MathUtils.lerp(ry - 0.55, terrainNoise(x, z) - 0.6, t);
+    };
+    const tg = new THREE.PlaneGeometry(size, size, segs, segs);
+    tg.rotateX(-Math.PI / 2);
+    const pos = tg.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i) + cx, z = pos.getZ(i) + cz;
+      pos.setXYZ(i, x, terrainHeight(x, z), z);
     }
-    return [Math.sqrt(best), by];
-  };
-  reseed(5);
-  const terrainNoise = (x: number, z: number): number => {
-    const a = Math.sin(x * 0.011 + 1.3) * Math.cos(z * 0.009 - 0.7);
-    const b = Math.sin(x * 0.027 - z * 0.019) * 0.5;
-    const c = Math.sin((x + z) * 0.05) * 0.2;
-    return (a + b + c) * amp + (spec.theme === 'city' ? 0 : amp * 0.4);
-  };
-  const terrainHeight = (x: number, z: number): number => {
-    const [d, ry] = distAndHeight(x, z);
-    // flat band wide enough to always contain a vertex ring, then blend into the hills
-    const t = THREE.MathUtils.smoothstep(d, halfW + 14, halfW + 80);
-    return THREE.MathUtils.lerp(ry - 0.55, terrainNoise(x, z) - 0.6, t);
-  };
-  const tg = new THREE.PlaneGeometry(size, size, segs, segs);
-  tg.rotateX(-Math.PI / 2);
-  const pos = tg.attributes.position as THREE.BufferAttribute;
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i) + cx, z = pos.getZ(i) + cz;
-    pos.setXYZ(i, x, terrainHeight(x, z), z);
+    tg.computeVertexNormals();
+    const gTex = groundTexture(env.groundColor, spec.theme === 'snow' ? 14 : 34);
+    gTex.repeat.set(size / 18, size / 18);
+    disposables.push(gTex);
+    const gMat = new THREE.MeshStandardMaterial({ map: gTex, roughness: spec.theme === 'snow' ? 0.7 : 0.98, metalness: 0, color: '#ffffff' });
+    const terrain = new THREE.Mesh(tg, gMat);
+    terrain.name = 'terrain';
+    terrain.receiveShadow = true;
+    group.add(terrain);
+    disposables.push(tg, gMat);
   }
-  tg.computeVertexNormals();
-  const gTex = groundTexture(env.groundColor, spec.theme === 'snow' ? 14 : 34);
-  gTex.repeat.set(size / 18, size / 18);
-  disposables.push(gTex);
-  const gMat = new THREE.MeshStandardMaterial({ map: gTex, roughness: spec.theme === 'snow' ? 0.7 : 0.98, metalness: 0, color: '#ffffff' });
-  const terrain = new THREE.Mesh(tg, gMat);
-  terrain.name = 'terrain';
-  terrain.receiveShadow = true;
-  group.add(terrain);
-  disposables.push(tg, gMat);
   void track_;
 
   return {

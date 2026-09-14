@@ -52,7 +52,7 @@ export function createRoadMaterial(env: TrackEnv, opts: RoadMaterialOptions): TH
   const normal = getTexture('asphaltNormal');
   const rough = getTexture('asphaltRough');
   const puddles = getTexture('puddles');
-  const mat = new THREE.MeshStandardMaterial({ color: env.roadColor, roughness: 0.85, metalness: 0, envMapIntensity: 0.6 });
+  const mat = new THREE.MeshStandardMaterial({ color: env.roadColor, roughness: 0.85, metalness: 0, envMapIntensity: 0.4 });
   if (!albedo || !rough || !puddles) return mat; // assets missing: plain tinted road
 
   const uniforms = {
@@ -103,7 +103,7 @@ float roadPaint;`,
         `float roughnessFactor = 0.62 + 0.3 * texture2D(tRough, wuv).r;
 	roughnessFactor = mix(roughnessFactor, 0.5, roadPaint);
 	roughnessFactor *= 1.0 - 0.3 * wetness;
-	roughnessFactor = mix(roughnessFactor, 0.06, roadPuddle);`,
+	roughnessFactor = mix(roughnessFactor, 0.14, roadPuddle);`,
       )
       .replace(
         '#include <normal_fragment_maps>',

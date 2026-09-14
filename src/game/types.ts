@@ -84,6 +84,8 @@ export interface TrackEnv {
   stars: boolean;
   aurora: boolean;
   headlights: boolean;
+  /** distant city silhouettes painted into the sky dome */
+  skyline?: boolean;
   /** colour grade + bloom for the post pass (render/Post.ts); missing fields use DEFAULT_GRADE */
   grade?: Partial<import('./render/Post').Grade>;
   /** scene.environmentIntensity for the track HDRI (src/assets/env) */
@@ -108,6 +110,10 @@ export interface TrackSpec {
   points: [number, number, number][];
   /** xz scale applied to the control points */
   scale?: number;
+  /** drivable run-off beyond the road edge before the wall (m, default 4.6) */
+  runoff?: number;
+  /** dense generated centrelines want centripetal Catmull-Rom (no overshoot at uneven spacing) */
+  spline?: 'catmullrom' | 'centripetal';
   /** difficulty 1..3 */
   difficulty: number;
   env: TrackEnv;

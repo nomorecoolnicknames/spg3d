@@ -43,6 +43,8 @@ export class TrackData {
   readonly samples: TrackSample[] = [];
   readonly count: number;
   readonly halfW: number;
+  /** drivable width beyond the road edge (to the wall) */
+  readonly runoff: number;
   readonly length: number;
   readonly spacing: number;
   readonly curve: THREE.CatmullRomCurve3;
@@ -50,11 +52,12 @@ export class TrackData {
 
   constructor(readonly spec: TrackSpec) {
     this.halfW = spec.roadWidth / 2;
+    this.runoff = spec.runoff ?? 4.6;
     const sc = spec.scale ?? 1;
     this.curve = new THREE.CatmullRomCurve3(
       spec.points.map(([x, z, y]) => new THREE.Vector3(x * sc, y, z * sc)),
       true,
-      'catmullrom',
+      spec.spline ?? 'catmullrom',
       0.55,
     );
     this.length = this.curve.getLength();

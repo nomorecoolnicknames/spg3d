@@ -11,6 +11,7 @@ import { buildProps, type PropsRig } from '../world/Props';
 import { CarPhysics } from '../vehicle/CarPhysics';
 import { createCarVisual, type CarVisual } from '../vehicle/CarVisual';
 import { getEnvMap, type EnvName } from '../assets';
+import { buildCity } from '../world/city/City';
 import { RacerAI, type AIContext, type AIOther } from '../ai/RacerAI';
 import { RaceCamera } from './RaceCamera';
 import { Smoke, Sparks, SkidMarks } from './Fx';
@@ -169,7 +170,7 @@ export class RaceScene implements SceneController {
     this.scene.add(this.sky.group);
     this.mesh = buildTrackMesh(this.track, { shadows: q.shadows, low: q.level === 'low' });
     this.scene.add(this.mesh.group);
-    this.props = buildProps(this.track, this.mesh.terrainHeight, { shadows: q.shadows, level: q.level });
+    this.props = spec.theme === 'city' ? buildCity(this.track, q) : buildProps(this.track, this.mesh.terrainHeight, { shadows: q.shadows, level: q.level });
     this.scene.add(this.props.group);
     if (env.rain || env.snow) {
       this.weather = createWeather(env.rain ? 'rain' : 'snow', q.level === 'low' ? 350 : 1600);
@@ -468,7 +469,7 @@ export class RaceScene implements SceneController {
       // projection + walls
       const p = this.track.project(c.x, c.z, r.idx, 14);
       const s = this.track.samples[p.idx];
-      const maxLat = this.track.halfW + 4.6 - c.width * 0.5;
+      const maxLat = this.track.halfW + this.track.runoff - c.width * 0.5;
       c.scraping = false;
       if (Math.abs(p.lat) > maxLat) {
         const sgn = Math.sign(p.lat);
