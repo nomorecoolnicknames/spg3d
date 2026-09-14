@@ -7,6 +7,7 @@ import { GeoBuilder, createCityMaterial } from '../city/kit';
 import type { CellName } from '../city/atlas';
 import { steam } from '../city/street';
 import { softSpriteTexture } from '../textures';
+import type { Lamp } from '../../render/LampField';
 
 /**
  * Aurora Pass set pieces from TrackSpec.features: avalanche galleries cut into the mountain side
@@ -28,6 +29,7 @@ export function buildAlpineFeatures(track: TrackData, terrainHeight: (x: number,
   const kit = new GeoBuilder();
   const all = (cell: CellName, tile: [number, number]) => ({ front: { cell, tile }, back: { cell, tile }, left: { cell, tile }, right: { cell, tile } });
   const pools: THREE.BufferGeometry[] = [];
+  const lamps: Lamp[] = [];
   const pool = (x: number, y: number, z: number, r: number) => {
     const p = new THREE.PlaneGeometry(r, r);
     p.rotateX(-Math.PI / 2);
@@ -64,7 +66,10 @@ export function buildAlpineFeatures(track: TrackData, terrainHeight: (x: number,
       // valley pillar
       const p = q(a, -m * edge, 0);
       kit.box(p.x, p.z, a.pos.y - 0.3, 0.9, 0.9, H + 0.3, Math.atan2(a.tan.x, a.tan.z), all('concrete', [0.25, 1.8]));
-      if (k % (step * 2) === 0) pool(a.pos.x, a.pos.y, a.pos.z, 9);
+      if (k % (step * 2) === 0) {
+        pool(a.pos.x, a.pos.y, a.pos.z, 9);
+        lamps.push({ x: a.pos.x, y: a.pos.y + H - 0.4, z: a.pos.z, color: '#fff0d6', range: 14 });
+      }
       // rock backfill rising from the roof into the mountain
       for (const [o, dy] of [[edge + 1, H + 0.9], [edge + 12, H + 5], [edge + 38, H + 12]] as const) {
         const v = q(a, m * o, dy);
@@ -128,6 +133,7 @@ export function buildAlpineFeatures(track: TrackData, terrainHeight: (x: number,
       kit.box(p.x, p.z, s.pos.y, 0.25, 0.25, 7.5, 0, all('metalVent', [0.1, 2]));
       kit.box(p.x, p.z, s.pos.y + 7.5, 0.7, 0.7, 0.4, 0, { ...all('tunnelCeil', [0.1, 0.12]), top: { cell: 'metalVent', tile: [0.1, 0.1] } });
       pool(s.pos.x + s.left.x * (halfW - 2), s.pos.y, s.pos.z + s.left.z * (halfW - 2), 11);
+      lamps.push({ x: p.x, y: s.pos.y + 7.4, z: p.z, color: '#ffd8a8', range: 24 });
     }
   }
 
@@ -220,6 +226,7 @@ export function buildAlpineFeatures(track: TrackData, terrainHeight: (x: number,
 
   return {
     group,
+    lamps,
     update(t: number) {
       for (const u of updaters) u(t);
     },

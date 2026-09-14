@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { TrackData } from '../TrackData';
 import { softSpriteTexture } from '../textures';
+import type { Lamp } from '../../render/LampField';
 import { BUILD, LOT_SIZE, type Archetype, type Lot } from './buildings';
 import { GeoBuilder, createCityMaterial, type LampSpace } from './kit';
 import type { CellName } from './atlas';
@@ -19,6 +20,7 @@ export interface CityRig {
   update(t: number): void;
   dispose(): void;
   stats: { sectors: number; buildings: number; triangles: number; lamps: number };
+  lamps: Lamp[];
 }
 
 const HALF = ROAD_WIDTH / 2;
@@ -361,7 +363,7 @@ export function buildCity(track: TrackData, quality: { level: 'low' | 'medium' |
       for (const side of [-1, 1]) {
         const z = Z + side * WALL, ze = Z + side * HALF;
         const b = gb(x, z);
-        const lamp: LampSpace = { s0: x, s1: x + step, perp0: WALL, perp1: WALL, spacing: covered ? 10 : LAMP_SPACING, height: covered ? -1.4 : LAMP_H, k: covered ? 2.2 : 0.6 };
+        const lamp: LampSpace = { s0: x, s1: x + step, perp0: WALL, perp1: WALL, spacing: covered ? 10 : LAMP_SPACING, height: covered ? -1.4 : LAMP_H, k: covered ? 1.1 : 0.6 };
         b.quadFacing(v(0, 0, -side), v(x, ya, z), v(x + step, yb, z), v(x + step, top, z), v(x, top, z), 'tunnelWall', [step / 4, Math.max(0.3, (top - Math.min(ya, yb)) / 4)], 0, [0, 0], lamp);
         b.quadFacing(UP, v(x, ya - 0.01, ze), v(x + step, yb - 0.01, ze), v(x + step, yb - 0.01, z), v(x, ya - 0.01, z), 'courtyard', [step / 4, 0.4]);
         if (!covered) {
@@ -475,6 +477,7 @@ export function buildCity(track: TrackData, quality: { level: 'low' | 'medium' |
   }
 
   // ── lamp posts: pole, arm over the road, glowing head
+  const lampHeads: Lamp[] = [];
   const pole = { cell: 'metalVent' as CellName, tile: [0.1, 2] as [number, number] };
   const head = { cell: 'tunnelCeil' as CellName, tile: [0.1, 0.12] as [number, number], start: [0.45, 0.78] as [number, number] };
   for (const l of lamps) {
@@ -487,6 +490,7 @@ export function buildCity(track: TrackData, quality: { level: 'low' | 'medium' |
     const ax = (dx / dl) * 1.6, az = (dz / dl) * 1.6;
     const along = Math.abs(dx) > Math.abs(dz);
     b.box(l.x + ax, l.z + az, CURB + LAMP_H - 0.25, along ? 3.2 : 0.5, along ? 0.5 : 3.2, 0.3, 0, { front: head, back: head, left: head, right: head, top: { cell: 'metalVent', tile: [0.2, 0.2] } });
+    lampHeads.push({ x: l.x + ax * 1.8, y: CURB + LAMP_H - 0.35, z: l.z + az * 1.8, color: '#ffc58a', range: 26 });
   }
 
   // ── merge sectors
@@ -555,7 +559,10 @@ export function buildCity(track: TrackData, quality: { level: 'low' | 'medium' |
       const p = s.pos.clone().addScaledVector(s.left, (Math.sign(pr.lat) || 1) * (HALF - 2.5));
       add(p.x, s.pos.y, p.z, 11);
     }
-    for (let x = TUNNEL.cover1; x < TUNNEL.cover0; x += 10) add(x, routeElevation(x, TUNNEL.z), TUNNEL.z, 7);
+    for (let x = TUNNEL.cover1; x < TUNNEL.cover0; x += 10) {
+      add(x, routeElevation(x, TUNNEL.z), TUNNEL.z, 7);
+      lampHeads.push({ x, y: -1.1, z: TUNNEL.z, color: '#fff0d6', range: 12, intensity: 0.35 });
+    }
     if (pools.length) {
       const geo = mergeGeometries(pools)!;
       pools.forEach((p) => p.dispose());
@@ -572,6 +579,7 @@ export function buildCity(track: TrackData, quality: { level: 'low' | 'medium' |
   return {
     group,
     stats: { sectors: sectors.size, buildings: buildingCount, triangles, lamps: lamps.length },
+    lamps: lampHeads,
     update(t: number) {
       uniforms.time.value = t;
       if (steamTime) steamTime.value = t;

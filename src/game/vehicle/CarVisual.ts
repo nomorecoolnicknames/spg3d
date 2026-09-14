@@ -3,6 +3,7 @@ import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.j
 import type { CarSpec } from '../types';
 import { getGLTF } from '../assets';
 import { softSpriteTexture } from '../world/textures';
+import { LAMP_GLSL, lampUniforms } from '../render/LampField';
 
 /**
  * Car built from the baked GLB (scripts/build-cars.sh):
@@ -162,11 +163,13 @@ function patchBodyMaterial(mat: THREE.MeshStandardMaterial, u: BodyUniforms, phy
     sh.uniforms.spgPaint = u.spgPaint;
     sh.uniforms.spgHead = u.spgHead;
     sh.uniforms.spgBrake = u.spgBrake;
+    Object.assign(sh.uniforms, lampUniforms);
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec4 color;\nvarying vec4 vSpgMask;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvSpgMask = color;');
+      .replace('#include <common>', '#include <common>\nattribute vec4 color;\nvarying vec4 vSpgMask;\nvarying vec3 vSpgW;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvSpgMask = color;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n\tvSpgW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     let fs = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform vec3 spgPaint;\nuniform float spgHead;\nuniform float spgBrake;\nvarying vec4 vSpgMask;')
+      .replace('#include <common>', '#include <common>\nuniform vec3 spgPaint;\nuniform float spgHead;\nuniform float spgBrake;\nvarying vec4 vSpgMask;\nvarying vec3 vSpgW;\n' + LAMP_GLSL)
       .replace(
         '#include <map_fragment>',
         '#include <map_fragment>\n\tdiffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * spgPaint, vSpgMask.r);\n\tdiffuseColor.rgb *= mix(1.0, vSpgMask.a, 0.45);',
@@ -176,7 +179,28 @@ function patchBodyMaterial(mat: THREE.MeshStandardMaterial, u: BodyUniforms, phy
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n\ttotalEmissiveRadiance += diffuseColor.rgb * (vSpgMask.g * spgHead + vSpgMask.b * spgBrake);')
       .replace(
         '#include <lights_fragment_end>',
-        '#include <lights_fragment_end>\n\treflectedLight.indirectDiffuse *= vSpgMask.a;\n\treflectedLight.indirectSpecular *= mix(1.0, vSpgMask.a, 0.7);',
+        `#include <lights_fragment_end>
+	reflectedLight.indirectDiffuse *= vSpgMask.a;
+	reflectedLight.indirectSpecular *= mix(1.0, vSpgMask.a, 0.7);
+	// street lamps: highlights that sweep over the body as the car passes under them
+	for (int i = 0; i < SPG_LAMPS; i++) {
+		if (spgLampPos[i].w <= 0.0) continue;
+		vec3 Lw = spgLampPos[i].xyz - vSpgW;
+		float d2 = dot(Lw, Lw);
+		float r2 = spgLampPos[i].w * spgLampPos[i].w;
+		if (d2 > r2) continue;
+		float fall = 1.0 - d2 / r2;
+		fall *= fall;
+		vec3 Lv = normalize((viewMatrix * vec4(Lw, 0.0)).xyz);
+		float ndl = max(dot(normal, Lv), 0.0);
+		vec3 Hv = normalize(Lv + geometryViewDir);
+		float rgh = max(roughnessFactor, 0.07);
+		float shin = min(2.0 / (rgh * rgh * rgh * rgh), 3000.0);
+		float spec = pow(max(dot(normal, Hv), 0.0), shin) * (shin + 8.0) / 25.0;
+		vec3 lc = spgLampCol[i] * fall;
+		reflectedLight.directDiffuse += diffuseColor.rgb * (1.0 - metalnessFactor) * ndl * lc;
+		reflectedLight.directSpecular += mix(vec3(0.04), diffuseColor.rgb, metalnessFactor) * spec * ndl * lc * 1.6;
+	}`,
       );
     if (physical) fs = fs.replace('#include <lights_physical_fragment>', '#include <lights_physical_fragment>\n\tmaterial.clearcoat *= vSpgMask.r;');
     sh.fragmentShader = fs;

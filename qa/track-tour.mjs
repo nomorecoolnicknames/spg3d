@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
-const [track = 'neon', quality = 'medium', out = 'qa/out/tour/t', list = '0.1,0.5', settle = '2500'] = process.argv.slice(2);
+const [track = 'neon', quality = 'medium', out = 'qa/out/tour/t', list = '0.1,0.5', settle = '2500', extra = ''] = process.argv.slice(2);
 const port = 3770 + Math.floor(Math.random() * 100);
 const server = spawn('node', ['scripts/serve.mjs', '--dir', 'dist', '--port', String(port)], { stdio: 'ignore' });
 process.on('exit', () => server.kill());
@@ -15,7 +15,7 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const page = await browser.newPage({ viewport: { width: 1024, height: 576 } });
 const logs = [];
 page.on('pageerror', (e) => logs.push(e.message));
-await page.goto(`http://localhost:${port}/?screen=race&track=${track}&auto=1&q=${quality}&maxdt=0.2&ts=1`, { timeout: 120000 });
+await page.goto(`http://localhost:${port}/?screen=race&track=${track}&auto=1&q=${quality}&maxdt=0.2&ts=1${extra}`, { timeout: 120000 });
 await page.waitForFunction(() => window.__spg && window.__spg.ready, null, { timeout: 180000 });
 await page.waitForFunction(() => window.__spg.snapshot()?.hud?.started, null, { timeout: 180000 }).catch(() => {});
 for (const u of list.split(',').map(Number)) {

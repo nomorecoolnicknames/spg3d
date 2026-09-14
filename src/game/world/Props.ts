@@ -1,12 +1,15 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { TrackData } from './TrackData';
+import type { Lamp } from '../render/LampField';
 import { reseed, rnd } from './textures';
 
 export interface PropsRig {
   group: THREE.Group;
   update(t: number): void;
   dispose(): void;
+  /** light sources for the LampField (car and road lighting, halos) */
+  lamps?: Lamp[];
 }
 
 /** Theme props placed off-track; uses the terrain height so nothing floats. */

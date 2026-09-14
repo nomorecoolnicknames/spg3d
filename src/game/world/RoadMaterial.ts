@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { TrackEnv } from '../types';
 import { getTexture } from '../assets';
+import { LAMP_GLSL, lampUniforms } from '../render/LampField';
 
 /**
  * Asphalt for the track ribbon. Scanned CC0 asphalt (ambientCG Asphalt031) is sampled in world
@@ -14,6 +15,8 @@ export interface RoadMaterialOptions {
   lineColor: string;
   /** skip the normal map (phones) */
   low: boolean;
+  /** street-lamp pools and stretched wet reflections from the LampField slots (night, medium/high) */
+  lamps?: boolean;
 }
 
 let marksTex: THREE.CanvasTexture | null = null;
@@ -52,7 +55,8 @@ export function createRoadMaterial(env: TrackEnv, opts: RoadMaterialOptions): TH
   const normal = getTexture('asphaltNormal');
   const rough = getTexture('asphaltRough');
   const puddles = getTexture('puddles');
-  const mat = new THREE.MeshStandardMaterial({ color: env.roadColor, roughness: 0.85, metalness: 0, envMapIntensity: 0.4 });
+  // at night the HDRI is far brighter than the lit street: a wet road mirroring it turns beige, so keep it faint
+  const mat = new THREE.MeshStandardMaterial({ color: env.roadColor, roughness: 0.85, metalness: 0, envMapIntensity: env.headlights ? 0.3 : 0.4 });
   if (!albedo || !rough || !puddles) return mat; // assets missing: plain tinted road
 
   const uniforms = {
@@ -66,17 +70,19 @@ export function createRoadMaterial(env: TrackEnv, opts: RoadMaterialOptions): TH
     wetness: { value: opts.wetness },
   };
   const useNormal = !opts.low && !!normal;
-  mat.defines = { ...(mat.defines ?? {}), USE_UV: '', ...(useNormal ? { ROAD_NORMAL: '' } : {}) };
+  mat.defines = { ...(mat.defines ?? {}), USE_UV: '', ...(useNormal ? { ROAD_NORMAL: '' } : {}), ...(opts.lamps ? { ROAD_LAMPS: '' } : {}) };
   mat.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, uniforms);
+    Object.assign(sh.uniforms, uniforms, lampUniforms);
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec2 vRoadW;')
-      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n\tvRoadW = (modelMatrix * vec4(transformed, 1.0)).xz;');
+      .replace('#include <common>', '#include <common>\nvarying vec2 vRoadW;\nvarying vec3 vRoadP;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n\tvRoadP = (modelMatrix * vec4(transformed, 1.0)).xyz;\n\tvRoadW = vRoadP.xz;');
     sh.fragmentShader = sh.fragmentShader
       .replace(
         '#include <common>',
         `#include <common>
 varying vec2 vRoadW;
+varying vec3 vRoadP;
+${LAMP_GLSL}
 uniform sampler2D tAlbedo, tRough, tPuddle, tMarks;
 #ifdef ROAD_NORMAL
 uniform sampler2D tNormal;
@@ -117,8 +123,42 @@ float roadPaint;`,
 		normal = normalize((viewMatrix * vec4(nW, 0.0)).xyz);
 	}
 #endif`,
+      )
+      .replace(
+        '#include <lights_fragment_end>',
+        `#include <lights_fragment_end>
+#ifdef ROAD_LAMPS
+	{
+		// NFS-style night asphalt: each nearby lamp lights a pool and leaves a reflection that is
+		// narrow sideways and long toward the viewer (glossy wet surface, anisotropic lobe)
+		// the moon's specular on a glossy wet road reads as a beige sheet when driving toward it:
+		// at night the reflections should come from the lamps, not from the directional light
+		reflectedLight.directSpecular *= 0.15;
+		// same for the HDRI: its bright skyline is not what this street reflects (A/B: lights and env off
+		// left a black road with only lamp streaks — the brown sheet was mostly env specular at grazing angles)
+		reflectedLight.indirectSpecular *= 0.12;
+		vec3 V = normalize(cameraPosition - vRoadP);
+		vec3 R = reflect(-V, vec3(0.0, 1.0, 0.0));
+		vec3 side = normalize(cross(vec3(0.0, 1.0, 0.0), vec3(R.x, 0.0, R.z) + vec3(1e-4, 0.0, 0.0)));
+		float wet = mix(0.1, 1.0, max(wetness * 0.6, roadPuddle));
+		float fres = 0.04 + 0.96 * pow(1.0 - clamp(V.y, 0.0, 1.0), 5.0);
+		for (int i = 0; i < SPG_LAMPS; i++) {
+			if (spgLampPos[i].w <= 0.0) continue;
+			vec3 Lw = spgLampPos[i].xyz - vRoadP;
+			float dist = length(Lw);
+			vec3 L = Lw / dist;
+			float dh = dot(L - R, side);
+			float dv = L.y - R.y;
+			float lobe = exp(-dh * dh / 0.0012 - dv * dv / 0.08);
+			float near = 1.0 / (1.0 + dist * dist * 0.0009);
+			float pool = 1.0 - smoothstep(0.0, spgLampPos[i].w * 0.5, length(Lw.xz));
+			reflectedLight.directSpecular += spgLampCol[i] * lobe * wet * (0.3 + fres) * near * 1.6;
+			reflectedLight.directDiffuse += diffuseColor.rgb * spgLampCol[i] * pool * pool * max(L.y, 0.0) * 0.35;
+		}
+	}
+#endif`,
       );
   };
-  mat.customProgramCacheKey = () => `spg-road${useNormal ? '-n' : ''}`;
+  mat.customProgramCacheKey = () => `spg-road${useNormal ? '-n' : ''}${opts.lamps ? '-l' : ''}`;
   return mat;
 }

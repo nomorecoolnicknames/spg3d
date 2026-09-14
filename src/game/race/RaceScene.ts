@@ -12,6 +12,8 @@ import { CarPhysics } from '../vehicle/CarPhysics';
 import { createCarVisual, type CarVisual } from '../vehicle/CarVisual';
 import { getEnvMap, type EnvName } from '../assets';
 import { buildCity } from '../world/city/City';
+import { LampField } from '../render/LampField';
+import { CarGlows } from '../render/CarGlows';
 import { buildCanyonFeatures } from '../world/features/Canyon';
 import { buildAlpineFeatures } from '../world/features/Alpine';
 import { RacerAI, type AIContext, type AIOther } from '../ai/RacerAI';
@@ -80,6 +82,9 @@ export class RaceScene implements SceneController {
   private weather: WeatherRig | null = null;
   private props!: PropsRig;
   private features: PropsRig | null = null;
+  private lampField: LampField | null = null;
+  private glows: CarGlows | null = null;
+  private lampFocus = new THREE.Vector3();
   private sun!: THREE.DirectionalLight;
   private post: Post | null = null;
   private racers: Racer[] = [];
@@ -182,6 +187,12 @@ export class RaceScene implements SceneController {
     if (spec.theme === 'desert' && spec.features) this.features = buildCanyonFeatures(this.track, this.mesh.terrainHeight, q);
     if (spec.theme === 'snow' && spec.features) this.features = buildAlpineFeatures(this.track, this.mesh.terrainHeight, q);
     if (this.features) this.scene.add(this.features.group);
+    // street lamps light cars and wet asphalt; halos on every lamp head
+    const lamps = [...(this.props.lamps ?? []), ...(this.features?.lamps ?? [])];
+    if (lamps.length && new URLSearchParams(location.search).get('lamps') !== '0') {
+      this.lampField = new LampField(lamps);
+      if (this.lampField.halos) this.scene.add(this.lampField.halos);
+    }
     if (env.rain || env.snow) {
       this.weather = createWeather(env.rain ? 'rain' : 'snow', q.level === 'low' ? 350 : 1600);
       this.scene.add(this.weather.group);
@@ -251,6 +262,10 @@ export class RaceScene implements SceneController {
     }
     // race grid: player starts last for career/quick races
     this.racers.sort((a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0));
+    if (env.headlights) {
+      this.glows = new CarGlows(this.racers.length);
+      this.scene.add(this.glows.points);
+    }
     this.racers.forEach((r, i) => {
       const gridIdx = (this.track.count - 8 - i * 6 + this.track.count) % this.track.count;
       const lat = (i % 2 === 0 ? 1 : -1) * 2.7;
@@ -442,6 +457,13 @@ export class RaceScene implements SceneController {
     this.sun.position.set(pp.x, pp.y, pp.z).addScaledVector(this.tmp.set(...this.track.spec.env.sunDir).normalize(), 220);
     this.sun.target.position.set(pp.x, pp.y, pp.z);
     this.sky.update(this.elapsed);
+    if (this.lampField) {
+      // the lamps that matter are the ones just ahead of the camera
+      const cam = this.cam.camera;
+      cam.getWorldDirection(this.lampFocus);
+      this.lampFocus.multiplyScalar(22).add(cam.position);
+      this.lampField.update(this.lampFocus);
+    }
     this.props.update(this.elapsed);
     this.features?.update(this.elapsed);
     this.weather?.update(dt, this.cam.camera.position, this.tmp2.set(pp.forwardX * pp.vx, 0, pp.forwardZ * pp.vx));
@@ -761,10 +783,9 @@ export class RaceScene implements SceneController {
     r.vis.setWheels(c.wheelSpin, c.steerAngle);
     r.vis.setBrake(r.input.brake > 0.1 || (r.finished && c.vx > 1));
     r.vis.setNitro(c.nitroActive, this.elapsed);
-    if (r.vis.extras.length) {
-      root.updateMatrixWorld();
-      r.vis.tick(Math.abs(c.vx) * 3.6);
-    }
+    if (r.vis.extras.length || this.glows) root.updateMatrixWorld();
+    if (r.vis.extras.length) r.vis.tick(Math.abs(c.vx) * 3.6);
+    if (this.glows) this.glows.set(this.racers.indexOf(r), root, r.spec.length, r.input.brake > 0.1 || (r.finished && c.vx > 1));
     void dt;
   }
 
@@ -906,6 +927,8 @@ export class RaceScene implements SceneController {
     this.weather?.dispose();
     this.props.dispose();
     this.features?.dispose();
+    this.lampField?.dispose();
+    this.glows?.dispose();
     this.smoke.dispose();
     this.sparks.dispose();
     this.skids.dispose();

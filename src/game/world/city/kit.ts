@@ -173,11 +173,11 @@ export function createCityMaterial(night: boolean): { material: THREE.MeshStanda
     litRatio: { value: night ? 0.3 : 0 },
     windowGain: { value: night ? 1.1 : 0 },
     signGain: { value: night ? 1.2 : 0.3 },
-    lampGain: { value: night ? 1 : 0 },
+    lampGain: { value: night ? 0.6 : 0 },
     lampColor: { value: new THREE.Color('#ffc58a') },
     time: { value: 0 },
   };
-  const mat = new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0, envMapIntensity: 0.8 });
+  const mat = new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0, envMapIntensity: 0.45 });
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, uniforms, { tAtlas: { value: atlas.albedo }, tEmis: { value: atlas.emissive } });
     sh.vertexShader = sh.vertexShader
