@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { autoTierAtBoot } from '@/game/tier';
 import { useStore, setSettings, resetProgress, goto, launchFromStory, setInitials, restartSession, setState, getState } from '@/state/store';
 import { TRACKS } from '@/data/tracks';
 import { CAR_BY_ID } from '@/data/cars';
@@ -90,7 +91,7 @@ export function Settings() {
       <div className="two-col">
         <div className="panel">
           <h2>{S.settings.graphics}</h2>
-          <div className="set-row"><span>{S.settings.quality}</span><Seg value={st.quality} opts={[['low', S.settings.qualityNames.low], ['medium', S.settings.qualityNames.medium], ['high', S.settings.qualityNames.high]]} onChange={(q) => setSettings({ quality: q, shadows: q === 'high', bloom: q !== 'low', reflections: q === 'high' })} /></div>
+          <div className="set-row"><span>{S.settings.quality}</span><Seg value={st.qualityAuto ? 'auto' : st.quality} opts={[['auto', S.settings.qualityAuto], ['low', S.settings.qualityNames.low], ['medium', S.settings.qualityNames.medium], ['high', S.settings.qualityNames.high]]} onChange={(q) => (q === 'auto' ? (setSettings({ qualityAuto: true, tierVersion: 0 }), autoTierAtBoot()) : setSettings({ qualityAuto: false, quality: q, shadows: q === 'high', bloom: q !== 'low', reflections: q === 'high' }))} /></div>
           <div className="set-row"><span>{S.settings.shadows}</span><Seg value={st.shadows} opts={onOff} onChange={(v) => setSettings({ shadows: v })} /></div>
           <div className="set-row"><span>{S.settings.bloom}</span><Seg value={st.bloom} opts={onOff} onChange={(v) => setSettings({ bloom: v })} /></div>
           <div className="set-row"><span>{S.settings.fovKick}</span><Seg value={st.fovKick} opts={onOff} onChange={(v) => setSettings({ fovKick: v })} /></div>

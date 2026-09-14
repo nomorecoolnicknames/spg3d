@@ -163,6 +163,8 @@ export const S = {
     graphics: 'Графика',
     quality: 'Качество',
     qualityNames: { low: 'Низкое', medium: 'Среднее', high: 'Высокое' },
+    qualityAuto: 'Авто',
+    tierDropped: 'Не тянет — качество снижено:',
     shadows: 'Тени',
     bloom: 'Свечение',
     reflections: 'Отражения',

@@ -120,7 +120,7 @@ export function installDebug(): void {
   if (maxdt > 0) viewport.maxDt = Math.min(1, maxdt);
   const quality = q.get('q');
   if (quality === 'low' || quality === 'medium' || quality === 'high') {
-    setSettings({ quality, shadows: quality === 'high', bloom: quality !== 'low', reflections: quality === 'high' });
+    setSettings({ quality, qualityAuto: false, shadows: quality === 'high', bloom: quality !== 'low', reflections: quality === 'high' });
   }
   const bloom = q.get('bloom');
   if (bloom === '0' || bloom === '1') setSettings({ bloom: bloom === '1' });

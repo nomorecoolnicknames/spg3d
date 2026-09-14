@@ -10,6 +10,10 @@ export interface TrackRecord {
 
 export interface Settings {
   quality: QualitySettings['level'];
+  /** tier chosen automatically (game/tier.ts) until the player picks one */
+  qualityAuto: boolean;
+  /** tier logic version the automatic choice was made with */
+  tierVersion: number;
   shadows: boolean;
   bloom: boolean;
   reflections: boolean;
@@ -51,6 +55,8 @@ const touchDevice = typeof window !== 'undefined' && ('ontouchstart' in window |
 
 export const DEFAULT_SETTINGS: Settings = {
   quality: touchDevice ? 'low' : 'high',
+  qualityAuto: true,
+  tierVersion: 0,
   shadows: !touchDevice,
   bloom: !touchDevice,
   reflections: !touchDevice,

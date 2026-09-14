@@ -11,6 +11,7 @@ import { S } from '@/data/strings';
 import type { GameEvent, SceneCallbacks } from '@/game/types';
 import { emitHudEvent } from '@/ui/HUD';
 import { applyRefreshRate } from '@/game/perf';
+import { autoTierAtBoot, startTierWatchdog } from '@/game/tier';
 
 const SHOWCASE_SCREENS = new Set(['menu', 'garage', 'career', 'quick', 'records', 'settings', 'story', 'results']);
 
@@ -27,6 +28,8 @@ export function GameHost() {
     if (ref.current) {
       viewport.mount(ref.current);
       input.attach(ref.current);
+      autoTierAtBoot();
+      startTierWatchdog();
     }
     return () => input.detach();
   }, []);
