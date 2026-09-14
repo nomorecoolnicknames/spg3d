@@ -7,6 +7,7 @@ import { GeoBuilder, createCityMaterial, type LampSpace } from '../city/kit';
 import type { CellName } from '../city/atlas';
 import { busStop, parkedCars, trafficLight, trees } from '../city/street';
 import { BUILDING_KIND as K, type Flat, type OsmStyle, type OsmWorld } from './types';
+import { getGLTF } from '../../assets';
 
 /**
  * A real place built from OpenStreetMap data (scripts/osm-map.mjs): ground and water with embankment
@@ -525,6 +526,90 @@ export function buildOsmCity(track: TrackData, world: OsmWorld, quality: { level
     const sm = track.samples[r.i];
     const side = Math.sign(r.lat) || 1;
     busStop(gb, sm.pos.x + sm.left.x * side * (HALF + 3.6), sm.pos.z + sm.left.z * side * (HALF + 3.6), furnitureY(r.i), Math.atan2(-sm.left.x * side, -sm.left.z * side));
+  }
+
+  // ── landmark models (scripts/blender/landmarks.py) and their floodlights, in model space [x, y, z, colour, range]
+  const MODEL_LIGHTS: Record<string, [number, number, number, string, number][]> = {
+    shch_stela: [[0, 2, -9, '#ffe2b0', 20], [0, 2, 9, '#ffe2b0', 20]],
+    shch_love: [[0, 1.5, -4, '#ffd0d8', 14]],
+    spb_obelisk: [[0, 3, -13, '#ffd9a0', 30], [0, 3, 13, '#ffd9a0', 30], [13, 3, 0, '#ffd9a0', 30], [-13, 3, 0, '#ffd9a0', 30]],
+    spb_station_tower: [[0, 4, -10, '#ffe0b0', 26]],
+  };
+  const lib = getGLTF('landmarks');
+  for (const [name, xdm, zdm, rotDeg] of world.models) {
+    const src = lib?.scene.getObjectByName(name);
+    if (!src) continue;
+    const obj = src.clone(true);
+    const x = xdm / 10, z = zdm / 10, rot = (rotDeg * Math.PI) / 180;
+    obj.position.set(x, GROUND_Y, z);
+    obj.rotation.set(0, rot, 0);
+    obj.name = `osm:lm:${name}`;
+    obj.traverse((o) => {
+      o.matrixAutoUpdate = false;
+      o.updateMatrix();
+    });
+    obj.updateMatrixWorld(true);
+    group.add(obj);
+    const cs = Math.cos(rot), sn = Math.sin(rot);
+    for (const [lx, ly, lz, color, range] of MODEL_LIGHTS[name] ?? []) {
+      lamps.push({ x: x + lx * cs + lz * sn, y: GROUND_Y + ly, z: z - lx * sn + lz * cs, color, range, intensity: 1.2 });
+    }
+  }
+
+  // ── illuminated signs on the facade of a building that faces the route
+  for (const [label, color, topDm, ringF] of world.signs) {
+    let ring = decode(ringF);
+    if (area(ring) < 0) ring = ring.reverse();
+    let best: { score: number; p: P2; q: P2; n: P2; len: number } | null = null;
+    for (let i = 0; i < ring.length; i++) {
+      const p = ring[i], q = ring[(i + 1) % ring.length];
+      const len = Math.hypot(q.x - p.x, q.z - p.z);
+      if (len < 8) continue;
+      const n = { x: (q.z - p.z) / len, z: -(q.x - p.x) / len };
+      const mx = (p.x + q.x) / 2, mz = (p.z + q.z) / 2;
+      const r = near(mx, mz, 6);
+      if (r.i < 0) continue;
+      const sm = track.samples[r.i].pos;
+      const facing = ((sm.x - mx) * n.x + (sm.z - mz) * n.z) / (r.d || 1);
+      if (facing < 0.3) continue;
+      const score = Math.min(len, 60) * facing / (1 + r.d / 60);
+      if (!best || score > best.score) best = { score, p, q, n, len };
+    }
+    if (!best) continue;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    const font = 'bold 96px "Russo One", "Arial Black", sans-serif';
+    ctx.font = font;
+    const tw = Math.ceil(ctx.measureText(label).width) + 60;
+    canvas.width = THREE.MathUtils.ceilPowerOfTwo(tw);
+    canvas.height = 128;
+    ctx.font = font;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = color;
+    ctx.fillText(label, canvas.width / 2, 68);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ffffff';
+    ctx.globalAlpha = 0.55;
+    ctx.fillText(label, canvas.width / 2, 68);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    const w = Math.min(best.len * 0.8, (canvas.width / canvas.height) * 4.2);
+    const h = w * (canvas.height / canvas.width);
+    const g = new THREE.PlaneGeometry(w, h);
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false, color: new THREE.Color(1.6, 1.6, 1.6) });
+    const mesh = new THREE.Mesh(g, mat);
+    const top = Math.max(6, topDm / 10);
+    mesh.position.set((best.p.x + best.q.x) / 2 + best.n.x * 0.4, top - h / 2 - 0.8, (best.p.z + best.q.z) / 2 + best.n.z * 0.4);
+    mesh.rotation.y = Math.atan2(best.n.x, best.n.z);
+    mesh.renderOrder = 3;
+    mesh.name = `osm:sign:${label}`;
+    group.add(mesh);
+    disposables.push(g, mat, tex);
+    lamps.push({ x: mesh.position.x + best.n.x * 3, y: mesh.position.y, z: mesh.position.z + best.n.z * 3, color, range: Math.max(16, w), intensity: 0.8 });
   }
 
   // ── merge sectors

@@ -572,7 +572,7 @@ const outlines = [];
 for (const e of raw.elements) {
   const t = e.tags ?? {};
   if (!t.building && !t['building:part']) continue;
-  if (t.building === 'roof' || t['building:part'] === 'roof' || t.location === 'underground' || num(t.layer) < 0 || t.building === 'construction' || t.demolished) continue;
+  if (t.building === 'roof' || t['building:part'] === 'roof' || t.location === 'underground' || (num(t.layer) < 0 && t.location !== 'surface') || t.building === 'construction' || t.demolished) continue;
   for (const poly of polygonsOf(e)) (t['building:part'] && !t.building ? parts : outlines).push({ e, t, poly });
 }
 // OSM 3D convention: when parts describe a building its outline is not drawn — but only trust that when
@@ -596,11 +596,22 @@ const hasParts = (ring) => {
   return covered > Math.abs(ringArea(ring)) * 0.6;
 };
 
+// a landmark style on an outline applies to the parts inside it (e.g. every tier of the Palace of Culture)
+const partStyle = new Map();
+for (const o of outlines) {
+  const st = cfg.landmarks[o.e.id]?.style;
+  if (!st) continue;
+  for (const p of parts) if (pointInRing(centroid(p.poly[0]), o.poly[0])) partStyle.set(p, st);
+}
+const elementCentre = new Map();
+for (const b of [...outlines, ...parts]) if (!elementCentre.has(b.e.id)) elementCentre.set(b.e.id, centroid(b.poly[0]));
+
 const buildings = [];
 let dropped = 0, pushed = 0;
 for (const b of [...outlines.filter((o) => !hasParts(o.poly[0])), ...parts]) {
   const { e, t } = b;
-  const lm = cfg.landmarks[e.id] ?? {};
+  const lm = cfg.landmarks[e.id] ?? (partStyle.has(b) ? { style: partStyle.get(b) } : {});
+  if (lm.style === 'skip') continue;
   const floorH = cfg.floorH;
   const levels = num(t['building:levels']);
   const roofLevels = num(t['roof:levels']) ?? 0;
@@ -612,7 +623,7 @@ for (const b of [...outlines.filter((o) => !hasParts(o.poly[0])), ...parts]) {
   let ring = b.poly[0];
   const c = centroid(ring);
   if (!inMask(c[0], c[1]) && h < TALL) continue;
-  if (Math.abs(ringArea(ring)) < 12) continue;
+  if (Math.abs(ringArea(ring)) < 12 && h < 20) continue;
   // keep the race corridor clear: vertices inside it slide out perpendicular to the route
   const nc = nearestRoute(c[0], c[1]);
   if (nc.d < CLEAR) {
@@ -723,6 +734,40 @@ log(`trees ${trees.length / 2}, signals ${signals.length / 2}, stops ${stops.len
 
 // ───────────────────────────── output ─────────────────────────────
 
+const models = (cfg.models ?? []).map((m) => {
+  if (m.facade) {
+    // centre of the outline edge closest to `toward`, the model front (+z) along the outward normal
+    const o = [...outlines, ...parts].find((b) => b.e.id === m.facade);
+    if (!o) throw new Error(`model ${m.model}: facade ${m.facade} not in the extract`);
+    let ring = o.poly[0];
+    if (ringArea(ring) < 0) ring = [...ring].reverse();
+    let best = null;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i], b = ring[(i + 1) % ring.length];
+      const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      const len = dist(a, b);
+      if (len < 12) continue;
+      const d = dist(mid, m.toward);
+      if (!best || d < best.d) best = { d, mid, nx: (b[1] - a[1]) / len, nz: -(b[0] - a[0]) / len };
+    }
+    return [m.model, dm(best.mid[0]), dm(best.mid[1]), Math.round((Math.atan2(best.nx, best.nz) * 180) / Math.PI)];
+  }
+  const at = m.at ?? elementCentre.get(m.osm);
+  if (!at) throw new Error(`model ${m.model}: no position (osm ${m.osm})`);
+  return [m.model, dm(at[0]), dm(at[1]), m.rot ?? 0];
+});
+// signs hang on the outline (a building described by parts keeps its outline for this)
+const signs = (cfg.signs ?? []).map((sg) => {
+  const o = [...outlines, ...parts].find((b) => b.e.id === sg.osm);
+  if (!o) throw new Error(`sign «${sg.text}»: building ${sg.osm} not in the extract`);
+  const built = buildings.filter((bl) => bl[7] === sg.osm)[0];
+  const t = o.t;
+  const h = built ? built[0] / 10 : num(t.height) ?? (num(t['building:levels']) ?? 4) * cfg.floorH;
+  let ring = o.poly[0];
+  if (ringArea(ring) < 0) ring = [...ring].reverse();
+  return [sg.text, sg.color ?? '#ffffff', dm(Math.min(h, sg.maxY ?? 40)), flat(ring)];
+});
+
 const outDir = new URL('../src/data/maps/', import.meta.url);
 mkdirSync(outDir, { recursive: true });
 const r1 = (v) => Math.round(v * 10) / 10;
@@ -750,6 +795,8 @@ const world = {
   trees,
   signals,
   stops,
+  models,
+  signs,
 };
 writeFileSync(new URL(`${id}.route.json`, outDir), JSON.stringify(routeJson));
 const worldText = JSON.stringify(world);

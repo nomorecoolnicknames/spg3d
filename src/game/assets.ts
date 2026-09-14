@@ -19,6 +19,7 @@ import bolideHd from '@/assets/cars/bugatti_bolide_2024-hd.glb';
 import xbotUrl from '@/assets/Xbot.glb';
 import xbotLodUrl from '@/assets/Xbot-lod.glb';
 import madkidFaceUrl from '@/assets/madk1d_face_big.jpg';
+import landmarksUrl from '@/assets/landmarks/landmarks.glb';
 import envNeon from '@/assets/env/neon.hdr?url';
 import envCanyon from '@/assets/env/canyon.hdr?url';
 import envAurora from '@/assets/env/aurora.hdr?url';
@@ -212,6 +213,29 @@ export function getEnvMap(renderer: THREE.WebGLRenderer, name: EnvName): THREE.T
   envSources.delete(name);
   envMaps.set(name, rt.texture);
   return rt.texture;
+}
+
+let landmarksLoad: Promise<GLTF | undefined> | null = null;
+
+/** Landmark models of the real-place maps (scripts/build-landmarks.sh), loaded with the first map that needs them. */
+export function loadLandmarks(): Promise<GLTF | undefined> {
+  if (!landmarksLoad) {
+    landmarksLoad = new Promise((resolve) => {
+      loader.load(
+        landmarksUrl,
+        (g) => {
+          gltfs.set('landmarks', g);
+          resolve(g);
+        },
+        undefined,
+        (err) => {
+          console.error('landmarks load failed', err);
+          resolve(undefined);
+        },
+      );
+    });
+  }
+  return landmarksLoad;
 }
 
 const hdLoads = new Map<string, Promise<GLTF | undefined>>();

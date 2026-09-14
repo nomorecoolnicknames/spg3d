@@ -131,6 +131,7 @@ export class RaceScene implements SceneController {
   private fly = false;
   private flySpeed = 0;
   private flyProbe = 0;
+  private viewOverride: [number, number, number, number, number, number] | null = null;
   private aiCtx: AIContext = { progress: 0, lat: 0, others: this.aiOthers, selfIndex: -1, canDrive: false };
 
   constructor(
@@ -334,6 +335,10 @@ export class RaceScene implements SceneController {
       this.cam.update(r.car, 1, this.elapsed);
       return idx;
     };
+    // QA: look at the world from a fixed point (landmark shots); call without arguments to release
+    window.__spg.knobs.viewFrom = (...a: unknown[]) => {
+      this.viewOverride = a.length >= 6 ? (a.slice(0, 6).map(Number) as [number, number, number, number, number, number]) : null;
+    };
     window.__spg.knobs.finishNow = () => {
       this.player.lap = this.params.laps + 1;
       this.player.finished = true;
@@ -455,7 +460,11 @@ export class RaceScene implements SceneController {
     // visuals
     for (const r of this.racers) this.syncVisual(r, dt);
     this.updateGhost(dt);
-    this.cam.update(this.player.car, dt, this.elapsed);
+    if (this.viewOverride) {
+      const [x, y, z, tx, ty, tz] = this.viewOverride;
+      this.cam.camera.position.set(x, y, z);
+      this.cam.camera.lookAt(tx, ty, tz);
+    } else this.cam.update(this.player.car, dt, this.elapsed);
     const pp = this.player.car;
     this.sun.position.set(pp.x, pp.y, pp.z).addScaledVector(this.tmp.set(...this.track.spec.env.sunDir).normalize(), 220);
     this.sun.target.position.set(pp.x, pp.y, pp.z);
@@ -940,6 +949,7 @@ export class RaceScene implements SceneController {
     this.sun.shadow.dispose();
     delete window.__spg.knobs.skipCountdown;
     delete window.__spg.knobs.finishNow;
+    delete window.__spg.knobs.viewFrom;
     this.scene.clear();
   }
 }

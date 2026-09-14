@@ -17,7 +17,9 @@ export const MAPS = {
       { near: [383, -45], on: 'Пролетарский проспект', free: true },
       { near: [300, 380], on: 'Пролетарский проспект' },
       { near: [120, 359], on: '1-й Советский переулок' },
-      { near: [-40, 300] },
+      // around the flowerbed of the museum roundabout (the ЩЁЛКОВО stela stands in its middle)
+      { near: [-20, 321], free: true },
+      { near: [-36, 297], free: true },
       { near: [-30, 180], on: 'Советская улица' },
       { near: [-150, 45], on: 'улица Шмидта' },
       { near: [-262, 16], on: 'улица Шмидта' },
@@ -36,6 +38,14 @@ export const MAPS = {
       156871327: { height: 92, style: 'premium' },
       87408632: { height: 9, style: 'chapel' },
     },
+    // models from scripts/blender/landmarks.py placed at OSM positions; rot = degrees around y (0 = model front faces +z)
+    models: [
+      // entrance stela ЩЁЛКОВО on the flowerbed of the roundabout at the local history museum (way 1215928864 centre)
+      { model: 'shch_stela', at: [-51.2, 329.5], rot: 60 },
+      // «Я люблю Щёлково» (node 5590341595) by the town administration, facing Sovetskaya street
+      { model: 'shch_love', at: [-106, 253], rot: 90 },
+    ],
+    signs: [],
   },
   ligovsky: {
     // node scripts/osm-fetch.mjs ligovsky 59.9255 30.3620 1300
@@ -59,7 +69,19 @@ export const MAPS = {
     start: [-200, -655],
     classes: { primary: 1, primary_link: 1.1, secondary: 1, secondary_link: 1.1, tertiary: 1, residential: 1.2, unclassified: 1.2 },
     bridgeHump: 1.2,
-    landmarks: {},
+    landmarks: {
+      // the obelisk is a model; its footprint is not extruded
+      1214651508: { style: 'skip' },
+    },
+    models: [
+      // «Городу-герою Ленинграду», Vosstaniya Square, 36 m (way 1214651508)
+      { model: 'spb_obelisk', osm: 1214651508, rot: 0 },
+      // clock tower over the main entrance of Moskovsky vokzal, on the facade that faces the square
+      { model: 'spb_station_tower', facade: 2404499, toward: [-9, -602] },
+    ],
+    signs: [
+      { osm: 8522850, text: 'ГАЛЕРЕЯ', color: '#ffffff' },
+    ],
   },
   warsaw: {
     // node scripts/osm-fetch.mjs warsaw 52.2318 21.0060 1100
@@ -81,6 +103,14 @@ export const MAPS = {
     start: [280, -60],
     classes: { trunk: 1, primary: 1, primary_link: 1.2, secondary: 1, secondary_link: 1.2, tertiary: 1.1, residential: 1.4, unclassified: 1.4 },
     bridgeHump: 1.2,
-    landmarks: {},
+    landmarks: {
+      // Palace of Culture and Science: sandstone facades for all its parts
+      1319250: { style: 'pkin', height: 34 },
+    },
+    models: [],
+    signs: [
+      { osm: 30611687, text: 'ZŁOTE TARASY', color: '#ffd27a' },
+      { osm: 367491792, text: 'WARSZAWA CENTRALNA', color: '#e8f4ff' },
+    ],
   },
 };

@@ -44,6 +44,10 @@ export interface OsmWorld {
   trees: Flat;
   signals: Flat;
   stops: Flat;
+  /** [model name in landmarks.glb, x dm, z dm, rotation deg] */
+  models: [string, number, number, number][];
+  /** [text, colour, top of the sign dm, building outline] — an illuminated sign on the facade that faces the route */
+  signs: [string, string, number, Flat][];
 }
 
 export interface OsmRoute {
