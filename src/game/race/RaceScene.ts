@@ -13,7 +13,7 @@ import { createWeather, type WeatherRig } from '../world/Weather';
 import { buildProps, type PropsRig } from '../world/Props';
 import { CarPhysics } from '../vehicle/CarPhysics';
 import { createCarVisual, type CarVisual } from '../vehicle/CarVisual';
-import { RacerAI } from '../ai/RacerAI';
+import { RacerAI, type AIContext, type AIOther } from '../ai/RacerAI';
 import { RaceCamera } from './RaceCamera';
 import { Smoke, Sparks, SkidMarks } from './Fx';
 import { input } from '../input/Input';
@@ -118,6 +118,8 @@ export class RaceScene implements SceneController {
   private split: number | null = null;
   private bestSectorTimes: number[] | null = null;
   private curSectorTimes: number[] = [];
+  private aiOthers: AIOther[] = [];
+  private aiCtx: AIContext = { progress: 0, lat: 0, others: this.aiOthers, selfIndex: -1, canDrive: false };
 
   constructor(
     public params: RaceParams,
@@ -377,12 +379,15 @@ export class RaceScene implements SceneController {
     // fixed-step simulation
     this.acc += dt;
     let steps = 0;
-    while (this.acc >= PHYS_DT && steps < 240) {
+    // at most ~66 ms of simulation per frame: a slow frame must not snowball into slower frames
+    // (QA runs with a large maxDt/timeScale and needs the old catch-up budget)
+    const maxSteps = this.vp.maxDt > 0.1 || this.vp.timeScale !== 1 ? 240 : 8;
+    while (this.acc >= PHYS_DT && steps < maxSteps) {
       this.stepAll(PHYS_DT);
       this.acc -= PHYS_DT;
       steps++;
     }
-    if (steps === 240) this.acc = 0;
+    if (steps === maxSteps) this.acc = 0;
 
     // finish sequence
     if (this.finishT >= 0 && !this.resultsSent) {
@@ -431,24 +436,32 @@ export class RaceScene implements SceneController {
     const n = this.track.count;
     const autopilot = window.__spg?.autopilot;
     const playerProg = this.player.progress;
-    for (const r of this.racers) {
+    // snapshot for AI avoidance, updated in place (no per-step allocations)
+    const others = this.aiOthers;
+    for (let i = 0; i < this.racers.length; i++) {
+      const o = this.racers[i];
+      const snap = (others[i] ??= { progress: 0, lat: 0, speed: 0, isPlayer: false });
+      snap.progress = o.progress;
+      snap.lat = o.lat;
+      snap.speed = o.car.speed;
+      snap.isPlayer = o.isPlayer;
+    }
+    others.length = this.racers.length;
+    for (let ri = 0; ri < this.racers.length; ri++) {
+      const r = this.racers[ri];
       // inputs
       if (r.isPlayer && !autopilot) {
         r.input = input.car(dt);
         if (r.finished) r.input = { steer: 0, throttle: 0, brake: 0.4, handbrake: false, nitro: false };
       } else {
         if (!r.ai) r.ai = new RacerAI(this.track, 1.0, this.params.difficulty, 0.5);
-        r.input = r.ai.drive(
-          r.car,
-          {
-            progress: r.progress,
-            lat: r.lat,
-            others: this.racers.filter((o) => o !== r).map((o) => ({ progress: o.progress, lat: o.lat, speed: o.car.speed, isPlayer: o.isPlayer })),
-            playerProgress: r.isPlayer ? undefined : playerProg,
-            canDrive: canDrive && !r.finished,
-          },
-          dt,
-        );
+        const ctx = this.aiCtx;
+        ctx.progress = r.progress;
+        ctx.lat = r.lat;
+        ctx.selfIndex = ri;
+        ctx.playerProgress = r.isPlayer ? undefined : playerProg;
+        ctx.canDrive = canDrive && !r.finished;
+        r.input = r.ai.drive(r.car, ctx, dt);
         if (r.finished) r.input.throttle = Math.min(r.input.throttle, 0.4);
       }
       // physics
@@ -459,7 +472,7 @@ export class RaceScene implements SceneController {
       c.step(r.input, dt, { grip: this.track.spec.env.grip, slopeAlong }, canDrive);
       if (r.isPlayer && c.gear !== gearBefore && c.gear > 1 && c.gear > gearBefore) audio.play('gear-shift', { gain: 0.5 });
       // projection + walls
-      const p = this.track.project(c.x, c.z, r.idx);
+      const p = this.track.project(c.x, c.z, r.idx, 14);
       const s = this.track.samples[p.idx];
       const maxLat = this.track.halfW + 4.6 - c.width * 0.5;
       c.scraping = false;

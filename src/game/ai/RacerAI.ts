@@ -2,13 +2,21 @@ import type { CarInput } from '../types';
 import type { CarPhysics } from '../vehicle/CarPhysics';
 import type { TrackData } from '../world/TrackData';
 
+export interface AIOther {
+  progress: number;
+  lat: number;
+  speed: number;
+  isPlayer: boolean;
+}
+
 export interface AIContext {
   /** progress (samples) of this car */
   progress: number;
   /** lateral offset of this car (m, left positive) */
   lat: number;
-  /** other cars: progress, lat, speed */
-  others: { progress: number; lat: number; speed: number; isPlayer: boolean }[];
+  /** every car in the race (including this one, skipped via selfIndex) — reused between steps */
+  others: readonly AIOther[];
+  selfIndex: number;
   /** player progress, for rubber banding (undefined for the player's own autopilot) */
   playerProgress?: number;
   /** race started and this car may drive */
@@ -48,7 +56,9 @@ export class RacerAI {
     // --- avoidance: look for a car ahead within 14 m in roughly the same lane ---
     this.avoidT -= dt;
     let blockedSlow = false;
-    for (const o of ctx.others) {
+    for (let oi = 0; oi < ctx.others.length; oi++) {
+      if (oi === ctx.selfIndex) continue;
+      const o = ctx.others[oi];
       let ahead = o.progress - ctx.progress;
       if (ahead > n / 2) ahead -= n;
       if (ahead < -n / 2) ahead += n;
