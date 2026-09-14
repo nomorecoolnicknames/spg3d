@@ -32,7 +32,8 @@ const QUALITY = opt('--quality', 'low');
 const BUDGET = { low: { calls: 150, tris: 300_000 }, medium: { calls: 300, tris: 700_000 }, high: { calls: 600, tris: 1_500_000 } }[QUALITY] ?? { calls: 600, tris: 1_500_000 };
 const HEADED = flag('--headed');
 const RUN = opt('--run', new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19));
-const OUT = join(ROOT, 'qa', 'out', RUN);
+// QA_OUT=/mnt/ramdisk/... keeps screenshots off the disk (the latest symlink is only made under qa/out)
+const OUT = process.env.QA_OUT ? join(process.env.QA_OUT, RUN) : join(ROOT, 'qa', 'out', RUN);
 mkdirSync(OUT, { recursive: true });
 
 const CHROME_ARGS = [
@@ -45,7 +46,7 @@ const CHROME_ARGS = [
   '--no-sandbox',
 ];
 
-const TRACKS = opt('--tracks', 'neon,canyon,aurora').split(',');
+const TRACKS = opt('--tracks', 'shchyolkovo,ligovsky,warsaw').split(',');
 const CARS = ['m5cs', 'supra', 'lancia', 'm8', 'gt40', 'bolide'];
 
 // ---------------------------------------------------------------- report model
@@ -364,7 +365,7 @@ async function scLeak(page, base) {
   if (!(await openBase(page, base))) return;
   const samples = [];
   for (let i = 0; i < 2; i++) {
-    await gotoScreen(page, 'race', { track: 'neon', laps: 1, opp: 3, auto: true });
+    await gotoScreen(page, 'race', { track: 'shchyolkovo', laps: 1, opp: 3, auto: true });
     await page.evaluate(() => window.__spg.setAutopilot(true));
     await sleep(6000);
     await gotoScreen(page, 'menu');
@@ -417,6 +418,7 @@ h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:0 0 8px}small{color:#8
 <p class="sum">${report.summary.pass} pass · ${report.summary.fail} fail · base ${esc(report.base || 'local dist')} · ${esc(report.startedAt)} → ${esc(report.finishedAt)}</p>
 ${rows}`;
   writeFileSync(join(OUT, 'index.html'), html);
+  if (process.env.QA_OUT) return;
   const latest = join(ROOT, 'qa', 'out', 'latest');
   try {
     rmSync(latest, { force: true, recursive: false });
@@ -460,7 +462,7 @@ async function main() {
   for (const vp of viewports) {
     if (want('screens')) plan.push({ name: `screens${vp.tag}`, vp, fn: (p, b) => scMenuScreens(p, b, vp), timeout: 900_000 });
     for (const t of TRACKS) {
-      if (vp.mobile && t !== 'neon') continue;
+      if (vp.mobile && t !== 'shchyolkovo') continue;
       if (want('race')) plan.push({ name: `race-${t}${vp.tag}`, vp, fn: (p, b) => scRace(p, b, t, vp), timeout: 1200_000 });
     }
     if (want('boss')) plan.push({ name: `boss${vp.tag}`, vp, fn: (p, b) => scBoss(p, b, vp), timeout: 1200_000 });

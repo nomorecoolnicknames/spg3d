@@ -13,7 +13,7 @@ await page.goto(`http://localhost:${port}/?screen=menu`, { timeout: 120000 });
 await page.waitForFunction(() => window.__spg && window.__spg.ready, null, { timeout: 180000 });
 await page.waitForTimeout(1500);
 await page.screenshot({ path: `${O}/touch-menu.png`, timeout: 150000 });
-await page.evaluate(() => window.__spg.goto('race', { track: 'neon', laps: 1, opp: 3 }));
+await page.evaluate(() => window.__spg.goto('race', { track: 'shchyolkovo', laps: 1, opp: 3 }));
 await page.evaluate(() => { window.__spg.setMaxDt(0.5); window.__spg.setTimeScale(3); });
 await page.waitForTimeout(12000);
 // hold brake to check reverse works through the touch path

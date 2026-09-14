@@ -1,5 +1,5 @@
 // Quick single-scenario screenshot helper for iteration:
-//   node qa/shot.mjs "?screen=race&track=neon&auto=1" out.png 2000,8000,20000 [w h]
+//   node qa/shot.mjs "?screen=race&track=shchyolkovo&auto=1" out.png 2000,8000,20000 [w h]
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';

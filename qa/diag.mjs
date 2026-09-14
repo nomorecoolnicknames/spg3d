@@ -6,7 +6,7 @@ process.on('exit', () => server.kill());
 await new Promise((r) => setTimeout(r, 700));
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 640, height: 360 } });
-await page.goto(`http://localhost:${port}/?screen=race&track=neon&auto=1&q=low`, { timeout: 120000 });
+await page.goto(`http://localhost:${port}/?screen=race&track=shchyolkovo&auto=1&q=low`, { timeout: 120000 });
 await page.waitForFunction(() => window.__spg && window.__spg.ready, null, { timeout: 180000 });
 await page.waitForTimeout(4000);
 const snap = await page.evaluate(() => { const s = window.__spg.snapshot(); return { fps: s.fps, calls: s.drawCalls, tris: s.triangles, geos: s.geometries, tex: s.textures, extra2: s.extra2 }; });

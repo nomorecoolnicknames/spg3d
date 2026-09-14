@@ -10,7 +10,7 @@ import { maybeStartBenchFromUrl, snapshotReport } from './perf';
 
 /**
  * window.__spg — QA hooks used by qa/shots.mjs. Also honours URL params on boot:
- *   ?screen=race&track=neon&car=supra&auto=1&laps=1&opp=5&ts=2
+ *   ?screen=race&track=shchyolkovo&car=supra&auto=1&laps=1&opp=5&ts=2
  *   ?screen=boss&auto=1
  */
 export interface SpgDebug {

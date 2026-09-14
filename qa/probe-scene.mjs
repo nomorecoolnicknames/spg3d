@@ -6,7 +6,7 @@ process.on('exit', () => server.kill());
 for (let i = 0; i < 60; i++) { try { if ((await fetch(`http://localhost:${port}/`)).ok) break; } catch {} await new Promise((r) => setTimeout(r, 500)); }
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 1024, height: 576 } });
-await page.goto(`http://localhost:${port}/?screen=${process.argv[2] ?? 'boss'}&track=neon&q=low&maxdt=0.5&ts=3&auto=1&depth=${process.argv[3] ?? 3}`, { timeout: 120000 });
+await page.goto(`http://localhost:${port}/?screen=${process.argv[2] ?? 'boss'}&track=shchyolkovo&q=low&maxdt=0.5&ts=3&auto=1&depth=${process.argv[3] ?? 3}`, { timeout: 120000 });
 await page.waitForFunction(() => window.__spg && window.__spg.ready, null, { timeout: 180000 });
 await page.waitForTimeout(12000);
 const out = await page.evaluate(() => {
