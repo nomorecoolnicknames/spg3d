@@ -49,7 +49,8 @@ function run(trackIdx: number, carIdx: number, nCars: number): Sim[] {
       const ctx = {
         progress: s.progress,
         lat: s.lat,
-        others: process.env.NOAVOID ? [] : sims.filter((o) => o !== s).map((o) => ({ progress: o.progress, lat: o.lat, speed: o.car.speed, isPlayer: false })),
+        others: process.env.NOAVOID ? [] : sims.map((o) => ({ progress: o.progress, lat: o.lat, speed: o.car.speed, isPlayer: false })),
+        selfIndex: process.env.NOAVOID ? -1 : sims.indexOf(s),
         canDrive: true,
       };
       const inp = s.ai.drive(s.car, ctx, DT);
@@ -70,7 +71,7 @@ function run(trackIdx: number, carIdx: number, nCars: number): Sim[] {
       }
       s.progress = s.lap * track.count + q.progress;
       // walls
-      const maxLat = track.halfW - s.car.width * 0.5 - 0.2;
+      const maxLat = track.halfW + track.runoff - s.car.width * 0.5;
       if (Math.abs(q.lat) > maxLat) {
         const sgn = Math.sign(q.lat);
         const qs = track.samples[q.idx];
@@ -135,6 +136,56 @@ for (const spec of CARS) {
   console.log(`\n== drift test: maxYaw ${maxYaw.toFixed(2)} rad/s, maxLateral ${maxAlpha.toFixed(1)} m/s, drift ${(driftFrames * DT).toFixed(2)} s, final speed ${(car.speed * 3.6).toFixed(0)} km/h, heading ${car.heading.toFixed(2)}`);
 }
 
+// feel tests for the player's inputs (digital steering, brake-tap drift, straight-line stability)
+{
+  const surf = { grip: 1, slopeAlong: 0 };
+  const at = (kmh: number) => {
+    const car = new CarPhysics(CARS[0]);
+    car.place(0, 0, 0, 0);
+    car.vx = kmh / 3.6;
+    return car;
+  };
+  // 1. full digital steer at 110 km/h for 1.5 s on the gas
+  {
+    const car = at(110);
+    let maxLat = 0, drift = 0;
+    const v0 = car.vx;
+    for (let t = 0; t < 1.5; t += DT) {
+      car.step({ steer: 1, throttle: 1, brake: 0, handbrake: false, nitro: false }, DT, surf, true);
+      maxLat = Math.max(maxLat, Math.abs(car.vx * car.yawRate));
+      if (car.drifting) drift += DT;
+    }
+    console.log(`\n== steer step 110 km/h: lateral ${(maxLat / 9.81).toFixed(2)} g, speed ${(v0 * 3.6).toFixed(0)} → ${(car.vx * 3.6).toFixed(0)} km/h, drift ${drift.toFixed(2)} s, heading ${car.heading.toFixed(2)} rad`);
+  }
+  // 2. brake-tap drift into a corner, hold with throttle, straighten with counter-steer
+  {
+    const car = at(120);
+    let maxBeta = 0, drift = 0;
+    for (let t = 0; t < 4; t += DT) {
+      const phase = t < 0.25 ? 'tap' : t < 2.4 ? 'hold' : 'exit';
+      const inp = { steer: phase === 'exit' ? -0.5 : phase === 'tap' ? 1 : 0.7, throttle: 1, brake: phase === 'tap' ? 0.7 : 0, handbrake: false, nitro: false };
+      car.step(inp, DT, surf, true);
+      maxBeta = Math.max(maxBeta, Math.abs(Math.atan2(car.vy, Math.max(1, car.vx))));
+      if (car.drifting) drift += DT;
+    }
+    console.log(`== brake-tap drift 120 km/h: max slide ${(maxBeta * 57.3).toFixed(0)}°, drift ${drift.toFixed(2)} s, exit ${(car.vx * 3.6).toFixed(0)} km/h, still drifting=${car.drifting}, heading ${car.heading.toFixed(2)} rad`);
+  }
+  // 3. straight line with steering noise at 180 km/h
+  {
+    const car = at(180);
+    let drift = 0, maxYaw = 0;
+    let seed = 7;
+    for (let t = 0; t < 10; t += DT) {
+      seed = (seed * 16807) % 2147483647;
+      const noise = ((seed / 2147483647) - 0.5) * 0.2;
+      car.step({ steer: noise, throttle: 1, brake: 0, handbrake: false, nitro: false }, DT, surf, true);
+      if (car.drifting) drift += DT;
+      maxYaw = Math.max(maxYaw, Math.abs(car.yawRate));
+    }
+    console.log(`== straight 180 km/h ±0.1 steer noise: max yaw ${maxYaw.toFixed(3)} rad/s, drift ${drift.toFixed(2)} s, heading ${car.heading.toFixed(3)} rad`);
+  }
+}
+
 // single-car trace on the first track (set TRACE=1)
 if (process.env.TRACE) {
   const track = new TrackData(TRACKS[Number(process.env.TRACE_TRACK ?? 0)]);
@@ -150,11 +201,11 @@ if (process.env.TRACE) {
   while (t < 60) {
     const p = track.project(car.x, car.z, idx);
     idx = p.idx;
-    const inp = ai.drive(car, { progress: p.progress, lat: p.lat, others: [], canDrive: true }, DT);
+    const inp = ai.drive(car, { progress: p.progress, lat: p.lat, others: [], selfIndex: -1, canDrive: true }, DT);
     const smp = track.samples[p.idx];
     const slopeAlong = process.env.TRACE_SLOPE ? smp.slope * (car.forwardX * smp.tan.x + car.forwardZ * smp.tan.z) / Math.max(1e-3, Math.hypot(smp.tan.x, smp.tan.z)) : 0;
     car.step(inp, DT, { grip: grip0, slopeAlong }, true);
-    const maxLat = track.halfW - car.width * 0.5 - 0.2;
+    const maxLat = track.halfW + track.runoff - car.width * 0.5;
     const q = track.project(car.x, car.z, idx);
     if (Math.abs(q.lat) > maxLat) {
       const sgn = Math.sign(q.lat);

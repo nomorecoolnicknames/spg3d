@@ -43,8 +43,6 @@ export class CarPhysics {
   readonly width: number;
   readonly mass: number;
   private readonly a: number;
-  private readonly b: number;
-  private readonly iz: number;
   private readonly dragK: number;
   private readonly power: number;
   private readonly muBase: number;
@@ -58,8 +56,6 @@ export class CarPhysics {
     this.width = spec.length * 0.42;
     this.mass = spec.mass;
     this.a = this.wheelbase * 0.48;
-    this.b = this.wheelbase * 0.52;
-    this.iz = spec.mass * this.wheelbase * this.wheelbase * 0.42;
     this.power = spec.power * 1000 * 1.05;
     this.topSpeed = spec.topSpeed;
     // drag chosen so that P = k v^3 at top speed (with rolling resistance folded in)
@@ -102,45 +98,55 @@ export class CarPhysics {
     this.wheelspin = 0;
   }
 
-  /** max steering lock at the current speed */
+  /** max front-wheel lock at the current speed (also used by the AI's pure pursuit) */
   maxSteer(v: number): number {
-    const base = 0.52 * this.handling;
-    const s = base / (1 + (v / 24) * (v / 24) * 0.85);
-    return Math.max(0.055 * this.handling, s) * (this.drifting ? 1.5 : 1);
+    const base = 0.55 * this.handling;
+    const s = base / (1 + (v / 28) * (v / 28) * 0.8);
+    return Math.max(0.06 * this.handling, s);
   }
 
+  /** smoothed steering input −1..1: rate-limited so digital (touch/keyboard) steering is not twitchy */
+  private steerIn = 0;
+  private driftT = 0;
+
+  /**
+   * Arcade handling in the spirit of NFS 2015. Grip: the car turns kinematically (bicycle geometry)
+   * up to a lateral-grip limit and understeers beyond it, lateral velocity is scrubbed fast, so it
+   * never slides on its own. Drift: entered with the handbrake (or a brake tap while steering hard
+   * on the gas); in a drift the tyres hold the slide loosely, throttle keeps it, counter-steer or
+   * lifting straightens it, part of the sideways speed carries forward so a drift is not a brake.
+   */
   step(inp: CarInput, dt: number, surf: Surface, canDrive: boolean): void {
     const m = this.mass;
     const v = Math.abs(this.vx);
     const throttle = canDrive ? inp.throttle : 0;
     const brake = canDrive ? inp.brake : 0;
     const handbrake = canDrive && inp.handbrake;
+    const grip = surf.grip;
 
-    // --- steering ---
+    // --- steering input: slower to wind on at speed, quick to return ---
+    const target = Math.max(-1, Math.min(1, inp.steer));
+    const returning = Math.abs(target) < Math.abs(this.steerIn) || Math.sign(target) !== Math.sign(this.steerIn);
+    const rate = returning ? 7 : 5.2 / (1 + v / 45);
+    this.steerIn += Math.max(-rate * dt, Math.min(rate * dt, target - this.steerIn));
     const lock = this.maxSteer(v);
-    const targetSteer = inp.steer * lock;
-    this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1, dt * 16);
-    const delta = this.steerAngle;
+    const delta = this.steerIn * lock * (this.drifting ? 1.3 : 1);
+    this.steerAngle = delta;
 
     // --- nitro ---
     const wantNitro = canDrive && inp.nitro && this.nitro > 0.5 && this.vx > 3;
     if (wantNitro) this.nitro = Math.max(0, this.nitro - 26 * dt);
     this.nitroActive = wantNitro && this.nitro > 0;
 
-    // --- loads (with downforce) ---
-    const down = 0.22 * v * v;
-    const fzF = (m * G + down) * (this.b / this.wheelbase);
-    const fzR = (m * G + down) * (this.a / this.wheelbase);
-    const mu = this.muBase * surf.grip;
-    const muF = mu * 1.0;
-    let muR = mu;
-    if (handbrake) muR *= 0.4 / this.driftiness;
+    // --- grip budget ---
+    const aLat = this.muBase * grip * G * 1.08 + 0.0015 * v * v;
+    const L = this.wheelbase;
 
-    // --- longitudinal forces (rear wheel drive) ---
+    // --- longitudinal forces ---
+    const fzR = m * G * (this.a / L) + 0.1 * v * v;
+    const tractionCap = this.muBase * grip * fzR * 1.5;
     const pEff = this.power * (this.nitroActive ? 1.55 * this.nitroMult : 1) * (this.shiftTimer > 0 ? 0.55 : 1);
     let fDrive = 0;
-    // weight transfer under acceleration is not modelled: use a blended load for traction
-    const tractionCap = muR * (fzR + 0.35 * fzF) * 1.05;
     if (throttle > 0 && !handbrake) {
       const raw = (throttle * pEff) / Math.max(6, Math.abs(this.vx));
       if (raw > tractionCap) {
@@ -153,50 +159,82 @@ export class CarPhysics {
     } else {
       this.wheelspin = Math.max(0, this.wheelspin - dt * 4);
     }
-    // reverse
     let reversing = false;
     if (brake > 0 && this.vx < 0.8 && throttle < 0.05) {
       reversing = true;
       fDrive = -Math.min(brake * m * 5.5, this.vx > -12 ? m * 5.5 : 0);
     }
-    const fBrake = reversing ? 0 : brake * mu * m * G * 0.95 * Math.sign(this.vx);
-    const fDrag = this.dragK * this.vx * Math.abs(this.vx) + 0.013 * m * G * Math.sign(this.vx) * Math.min(1, v);
+    const sgnV = Math.sign(this.vx);
+    const fBrake = reversing ? 0 : brake * grip * m * G * 1.0 * sgnV;
+    const fHand = handbrake ? m * G * 0.35 * sgnV : 0;
+    const fDrag = this.dragK * this.vx * Math.abs(this.vx) + 0.013 * m * G * sgnV * Math.min(1, v);
     const fSlope = -m * G * Math.sin(surf.slopeAlong);
-    // engine braking / coasting
-    const fCoast = throttle < 0.05 && !reversing ? -0.06 * m * this.vx : 0;
+    const fCoast = throttle < 0.05 && !reversing ? -0.05 * m * this.vx : 0;
 
-    // --- lateral tire model ---
-    const vxEff = Math.max(1.2, v);
-    const alphaF = Math.atan2(this.vy + this.a * this.yawRate, vxEff) - delta * Math.sign(this.vx || 1);
-    const alphaR = Math.atan2(this.vy - this.b * this.yawRate, vxEff);
-    const cF = 11 * fzF;
-    const cR = 13.5 * fzR;
-    // rear friction circle: driving hard eats lateral capacity (drift cars more so)
-    const useR = Math.min(0.92, (Math.abs(fDrive + fBrake * 0.6) / Math.max(1, tractionCap)) * 0.7 * this.driftiness);
-    const capR = muR * fzR * Math.sqrt(Math.max(0.2, 1 - useR * useR));
-    const capF = muF * fzF * (brake > 0.9 ? 0.85 : 1);
-    const fF = -capF * Math.tanh((cF * alphaF) / capF);
-    const fR = -capR * Math.tanh((cR * alphaR) / capR);
+    // --- drift state ---
+    const beta = Math.atan2(this.vy, Math.max(1, v));
+    const omegaKin = (this.vx * Math.tan(delta)) / L;
+    const omegaCap = aLat / Math.max(4, v);
+    if (!this.drifting && this.vx > 10) {
+      const hb = handbrake && Math.abs(this.steerIn) > 0.15;
+      const brakeTap = brake > 0.4 && throttle > 0.3 && Math.abs(this.steerIn) > 0.55 && this.vx > 18;
+      const power = this.driftiness > 1.05 && throttle > 0.9 && Math.abs(omegaKin) > omegaCap * 1.3 && this.vx > 14;
+      if (hb || brakeTap || power) {
+        this.drifting = true;
+        this.driftT = 0;
+        // initiation kick: the tail steps out towards the outside of the turn
+        this.yawRate += Math.sign(this.steerIn) * 0.95 * Math.min(1, this.vx / 25);
+      }
+    } else if (this.drifting) {
+      this.driftT += dt;
+      if (this.vx < 7 || (Math.abs(beta) < 0.1 && !handbrake && this.driftT > 0.4)) this.drifting = false;
+    }
 
-    // --- integrate (car frame) ---
-    const ax = (fDrive - fBrake - fDrag + fSlope + fCoast - fF * Math.sin(delta)) / m + this.vy * this.yawRate;
-    const ay = (fF * Math.cos(delta) + fR) / m - this.vx * this.yawRate;
-    let yawAcc = (this.a * fF * Math.cos(delta) - this.b * fR) / this.iz;
-    // arcade stability: damp runaway spins beyond ~40° of rear slip
-    const over = Math.max(0, Math.abs(alphaR) - 0.7);
-    yawAcc -= this.yawRate * (0.35 + over * 6);
+    // --- yaw ---
+    let omegaT: number;
+    let scrub = 0;
+    if (!this.drifting) {
+      omegaT = Math.max(-omegaCap, Math.min(omegaCap, omegaKin));
+      // asking for more than the tyres give: understeer scrubs speed
+      scrub = Math.min(3, Math.max(0, Math.abs(omegaKin) / omegaCap - 1) * 2.2) * m;
+    } else {
+      const cap = omegaCap * 1.9;
+      // β < 0 while sliding through a left-hander (velocity right of the nose): +β·k yaws the nose back toward the velocity
+      omegaT = Math.max(-cap, Math.min(cap, omegaKin * 1.7)) + this.steerIn * 0.45 * sgnV + beta * 0.35;
+    }
+    const kin = Math.min(1, v / 3);
+    const yawResp = this.drifting ? 4.2 : 9;
+    this.yawRate += (omegaT - this.yawRate) * Math.min(1, dt * yawResp);
+    this.yawRate = this.yawRate * kin + omegaKin * (1 - kin);
+
+    // --- integrate longitudinal ---
+    const fDriftDrag = this.drifting ? m * G * 0.06 * Math.abs(Math.sin(beta)) * sgnV : 0;
+    const ax = (fDrive - fBrake - fHand - fDrag + fSlope + fCoast - scrub * sgnV - fDriftDrag) / m;
     this.accel = ax;
     this.vx += ax * dt;
-    this.vy += ay * dt;
-    this.yawRate += yawAcc * dt;
 
-    // low-speed kinematic blend (keeps parking manoeuvres sane)
-    const kin = Math.min(1, v / 5);
-    const omegaKin = (this.vx * Math.tan(delta)) / this.wheelbase;
-    this.yawRate = this.yawRate * kin + omegaKin * (1 - kin);
+    // --- lateral: the frame turns under the velocity, the tyres pull it back in line ---
+    // exact rotation: turning the frame must not add speed (the linear form pumped energy in drifts)
+    {
+      const dth = this.yawRate * dt, c = Math.cos(dth), sn = Math.sin(dth);
+      const nvx = this.vx * c + this.vy * sn;
+      this.vy = -this.vx * sn + this.vy * c;
+      this.vx = nvx;
+    }
+    // counter-steer = steering toward the velocity, i.e. the same sign as β
+    const counter = this.drifting && Math.abs(this.steerIn) > 0.05 && Math.sign(this.steerIn) === Math.sign(beta) ? 1 : 0;
+    const kLat = this.drifting
+      ? (1.05 + 2.2 * (1 - throttle) + counter * 2.4 - (handbrake ? 0.5 : 0)) * grip
+      : 13 * grip;
+    const keep = Math.exp(-Math.max(0.3, kLat) * dt);
+    const lost = Math.abs(this.vy) * (1 - keep);
+    this.vy *= keep;
+    if (this.drifting && this.vx > 0) this.vx += lost * 0.55;
+    // hard limit on the slide angle: no spinning out by itself
+    const maxVy = Math.tan(1.05) * Math.max(1, Math.abs(this.vx));
+    if (Math.abs(this.vy) > maxVy) this.vy = Math.sign(this.vy) * maxVy;
     this.vy *= kin + (1 - kin) * Math.max(0, 1 - dt * 12);
 
-    // brake to a stop cleanly
     if (brake > 0 && !reversing && Math.abs(this.vx) < 0.6 && throttle < 0.05) this.vx *= Math.max(0, 1 - dt * 10);
 
     this.heading += this.yawRate * dt;
@@ -210,8 +248,8 @@ export class CarPhysics {
 
     // --- derived state ---
     const sp = this.speed;
-    this.drifting = (Math.abs(alphaR) > 0.3 || (handbrake && Math.abs(alphaR) > 0.15)) && sp > 7 && this.vx > 0;
-    this.slip = Math.min(1, Math.max(Math.abs(alphaR) / 0.5, Math.abs(alphaF) / 0.6, this.wheelspin) * (sp > 4 ? 1 : 0));
+    const b2 = Math.atan2(this.vy, Math.max(1, Math.abs(this.vx)));
+    this.slip = Math.min(1, Math.max(Math.abs(b2) / 0.45, this.wheelspin, scrub / m / 3) * (sp > 4 ? 1 : 0));
     this.wheelSpin += (this.vx / 0.34) * dt;
 
     // gears: purely for HUD/audio (6 speeds, boundaries scale with top speed)
@@ -232,9 +270,10 @@ export class CarPhysics {
     const rpmClamped = Math.min(1, throttle < 0.05 && v < 2 ? 0.18 : rpmTarget);
     this.rpm += (rpmClamped - this.rpm) * Math.min(1, dt * (this.shiftTimer > 0 ? 30 : 9));
 
-    // visual pitch / roll from accelerations
-    this.pitch += ((-ax * 0.012) - this.pitch) * Math.min(1, dt * 6);
-    this.roll += ((-ay * 0.02) - this.roll) * Math.min(1, dt * 6);
+    // body motion: visible squat, dive and roll (lateral accel = v·ω)
+    const latAcc = this.vx * this.yawRate;
+    this.pitch += ((-ax * 0.014) - this.pitch) * Math.min(1, dt * 7);
+    this.roll += ((-latAcc * 0.022) - this.roll) * Math.min(1, dt * 7);
   }
 
   /** wall contact along a lateral normal (lx,lz points from wall into the road). Returns impact strength (m/s). */
@@ -244,21 +283,26 @@ export class CarPhysics {
     const wz = fz * this.vx + lz * this.vy;
     const into = -(wx * nx + wz * nz);
     if (into <= 0) return 0;
-    const rest = 0.35;
-    const nwx = wx + nx * into * (1 + rest);
-    const nwz = wz + nz * into * (1 + rest);
-    // friction along the wall + speed loss
-    const loss = Math.max(0.55, 1 - into * 0.025);
-    this.vx = (nwx * fx + nwz * fz) * loss;
+    const speed = Math.hypot(wx, wz);
+    // barriers absorb the impact instead of bouncing the car back into the road;
+    // a glancing touch keeps most of the speed, a head-on hit kills it
+    const rest = 0.12;
+    let nwx = wx + nx * into * (1 + rest);
+    let nwz = wz + nz * into * (1 + rest);
+    const loss = Math.max(0.3, 1 - 0.75 * (into / Math.max(1, speed)));
+    nwx *= loss;
+    nwz *= loss;
+    this.vx = nwx * fx + nwz * fz;
     this.vy = nwx * lx + nwz * lz;
-    // rotate the car a bit toward the wall tangent
-    const tangentHeading = Math.atan2(-nz, nx);
-    let d = tangentHeading - this.heading;
+    // turn the nose along the wall rather than spinning
+    const tangent = Math.atan2(-nz, nx);
+    let d = tangent - this.heading;
     while (d > Math.PI) d -= Math.PI * 2;
     while (d < -Math.PI) d += Math.PI * 2;
-    // push heading away from pointing into the wall
-    const facingIn = -(fx * nx + fz * nz);
-    if (facingIn > 0.1) this.yawRate += Math.sign(d) * Math.min(1.2, into * 0.12);
+    if (Math.abs(d) > Math.PI / 2) d -= Math.sign(d) * Math.PI;
+    this.heading += Math.sign(d) * Math.min(Math.abs(d), 0.04 + into * 0.01);
+    this.yawRate *= 0.4;
+    if (into > 6) this.drifting = false;
     return into;
   }
 
@@ -280,7 +324,7 @@ export class CarPhysics {
     const bvx = b.forwardX * b.vx + b.leftX * b.vy, bvz = b.forwardZ * b.vx + b.leftZ * b.vy;
     const rel = (bvx - avx) * nx + (bvz - avz) * nz;
     if (rel >= 0) return 0;
-    const j = -rel * 0.75;
+    const j = -rel * 0.6;
     const navx = avx - nx * j * wa, navz = avz - nz * j * wa;
     const nbvx = bvx + nx * j * wb, nbvz = bvz + nz * j * wb;
     a.vx = navx * a.forwardX + navz * a.forwardZ;
