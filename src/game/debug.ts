@@ -1,7 +1,7 @@
 import type { ScreenId, SpgSnapshot } from './types';
 import { getState, goto, startRace, startBoss, setState, carColor, setSettings, getHUD } from '@/state/store';
 import { viewport } from './Viewport';
-import { TRACK_BY_ID } from '@/data/tracks';
+import { TRACKS, TRACK_BY_ID } from '@/data/tracks';
 import { audio } from './audio';
 import { prepareEngineBank } from './audio/engineBank';
 import type { EngineProfileName } from './audio/engine';
@@ -47,8 +47,8 @@ export function installDebug(): void {
       const carId = (params.car as string) ?? s.save.selectedCar;
       const color = (params.color as string) ?? carColor(carId);
       if (screen === 'race') {
-        const trackId = (params.track as string) ?? 'neon';
-        const track = TRACK_BY_ID[trackId] ?? TRACK_BY_ID.neon;
+        const trackId = (params.track as string) ?? 'shchyolkovo';
+        const track = TRACK_BY_ID[trackId] ?? TRACKS[0];
         startRace({
           trackId: track.id,
           carId,

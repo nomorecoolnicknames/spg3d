@@ -109,7 +109,7 @@ export function Settings() {
           <div className="hr" />
           <h2>{S.settings.bench}</h2>
           <p className="muted" style={{ marginBottom: 8 }}>{S.settings.benchHint}</p>
-          <button className="btn primary sm" disabled={bench.running} onClick={() => { click(); startBench('neon', 90); }}>{S.settings.benchStart}</button>
+          <button className="btn primary sm" disabled={bench.running} onClick={() => { click(); startBench('shchyolkovo', 90); }}>{S.settings.benchStart}</button>
           {report && (
             <>
               <div className="hr" />

@@ -56,6 +56,7 @@ export function Quick() {
         </div>
         <div className="panel">
           <p className="muted">{track.desc}</p>
+          {track.map && <p className="muted credit">{S.tracks.osmCredit}</p>}
         </div>
       </div>
       <div className="quick-right">

@@ -113,8 +113,8 @@ export interface CareerStage {
 }
 
 export const CAREER: CareerStage[] = [
-  { id: 'c1', kind: 'race', trackId: 'neon', rivalId: 'sqwore', requiresWins: 0, reward: 4000 },
-  { id: 'c2', kind: 'race', trackId: 'canyon', rivalId: 'glwzbll', requiresWins: 1, reward: 7000 },
-  { id: 'c3', kind: 'race', trackId: 'aurora', rivalId: 'prince', requiresWins: 2, reward: 12000 },
+  { id: 'c1', kind: 'race', trackId: 'shchyolkovo', rivalId: 'sqwore', requiresWins: 0, reward: 4000 },
+  { id: 'c2', kind: 'race', trackId: 'ligovsky', rivalId: 'glwzbll', requiresWins: 1, reward: 7000 },
+  { id: 'c3', kind: 'race', trackId: 'warsaw', rivalId: 'prince', requiresWins: 2, reward: 12000 },
   { id: 'boss', kind: 'boss', rivalId: 'madkid', requiresWins: 3, reward: 30000 },
 ];

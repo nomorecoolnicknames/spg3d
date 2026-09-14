@@ -48,7 +48,7 @@ let state: AppState = {
   story: null,
   race: null,
   boss: null,
-  quick: { trackId: 'neon', laps: 2, opponents: 5, difficulty: 1.0, timeAttack: false },
+  quick: { trackId: 'shchyolkovo', laps: 2, opponents: 5, difficulty: 1.0, timeAttack: false },
   garageCar: 'm5cs',
   playerOpen: true,
   toast: null,

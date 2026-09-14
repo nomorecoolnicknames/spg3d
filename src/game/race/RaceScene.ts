@@ -12,6 +12,7 @@ import { CarPhysics } from '../vehicle/CarPhysics';
 import { createCarVisual, type CarVisual } from '../vehicle/CarVisual';
 import { getEnvMap, type EnvName } from '../assets';
 import { buildCity } from '../world/city/City';
+import { buildOsmCity } from '../world/osm/OsmCity';
 import { LampField } from '../render/LampField';
 import { CarGlows } from '../render/CarGlows';
 import { buildCanyonFeatures } from '../world/features/Canyon';
@@ -23,7 +24,8 @@ import { input } from '../input/Input';
 import { audio } from '../audio';
 import type { EngineVoice } from '../audio/api';
 import { AI_DRIVERS, CAR_BY_ID, CARS } from '@/data/cars';
-import { TRACK_BY_ID } from '@/data/tracks';
+import { TRACKS, TRACK_BY_ID } from '@/data/tracks';
+import { getMapWorld } from '@/data/maps';
 import { RIVALS } from '@/data/story';
 import { S } from '@/data/strings';
 import { effectiveCar, getState } from '@/state/store';
@@ -141,7 +143,7 @@ export class RaceScene implements SceneController {
 
   start(vp: Viewport): void {
     this.vp = vp;
-    const spec = TRACK_BY_ID[this.params.trackId] ?? TRACK_BY_ID.neon;
+    const spec = TRACK_BY_ID[this.params.trackId] ?? TRACKS[0];
     const env = spec.env;
     const q = vp.quality;
     this.track = new TrackData(spec);
@@ -149,7 +151,7 @@ export class RaceScene implements SceneController {
     this.scene.background = new THREE.Color(env.fog);
 
     // environment reflections: the track's HDRI (cached for the session), RoomEnvironment if it failed
-    const envTex = getEnvMap(vp.renderer, spec.id as EnvName);
+    const envTex = getEnvMap(vp.renderer, spec.envMap ?? (spec.id as EnvName));
     if (envTex) this.scene.environment = envTex;
     else {
       const pm = new THREE.PMREMGenerator(vp.renderer);
@@ -182,7 +184,8 @@ export class RaceScene implements SceneController {
     this.scene.add(this.sky.group);
     this.mesh = buildTrackMesh(this.track, { shadows: q.shadows, low: q.level === 'low' });
     this.scene.add(this.mesh.group);
-    this.props = spec.theme === 'city' ? buildCity(this.track, q) : buildProps(this.track, this.mesh.terrainHeight, { shadows: q.shadows, level: q.level });
+    const world = spec.map ? getMapWorld(spec.map) : undefined;
+    this.props = world ? buildOsmCity(this.track, world, q) : spec.theme === 'city' ? buildCity(this.track, q) : buildProps(this.track, this.mesh.terrainHeight, { shadows: q.shadows, level: q.level });
     this.scene.add(this.props.group);
     if (spec.theme === 'desert' && spec.features) this.features = buildCanyonFeatures(this.track, this.mesh.terrainHeight, q);
     if (spec.theme === 'snow' && spec.features) this.features = buildAlpineFeatures(this.track, this.mesh.terrainHeight, q);

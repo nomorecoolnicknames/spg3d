@@ -4,6 +4,8 @@ import { viewport } from '@/game/Viewport';
 import { input } from '@/game/input/Input';
 import { useStore, getState, setHUD, finishSession, setPaused, toast } from '@/state/store';
 import { RaceScene } from '@/game/race/RaceScene';
+import { TRACK_BY_ID } from '@/data/tracks';
+import { getMapWorld, loadMapWorld } from '@/data/maps';
 import { BossScene } from '@/game/boss/BossScene';
 import { ShowcaseScene } from '@/game/menu/ShowcaseScene';
 import { audio } from '@/game/audio';
@@ -62,9 +64,26 @@ export function GameHost() {
       const p = getState().race;
       if (!p) return;
       showcaseRef.current = null;
-      const scene = new RaceScene(p, cb);
-      viewport.setController(scene);
-      window.__spg.knobs.scene = () => scene;
+      const launch = () => {
+        const scene = new RaceScene(p, cb);
+        viewport.setController(scene);
+        window.__spg.knobs.scene = () => scene;
+      };
+      // real-place maps fetch their world chunk first (a few hundred KB, cached for the session)
+      const map = TRACK_BY_ID[p.trackId]?.map;
+      if (!map || getMapWorld(map)) {
+        launch();
+        return;
+      }
+      let cancelled = false;
+      loadMapWorld(map)
+        .catch((err) => console.error('map load failed', map, err))
+        .finally(() => {
+          if (!cancelled) launch();
+        });
+      return () => {
+        cancelled = true;
+      };
     } else if (screen === 'boss') {
       const p = getState().boss;
       if (!p) return;

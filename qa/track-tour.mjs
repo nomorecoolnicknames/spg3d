@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
-const [track = 'neon', quality = 'medium', out = 'qa/out/tour/t', list = '0.1,0.5', settle = '2500', extra = ''] = process.argv.slice(2);
+const [track = 'shchyolkovo', quality = 'medium', out = 'qa/out/tour/t', list = '0.1,0.5', settle = '2500', extra = ''] = process.argv.slice(2);
 const port = 3770 + Math.floor(Math.random() * 100);
 const server = spawn('node', ['scripts/serve.mjs', '--dir', 'dist', '--port', String(port)], { stdio: 'ignore' });
 process.on('exit', () => server.kill());

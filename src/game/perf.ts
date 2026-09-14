@@ -134,7 +134,7 @@ export interface BenchState {
   report: string | null;
 }
 
-export const bench: BenchState = { running: false, track: 'neon', startedAt: 0, duration: 90, samples: [], report: null };
+export const bench: BenchState = { running: false, track: 'shchyolkovo', startedAt: 0, duration: 90, samples: [], report: null };
 const benchListeners = new Set<() => void>();
 export function onBench(cb: () => void): () => void {
   benchListeners.add(cb);
@@ -147,7 +147,7 @@ function emitBench(): void {
 let benchTimer = 0;
 
 /** Autopilot race on a track for `duration` seconds, sampling every 2 s, then builds a report. */
-export function startBench(track = 'neon', duration = 90): void {
+export function startBench(track = 'shchyolkovo', duration = 90): void {
   stopBenchTimer();
   const s = getState();
   window.__spg.autopilot = true;

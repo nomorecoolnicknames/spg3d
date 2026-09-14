@@ -30,7 +30,9 @@ export type CellName =
   | 'pavement' | 'courtyard' | 'grass' | 'ballast' | 'granite' | 'water' | 'tunnelWall' | 'tunnelCeil'
   // roadside and alpine kit (canyon, pass)
   | 'shopRoadCafe' | 'shopFuel' | 'fuelFascia' | 'woodWall' | 'woodWin' | 'roofRed' | 'roofSnow' | 'galleryWall'
-  | 'trussRed' | 'signPass' | 'fuelPump' | 'liftChair';
+  | 'trussRed' | 'signPass' | 'fuelPump' | 'liftChair'
+  // neutral plaster for tinted real buildings (world/osm)
+  | 'plWin' | 'plWinPed' | 'plRustic' | 'plCornice';
 
 const ORDER: CellName[] = [
   'panelWin', 'panelLoggia', 'panelBlank', 'panelDoor', 'panelWinB', 'panelLoggiaB', 'panelStripe', 'panelTop',
@@ -42,7 +44,7 @@ const ORDER: CellName[] = [
   'roofBitumen', 'roofGravel', 'kioskWall', 'adStop', 'adRival1', 'adRival2', 'metalVent', 'concrete',
   'pavement', 'courtyard', 'grass', 'ballast', 'granite', 'water', 'tunnelWall', 'tunnelCeil',
   'shopRoadCafe', 'shopFuel', 'fuelFascia', 'woodWall', 'woodWin', 'roofRed', 'roofSnow', 'galleryWall',
-  'trussRed', 'signPass', 'fuelPump', 'liftChair',
+  'trussRed', 'signPass', 'fuelPump', 'liftChair', 'plWin', 'plWinPed', 'plRustic', 'plCornice',
 ];
 const ROWS = Math.ceil(ORDER.length / COLS);
 
@@ -636,6 +638,10 @@ function paintCell(name: CellName, p: Paint): void {
       p.e.fillRect(60, 90, 136, 70);
       return;
     }
+    case 'plWin': return plaster(p, '#d9d4ca', 'win');
+    case 'plWinPed': return plaster(p, '#d9d4ca', 'ped');
+    case 'plRustic': return plaster(p, '#cfc9be', 'rustic');
+    case 'plCornice': return plaster(p, '#d9d4ca', 'cornice');
     case 'liftChair': wall(p, '#303640', 10); p.a.fillStyle = '#c9a227'; p.a.fillRect(0, 150, p.w, 60); return;
     default: return ground(p, name);
   }

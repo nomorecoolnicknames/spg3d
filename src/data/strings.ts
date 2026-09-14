@@ -62,6 +62,7 @@ export const S = {
     start: 'На старт',
     locked: 'Откроется после побед в карьере',
     length: 'Длина круга',
+    osmCredit: 'Карта по данным © участники OpenStreetMap, лицензия ODbL',
   },
   career: {
     title: 'Чёрный список',

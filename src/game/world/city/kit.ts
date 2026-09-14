@@ -36,7 +36,10 @@ export class GeoBuilder {
   lamp: number[] = [];
   lampH: number[] = [];
   seed: number[] = [];
+  tintArr: number[] = [];
   idx: number[] = [];
+  /** albedo multiplier for the quads added next (plaster colours of real buildings); glass stays untinted */
+  tint: [number, number, number] = [1, 1, 1];
 
   get vertexCount(): number {
     return this.pos.length / 3;
@@ -87,8 +90,36 @@ export class GeoBuilder {
         this.lampH.push(0);
       }
       this.seed.push(seed);
+      this.tintArr.push(this.tint[0], this.tint[1], this.tint[2]);
     }
     this.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+
+  /**
+   * Horizontal polygon (already triangulated) with world-space tiling: uv = (x, z) / tile. Overlapping
+   * pieces at the same height render identical texels, so street crossings and joints never flicker.
+   */
+  flatPoly(pts: { x: number; z: number }[], tris: number[][], y: number, cellName: CellName, tile: number, seed = 0): void {
+    const c = cityAtlas().cell(cellName);
+    const base = this.vertexCount;
+    for (const p of pts) {
+      this.pos.push(p.x, y, p.z);
+      this.nrm.push(0, 1, 0);
+      this.uv.push(p.x / tile, -p.z / tile);
+      this.cell.push(c[0], c[1], c[2], c[3]);
+      this.lamp.push(0, 0, 1, 0);
+      this.lampH.push(0);
+      this.seed.push(seed);
+      this.tintArr.push(this.tint[0], this.tint[1], this.tint[2]);
+    }
+    // ShapeUtils returns clockwise triangles in x/z-as-x/y; seen from above (+y) they must be flipped
+    for (const t of tris) {
+      const [a, b, d] = t;
+      const ax = pts[a].x, az = pts[a].z;
+      const cross = (pts[b].x - ax) * (pts[d].z - az) - (pts[b].z - az) * (pts[d].x - ax);
+      if (cross > 0) this.idx.push(base + a, base + d, base + b);
+      else this.idx.push(base + a, base + b, base + d);
+    }
   }
 
   /** quad whose winding is fixed up so its normal points along `dir` (mirrors the tile direction if flipped) */
@@ -147,6 +178,7 @@ export class GeoBuilder {
     g.setAttribute('aLamp', new THREE.Float32BufferAttribute(this.lamp, 4));
     g.setAttribute('aLampH', new THREE.Float32BufferAttribute(this.lampH, 1));
     g.setAttribute('aSeed', new THREE.Float32BufferAttribute(this.seed, 1));
+    g.setAttribute('aTint', new THREE.Float32BufferAttribute(this.tintArr, 3));
     g.setIndex(this.vertexCount > 65535 ? new THREE.Uint32BufferAttribute(this.idx, 1) : new THREE.Uint16BufferAttribute(this.idx, 1));
     g.computeBoundingSphere();
     g.computeBoundingBox();
@@ -188,6 +220,8 @@ attribute vec4 aCell;
 attribute vec4 aLamp;
 attribute float aLampH;
 attribute float aSeed;
+attribute vec3 aTint;
+varying vec3 vTint;
 varying vec4 vCell;
 varying vec2 vTile;
 varying vec4 vLamp;
@@ -201,7 +235,8 @@ varying float vSeed;`,
 	vTile = uv;
 	vLamp = aLamp;
 	vLampUp = (modelMatrix * vec4(transformed, 1.0)).y - aLampH;
-	vSeed = aSeed;`,
+	vSeed = aSeed;
+	vTint = aTint;`,
       );
     sh.fragmentShader = sh.fragmentShader
       .replace(
@@ -215,6 +250,7 @@ varying vec2 vTile;
 varying vec4 vLamp;
 varying float vLampUp;
 varying float vSeed;
+varying vec3 vTint;
 float cityHash(vec2 p) { return fract(sin(dot(p, vec2(41.37, 289.91))) * 43758.5453); }
 vec4 cityEmis;`,
       )
@@ -227,7 +263,7 @@ vec4 cityEmis;`,
 	vec2 gdy = dFdy(vTile) * vCell.zw;
 	vec4 alb = textureGrad(tAtlas, auv, gdx, gdy);
 	cityEmis = textureGrad(tEmis, auv, gdx, gdy);
-	diffuseColor.rgb *= alb.rgb;`,
+	diffuseColor.rgb *= alb.rgb * mix(vTint, vec3(1.0), cityEmis.r);`,
       )
       .replace(
         '#include <roughnessmap_fragment>',
