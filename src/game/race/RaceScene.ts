@@ -295,6 +295,7 @@ export class RaceScene implements SceneController {
       this.player.finishTime = this.raceTime;
       this.finishT = 0;
     };
+    vp.warmup(this.scene, this.cam.camera);
   }
 
   private buildComposer(): void {

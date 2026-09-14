@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { TrackData } from './TrackData';
-import { coneTexture, facadeTexture, neonSignTexture, reseed, rnd } from './textures';
+import { coneTexture, facadeTexture, neonSignTexture, reseed, rnd, softSpriteTexture } from './textures';
 
 export interface PropsRig {
   group: THREE.Group;
@@ -124,8 +124,10 @@ export function buildProps(track: TrackData, terrainHeight: (x: number, z: numbe
     const poles: THREE.BufferGeometry[] = [];
     const heads: THREE.BufferGeometry[] = [];
     const cones: THREE.BufferGeometry[] = [];
-    const coneTex = coneTexture();
-    disposables.push(coneTex);
+    const pools: THREE.BufferGeometry[] = [];
+    // volumetric beams are big additive overdraw right at camera height — high tier only;
+    // every tier gets a light pool on the asphalt instead
+    const beams = quality.level === 'high';
     const step = Math.round(30 / track.spacing);
     for (let i = 0, k = 0; i < n; i += step, k++) {
       const s = track.samples[i];
@@ -138,7 +140,11 @@ export function buildProps(track: TrackData, terrainHeight: (x: number, z: numbe
       heads.push(headGeo.clone().applyMatrix4(rot).translate(p.x, p.y, p.z));
       // beam: two crossed planes under the head
       const hp = new THREE.Vector3(2.0, 7.9, 0).applyMatrix4(rot).add(p);
-      for (const a of [0, Math.PI / 2]) {
+      const pool = new THREE.PlaneGeometry(9, 9);
+      pool.rotateX(-Math.PI / 2);
+      pool.translate(hp.x, track.heightAt(i) + 0.05, hp.z);
+      pools.push(pool);
+      if (beams) for (const a of [0, Math.PI / 2]) {
         const cg = new THREE.PlaneGeometry(5, 8);
         cg.translate(0, -4, 0);
         cg.applyMatrix4(new THREE.Matrix4().makeRotationY(a + heading));
@@ -151,15 +157,26 @@ export function buildProps(track: TrackData, terrainHeight: (x: number, z: numbe
     headGeo.dispose();
     const pm = mergeGeometries(poles)!;
     const hm = mergeGeometries(heads)!;
-    const cm = mergeGeometries(cones)!;
+    const lm = mergeGeometries(pools)!;
     poles.forEach((g) => g.dispose());
     heads.forEach((g) => g.dispose());
-    cones.forEach((g) => g.dispose());
+    pools.forEach((g) => g.dispose());
     const poleMat = new THREE.MeshStandardMaterial({ color: '#1e2028', roughness: 0.55, metalness: 0.7 });
     const headMat = new THREE.MeshBasicMaterial({ color: '#fff1d0', toneMapped: false });
-    const coneMat = new THREE.MeshBasicMaterial({ map: coneTex, color: '#ffe6b0', transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
-    group.add(new THREE.Mesh(pm, poleMat), new THREE.Mesh(hm, headMat), new THREE.Mesh(cm, coneMat));
-    disposables.push(pm, hm, cm, poleMat, headMat, coneMat);
+    const poolTex = softSpriteTexture(1, 0);
+    const poolMat = new THREE.MeshBasicMaterial({ map: poolTex, color: '#ffdca0', transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -2 });
+    const poolMesh = new THREE.Mesh(lm, poolMat);
+    poolMesh.renderOrder = 2;
+    group.add(new THREE.Mesh(pm, poleMat), new THREE.Mesh(hm, headMat), poolMesh);
+    disposables.push(pm, hm, lm, poleMat, headMat, poolMat, poolTex);
+    if (beams) {
+      const coneTex = coneTexture();
+      const cm = mergeGeometries(cones)!;
+      cones.forEach((g) => g.dispose());
+      const coneMat = new THREE.MeshBasicMaterial({ map: coneTex, color: '#ffe6b0', transparent: true, opacity: 0.12, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+      group.add(new THREE.Mesh(cm, coneMat));
+      disposables.push(coneTex, cm, coneMat);
+    }
 
     // ---- neon billboards near the track ----
     const bbStep = Math.round(n / NEON_SIGNS.length);

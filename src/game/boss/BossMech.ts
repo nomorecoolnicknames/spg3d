@@ -161,7 +161,7 @@ export class BossMech {
   private headPitch = 0;
   readonly height = 14;
 
-  constructor(faceTex: THREE.Texture | undefined, shadows: boolean) {
+  constructor(faceTex: THREE.Texture | undefined, shadows: boolean, low = false) {
     const tex = panelTextures();
     this.textures.push(tex.map, tex.rough);
     const gun = new THREE.MeshStandardMaterial({ map: tex.map, roughnessMap: tex.rough, roughness: 1, metalness: 0.7, color: '#e6e9f2', envMapIntensity: 1.0 });
@@ -475,9 +475,11 @@ export class BossMech {
     this.eye = new THREE.Mesh(eyeG, this.eyeMat);
     this.eye.position.set(0, 0.95, 1.26);
     skull.add(this.eye);
-    const eyeLight = new THREE.PointLight('#ff2038', 6, 8, 1.6);
-    eyeLight.position.set(0, 0.95, 1.6);
-    skull.add(eyeLight);
+    if (!low) {
+      const eyeLight = new THREE.PointLight('#ff2038', 6, 8, 1.6);
+      eyeLight.position.set(0, 0.95, 1.6);
+      skull.add(eyeLight);
+    }
     // jaw + cigar
     skull.add(mesh(box(1.5, 0.45, 1.2, 0.08), gunDark, 0, -0.15, 0.95));
     const cigar = mesh(cyl(0.09, 0.11, 1.4, 8), new THREE.MeshStandardMaterial({ color: '#5a3a22', roughness: 0.9 }), 0.55, 0.0, 1.9);
@@ -491,7 +493,7 @@ export class BossMech {
     skull.add(ember);
     this.emberLight = new THREE.PointLight('#ff6a1a', 4, 6, 1.8);
     this.emberLight.position.copy(ember.position);
-    skull.add(this.emberLight);
+    if (!low) skull.add(this.emberLight); // on phones the ember is just its emissive sphere
     // fedora
     const hat = new THREE.Group();
     hat.position.set(0, 1.95, -0.2);

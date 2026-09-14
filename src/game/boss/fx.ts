@@ -131,6 +131,11 @@ export class ParticlePool {
   }
 }
 
+/**
+ * Fixed set of point lights for muzzle flashes / explosions. Lights stay in the scene with
+ * intensity 0 when idle: toggling `visible` changes the light count and recompiles every
+ * lit shader (a visible hitch on phones).
+ */
 export class LightPool {
   readonly lights: THREE.PointLight[] = [];
   private life: number[] = [];
@@ -140,15 +145,15 @@ export class LightPool {
   constructor(readonly group: THREE.Object3D, n = 6) {
     for (let i = 0; i < n; i++) {
       const l = new THREE.PointLight('#ffb060', 0, 40, 1.6);
-      l.visible = false;
       group.add(l);
       this.lights.push(l);
-      this.life.push(0);
+      this.life.push(1);
       this.max.push(1);
       this.base.push(0);
     }
   }
   flash(p: THREE.Vector3, color: THREE.ColorRepresentation, intensity: number, seconds: number, distance = 40): void {
+    if (!this.lights.length) return;
     const i = this.cursor;
     this.cursor = (this.cursor + 1) % this.lights.length;
     const l = this.lights[i];
@@ -156,21 +161,17 @@ export class LightPool {
     l.color.set(color);
     l.intensity = intensity;
     l.distance = distance;
-    l.visible = true;
     this.life[i] = 0;
     this.max[i] = seconds;
     this.base[i] = intensity;
   }
   update(dt: number): void {
     for (let i = 0; i < this.lights.length; i++) {
+      if (this.life[i] >= this.max[i]) continue;
       const l = this.lights[i];
-      if (!l.visible) continue;
       this.life[i] += dt;
-      const t = this.life[i] / this.max[i];
-      if (t >= 1) {
-        l.visible = false;
-        l.intensity = 0;
-      } else l.intensity = this.base[i] * (1 - t) * (1 - t);
+      const t = Math.min(1, this.life[i] / this.max[i]);
+      l.intensity = this.base[i] * (1 - t) * (1 - t);
     }
   }
 }

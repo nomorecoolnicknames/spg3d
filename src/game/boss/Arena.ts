@@ -141,7 +141,7 @@ export interface Arena {
   dispose(): void;
 }
 
-export function buildArena(scene: THREE.Scene, quality: { shadows: boolean }): Arena {
+export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low: boolean }): Arena {
   const env = BOSS_ENV;
   const group = new THREE.Group();
   const disposables: THREE.Texture[] = [];
@@ -269,7 +269,8 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean }): A
     m4.compose(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r), q, new THREE.Vector3(1, 1, 1));
     poles.setMatrixAt(i, m4);
     lamps.setMatrixAt(i, m4);
-    if (i % 3 === 0) {
+    // lamp point lights only above the phone tier: every light is paid per lit pixel
+    if (i % 3 === 0 && !quality.low) {
       const pl = new THREE.PointLight('#ffd9a0', 12, 34, 1.9);
       pl.position.set(Math.cos(a) * (r - 2), 8.5, Math.sin(a) * (r - 2));
       group.add(pl);
@@ -385,9 +386,11 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean }): A
   const signLight = new THREE.PointLight('#ff1e3c', 250, 220, 1.4);
   signLight.position.set(0, 30, -100);
   group.add(signLight);
-  const signLight2 = new THREE.PointLight('#2ee6ff', 160, 200, 1.4);
-  signLight2.position.set(-70, 22, -45);
-  group.add(signLight2);
+  if (!quality.low) {
+    const signLight2 = new THREE.PointLight('#2ee6ff', 160, 200, 1.4);
+    signLight2.position.set(-70, 22, -45);
+    group.add(signLight2);
+  }
 
   // ---- sweeping spotlights ----
   const beamMat = new THREE.MeshBasicMaterial({ color: '#7fb8ff', transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });

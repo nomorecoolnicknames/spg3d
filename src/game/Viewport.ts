@@ -142,6 +142,25 @@ export class Viewport {
     this.wake();
   }
 
+  /**
+   * Compile every material in the scene up front, including hidden objects (nitro flames,
+   * LODs, pooled effects) — otherwise their first appearance stalls a frame on shader linking.
+   */
+  warmup(scene: THREE.Scene, camera: THREE.Camera): void {
+    const hidden: THREE.Object3D[] = [];
+    scene.traverse((o) => {
+      if (!o.visible) {
+        hidden.push(o);
+        o.visible = true;
+      }
+    });
+    try {
+      this.renderer.compile(scene, camera);
+    } finally {
+      for (const o of hidden) o.visible = false;
+    }
+  }
+
   getController(): SceneController | null {
     return this.controller;
   }

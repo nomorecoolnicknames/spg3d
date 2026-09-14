@@ -135,8 +135,8 @@ export class BossScene implements SceneController {
     pm.dispose();
     this.scene.environment = this.pmrem;
     this.scene.environmentIntensity = 0.4;
-    this.arena = buildArena(this.scene, { shadows: q.shadows });
-    this.mech = new BossMech(getTexture('madkidFace'), q.shadows);
+    this.arena = buildArena(this.scene, { shadows: q.shadows, low: q.level === 'low' });
+    this.mech = new BossMech(getTexture('madkidFace'), q.shadows, q.level === 'low');
     this.mech.root.position.copy(this.mechPos);
     this.scene.add(this.mech.root);
     this.fighter = new Humanoid('fighter', q.shadows);
@@ -144,7 +144,7 @@ export class BossScene implements SceneController {
     this.fire = new ParticlePool(900, true);
     this.smoke = new ParticlePool(700, false);
     this.scene.add(this.fire.points, this.smoke.points);
-    this.lights = new LightPool(this.scene, 6);
+    this.lights = new LightPool(this.scene, q.level === 'low' ? 3 : 5);
     this.slamRing = new Ring('#ff7a1a', 0.08);
     this.telegraphRing = new Ring('#ff2038', 0.05);
     this.scene.add(this.slamRing.mesh, this.telegraphRing.mesh);
@@ -205,6 +205,7 @@ export class BossScene implements SceneController {
       this.god = !!on;
     };
     this.sendHUD();
+    vp.warmup(this.scene, this.camera);
   }
 
   private buildComposer(): void {
