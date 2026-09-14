@@ -40,8 +40,12 @@ export class Input {
   sensitivity = 0.0022;
 
   private onKeyDown = (e: KeyboardEvent): void => {
-    if (!this.enabled) return;
     if (e.target instanceof HTMLInputElement) return;
+    // input is disabled while paused — Escape must still be able to resume
+    if (!this.enabled) {
+      if (e.code === 'Escape' && !e.repeat) this.fire('pause');
+      return;
+    }
     if (e.repeat) {
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
       return;
