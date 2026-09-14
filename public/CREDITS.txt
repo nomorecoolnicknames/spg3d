@@ -19,3 +19,14 @@ HDRI-окружения (отражения и освещение): Poly Haven, 
   https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf
 
 Асфальт (Asphalt031): ambientCG, лицензия CC0 — https://ambientcg.com (scripts/materials.sh)
+
+Карты реальных мест (Щёлково, Лиговский проспект, Варшава · Центр, двор Лиговского, 50):
+  данные © участники OpenStreetMap, лицензия ODbL 1.0 — https://www.openstreetmap.org/copyright
+  (улицы, контуры и высоты зданий, вода, парки, рельсы, деревья; scripts/osm-map.mjs)
+
+Ориентиры смоделированы в Blender по фотографиям Wikimedia Commons (фото в игре не используются):
+  «Въездной знак на фоне Историко-краеведческого музея» — Vzorets, CC BY-SA 4.0;
+  фото набережной и моста в Щёлково — авторы Panoramio/Commons, CC BY / CC BY-SA;
+  «Saint Petersburg Ligovsky Avenue 50 …» (2025-03) — Commons, CC BY 4.0.
+Герб города Щёлково — официальный символ, общественное достояние (ст. 1259 ГК РФ).
+Шрифт букв стелы — DejaVu Sans Bold (Bitstream Vera License), глифы переведены в геометрию.
