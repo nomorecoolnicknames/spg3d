@@ -13,10 +13,13 @@ import { readdirSync, mkdirSync, statSync } from 'node:fs';
 import { join as pjoin } from 'node:path';
 
 // usage: node scripts/optimize-glb.mjs [outDir] [simplifyRatio] [textureSize]
+//        node scripts/optimize-glb.mjs --intermediate <outDir>   (wheel-tagged, joined, uncompressed: input for scripts/bake-cars.py)
+const INTERMEDIATE = process.argv.includes('--intermediate');
+const args = process.argv.slice(2).filter((a) => a !== '--intermediate');
 const src = 'src/assets/cars-src';
-const out = process.argv[2] ?? 'src/assets/cars';
-const RATIO = Number(process.argv[3] ?? 0.55);
-const TEX = Number(process.argv[4] ?? 1024);
+const out = args[0] ?? 'src/assets/cars';
+const RATIO = Number(args[1] ?? 0.55);
+const TEX = Number(args[2] ?? 1024);
 mkdirSync(out, { recursive: true });
 await MeshoptEncoder.ready;
 await MeshoptSimplifier.ready;
@@ -157,15 +160,19 @@ for (const f of readdirSync(src).filter((x) => x.endsWith('.glb'))) {
       }
     }
   });
-  await doc.transform(
-    flatten(),
-    join({ keepNamed: false, keepMeshes: false }),
-    weld(),
-    simplify({ simplifier: MeshoptSimplifier, ratio: RATIO, error: RATIO < 0.4 ? 0.003 : 0.0008 }),
-    prune(),
-    textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [TEX, TEX] }),
-    meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
-  );
+  if (INTERMEDIATE) {
+    await doc.transform(flatten(), join({ keepNamed: false, keepMeshes: false }), weld(), prune());
+  } else {
+    await doc.transform(
+      flatten(),
+      join({ keepNamed: false, keepMeshes: false }),
+      weld(),
+      simplify({ simplifier: MeshoptSimplifier, ratio: RATIO, error: RATIO < 0.4 ? 0.003 : 0.0008 }),
+      prune(),
+      textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [TEX, TEX] }),
+      meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
+    );
+  }
   const meshes = doc.getRoot().listMeshes().length;
   const prims = doc.getRoot().listMeshes().reduce((a, m) => a + m.listPrimitives().length, 0);
   let tris = 0;

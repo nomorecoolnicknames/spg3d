@@ -9,21 +9,23 @@ import lanciaUrl from '@/assets/cars/lancia_037_stradale_1978.glb';
 import bmwM8Url from '@/assets/cars/2020_bmw_m8.glb';
 import gt40Url from '@/assets/cars/ford_gt40.glb';
 import bolideUrl from '@/assets/cars/bugatti_bolide_2024.glb';
-import bmw2018Lod from '@/assets/cars-lod/BMW_2018.glb';
-import supraLod from '@/assets/cars-lod/toyota_supra_mk4_a80.glb';
-import lanciaLod from '@/assets/cars-lod/lancia_037_stradale_1978.glb';
-import bmwM8Lod from '@/assets/cars-lod/2020_bmw_m8.glb';
-import gt40Lod from '@/assets/cars-lod/ford_gt40.glb';
-import bolideLod from '@/assets/cars-lod/bugatti_bolide_2024.glb';
+import bmw2018Hd from '@/assets/cars/BMW_2018-hd.glb';
+import supraHd from '@/assets/cars/toyota_supra_mk4_a80-hd.glb';
+import lanciaHd from '@/assets/cars/lancia_037_stradale_1978-hd.glb';
+import bmwM8Hd from '@/assets/cars/2020_bmw_m8-hd.glb';
+import gt40Hd from '@/assets/cars/ford_gt40-hd.glb';
+import bolideHd from '@/assets/cars/bugatti_bolide_2024-hd.glb';
 import xbotUrl from '@/assets/Xbot.glb';
-import { getState } from '@/state/store';
 import madkidFaceUrl from '@/assets/madk1d_face_big.jpg';
 
 /**
  * Central asset registry. Everything heavy is loaded once, progress is byte-based
  * (no fake percentages). Consumers clone scenes; never mutate the cached originals.
+ *
+ * Cars (scripts/build-cars.sh): <model>.glb = LOD0-2 with a 1024 atlas, loaded at boot;
+ * <model>-hd.glb = LOD0 with a 2048 atlas, loaded on demand for the player's car on medium/high.
  */
-const MODEL_URLS_HI: Record<string, string> = {
+const MODEL_URLS: Record<string, string> = {
   BMW_2018: bmw2018Url,
   toyota_supra_mk4_a80: supraUrl,
   lancia_037_stradale_1978: lanciaUrl,
@@ -32,17 +34,14 @@ const MODEL_URLS_HI: Record<string, string> = {
   bugatti_bolide_2024: bolideUrl,
   Xbot: xbotUrl,
 };
-// low quality (phones): ~5x fewer triangles, 512 px textures
-const MODEL_URLS_LOD: Record<string, string> = {
-  BMW_2018: bmw2018Lod,
-  toyota_supra_mk4_a80: supraLod,
-  lancia_037_stradale_1978: lanciaLod,
-  '2020_bmw_m8': bmwM8Lod,
-  ford_gt40: gt40Lod,
-  bugatti_bolide_2024: bolideLod,
-  Xbot: xbotUrl,
+const HD_URLS: Record<string, string> = {
+  BMW_2018: bmw2018Hd,
+  toyota_supra_mk4_a80: supraHd,
+  lancia_037_stradale_1978: lanciaHd,
+  '2020_bmw_m8': bmwM8Hd,
+  ford_gt40: gt40Hd,
+  bugatti_bolide_2024: bolideHd,
 };
-const MODEL_URLS = getState().save.settings.quality === 'low' ? MODEL_URLS_LOD : MODEL_URLS_HI;
 
 const gltfs = new Map<string, GLTF>();
 const textures = new Map<string, THREE.Texture>();
@@ -136,6 +135,36 @@ export function loadAllAssets(): Promise<void> {
   });
   loadingPromise = Promise.all([...tasks, tex]).then(() => setProgress(1));
   return loadingPromise;
+}
+
+const hdLoads = new Map<string, Promise<GLTF | undefined>>();
+
+/** Loads `<model>-hd` once; resolves with undefined if it fails (callers keep the LOD atlas). */
+export function loadHdCar(model: string): Promise<GLTF | undefined> {
+  const key = `${model}-hd`;
+  const have = gltfs.get(key);
+  if (have) return Promise.resolve(have);
+  let p = hdLoads.get(key);
+  if (!p) {
+    p = new Promise((resolve) => {
+      const url = HD_URLS[model];
+      if (!url) return resolve(undefined);
+      loader.load(
+        url,
+        (g) => {
+          gltfs.set(key, g);
+          resolve(g);
+        },
+        undefined,
+        (err) => {
+          console.error('hd car load failed', model, err);
+          resolve(undefined);
+        },
+      );
+    });
+    hdLoads.set(key, p);
+  }
+  return p;
 }
 
 /** Model asset keys referenced by the car roster (sanity for QA). */

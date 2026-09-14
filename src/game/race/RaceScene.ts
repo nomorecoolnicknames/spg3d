@@ -209,7 +209,15 @@ export class RaceScene implements SceneController {
       const car = new CarPhysics(cspec);
       const s = this.track.samples[gridIdx];
       car.place(s.pos.x + s.left.x * lat, s.pos.z + s.left.z * lat, s.pos.y, this.track.headingAt(gridIdx));
-      const vis = createCarVisual(cspec, color, { player: isPlayer, shadows: q.shadows, night: env.headlights });
+      const vis = createCarVisual(cspec, color, {
+        player: isPlayer,
+        shadows: q.shadows,
+        night: env.headlights,
+        hd: isPlayer && q.level !== 'low',
+        physical: q.level === 'high',
+        opaqueGlass: q.level === 'low',
+        lod: isPlayer ? 0 : 1,
+      });
       this.scene.add(vis.root);
       const r: Racer = {
         name, color, isPlayer, spec: cspec, car, vis,
@@ -259,7 +267,7 @@ export class RaceScene implements SceneController {
       const c = this.player.car;
       const s = this.track.samples[this.player.idx];
       const box = new THREE.Box3().setFromObject(this.mesh.road);
-      const wheels = this.player.vis.wheels.map((w) => { const pv = w.getWorldPosition(new THREE.Vector3()); const b = new THREE.Box3().setFromObject(w); const bc = b.getCenter(new THREE.Vector3()); const bs = b.getSize(new THREE.Vector3()); return { pivot: [pv.x - c.x, pv.y - c.y, pv.z - c.z].map((v) => +v.toFixed(2)), center: [bc.x - c.x, bc.y - c.y, bc.z - c.z].map((v) => +v.toFixed(2)), size: [bs.x, bs.y, bs.z].map((v) => +v.toFixed(2)), rot: +w.rotation.x.toFixed(2) }; });
+      const wheels = { lod: this.player.vis.lod };
       const ray = new THREE.Raycaster(new THREE.Vector3(c.x, c.y + 5, c.z), new THREE.Vector3(0, -1, 0));
       const hits = ray.intersectObjects(this.mesh.group.children, true).map((h) => ({ name: h.object.name || h.object.type, y: +h.point.y.toFixed(3) }));
       const rp = this.mesh.road.geometry.attributes.position.array as Float32Array;
@@ -661,27 +669,21 @@ export class RaceScene implements SceneController {
     root.rotateY(c.heading);
     root.rotateX(-s.slope * (c.forwardX * s.tan.x + c.forwardZ * s.tan.z) + c.pitch);
     root.rotateZ(c.roll);
-    for (const w of r.vis.wheels) w.rotation.x = c.wheelSpin;
-    for (const st of r.vis.steer) st.rotation.y = c.steerAngle;
+    // LOD by camera distance; phones never draw full-detail opponents
+    // (the first sync runs from start(), before the camera exists)
+    const cp = this.cam ? this.cam.camera.position : this.player.car;
+    const d2 = (cp.x - c.x) ** 2 + (cp.z - c.z) ** 2;
+    const low = this.vp.quality.level === 'low';
+    r.vis.setLod(r.isPlayer ? 0 : d2 < (low ? 0 : 22 * 22) ? 0 : d2 < 70 * 70 ? 1 : 2);
+    r.vis.setWheels(c.wheelSpin, c.steerAngle);
     r.vis.setBrake(r.input.brake > 0.1 || (r.finished && c.vx > 1));
     r.vis.setNitro(c.nitroActive, this.elapsed);
-    r.vis.setReverse(c.vx < -0.5);
     void dt;
   }
 
   private spawnGhost(): void {
-    const vis = createCarVisual(this.player.spec, '#5ac8fa', { player: false, shadows: false, night: false });
-    vis.root.traverse((o) => {
-      if (o instanceof THREE.Mesh) {
-        const mats = Array.isArray(o.material) ? o.material : [o.material];
-        for (const m of mats) {
-          m.transparent = true;
-          m.opacity = 0.35;
-          m.depthWrite = false;
-        }
-        o.castShadow = false;
-      }
-    });
+    const vis = createCarVisual(this.player.spec, '#5ac8fa', { player: false, shadows: false, night: false, lod: 1 });
+    vis.setGhost();
     this.scene.add(vis.root);
     this.ghost = vis;
   }

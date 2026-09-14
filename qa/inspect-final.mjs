@@ -1,0 +1,11 @@
+import { NodeIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { MeshoptDecoder } from 'meshoptimizer';
+await MeshoptDecoder.ready;
+const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
+const doc = await io.read(process.argv[2]);
+const root = doc.getRoot();
+console.log('skins', root.listSkins().length, root.listSkins().map((s) => s.listJoints().map((j) => j.getName()).join(',')));
+for (const n of root.listNodes()) console.log('node', n.getName().padEnd(12), 'mesh', n.getMesh()?.getName() ?? '-', 'skin', !!n.getSkin(), 'children', n.listChildren().map((c) => c.getName()).join(','));
+for (const m of root.listMaterials()) console.log('mat', m.getName(), m.getAlphaMode(), 'tex', !!m.getBaseColorTexture());
+console.log('textures', root.listTextures().map((t) => `${t.getName()} ${t.getMimeType()} ${t.getSize()}`));

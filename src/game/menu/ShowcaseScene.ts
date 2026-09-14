@@ -4,6 +4,7 @@ import type { SceneController, Viewport } from '../Viewport';
 import { createCarVisual, type CarVisual } from '../vehicle/CarVisual';
 import { CAR_BY_ID, CARS } from '@/data/cars';
 import { groundTexture } from '../world/textures';
+import { getGLTF, loadHdCar } from '../assets';
 
 /**
  * Menu / garage backdrop: a car on a dark studio floor with a light ring, slow turntable,
@@ -24,8 +25,10 @@ export class ShowcaseScene implements SceneController {
   private fade = 1;
   private camTarget = new THREE.Vector3();
   private camPos = new THREE.Vector3(7, 2.2, 7);
+  private vp: Viewport | null = null;
 
   start(vp: Viewport): void {
+    this.vp = vp;
     const pm = new THREE.PMREMGenerator(vp.renderer);
     this.pmrem = pm.fromScene(new RoomEnvironment(), 0.04).texture;
     pm.dispose();
@@ -98,17 +101,27 @@ export class ShowcaseScene implements SceneController {
       this.scene.remove(this.car.root);
       this.car.dispose();
     }
-    this.car = createCarVisual(spec, col, { player: false, shadows: true, night: false });
+    const level = this.vp?.quality.level ?? 'low';
+    this.car = createCarVisual(spec, col, { player: false, shadows: true, night: false, hd: level !== 'low', physical: level === 'high' });
     this.car.setHeadlights(true);
     this.scene.add(this.car.root);
     this.carId = carId;
     this.color = col;
     this.fade = 0;
+    // on medium/high swap in the 2048 atlas once it arrives (also warms it up for the race)
+    if (level !== 'low' && !getGLTF(`${spec.model}-hd`)) {
+      void loadHdCar(spec.model).then((g) => {
+        if (g && this.carId === carId && this.car) {
+          this.carId = '';
+          this.show(carId, this.color, this.mode);
+        }
+      });
+    }
     window.__spg.knobs.showcaseProbe = () => {
       const car = this.car!;
       car.root.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(car.root).getSize(new THREE.Vector3());
-      return { carId, size: [box.x, box.y, box.z].map((v) => +v.toFixed(2)), wheels: car.wheels.map((w) => { const pv = w.getWorldPosition(new THREE.Vector3()); const b = new THREE.Box3().setFromObject(w); const c = b.getCenter(new THREE.Vector3()); const sz = b.getSize(new THREE.Vector3()); return { pivot: [pv.x, pv.y, pv.z].map((v) => +v.toFixed(2)), center: [c.x, c.y, c.z].map((v) => +v.toFixed(2)), size: [sz.x, sz.y, sz.z].map((v) => +v.toFixed(2)) }; }) };
+      return { carId, size: [box.x, box.y, box.z].map((v) => +v.toFixed(2)), lod: car.lod, hd: !!getGLTF(`${spec.model}-hd`) };
     };
   }
 
