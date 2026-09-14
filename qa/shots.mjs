@@ -45,7 +45,7 @@ const CHROME_ARGS = [
   '--no-sandbox',
 ];
 
-const TRACKS = ['neon', 'canyon', 'aurora'];
+const TRACKS = opt('--tracks', 'neon,canyon,aurora').split(',');
 const CARS = ['m5cs', 'supra', 'lancia', 'm8', 'gt40', 'bolide'];
 
 // ---------------------------------------------------------------- report model
