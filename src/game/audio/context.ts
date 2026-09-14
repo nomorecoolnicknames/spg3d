@@ -105,7 +105,7 @@ if (typeof window !== 'undefined') {
 const noiseCache = new Map<string, AudioBuffer>();
 
 /** 2-second looping white noise buffer (cached per context). */
-export function noiseBuffer(ctx: AudioContext, kind: 'white' | 'pink' = 'white'): AudioBuffer {
+export function noiseBuffer(ctx: BaseAudioContext, kind: 'white' | 'pink' = 'white'): AudioBuffer {
   const key = kind;
   const cached = noiseCache.get(key);
   if (cached && cached.sampleRate === ctx.sampleRate) return cached;
@@ -187,7 +187,7 @@ export function noise(ctx: AudioContext, start: number, stop: number, kind: 'whi
   return s;
 }
 
-export function filter(ctx: AudioContext, type: BiquadFilterType, freq: number, q = 1): BiquadFilterNode {
+export function filter(ctx: BaseAudioContext, type: BiquadFilterType, freq: number, q = 1): BiquadFilterNode {
   const f = ctx.createBiquadFilter();
   f.type = type;
   f.frequency.value = freq;

@@ -3,7 +3,7 @@ import { clamp01, distortionCurve, filter, noiseBuffer, semitones } from './cont
 
 export type EngineProfileName = 'v8' | 'i6-turbo' | 'v6' | 'w16' | 'v12';
 
-interface Profile {
+export interface Profile {
   /** fundamental at idle / redline (Hz) */
   idleHz: number;
   redlineHz: number;
@@ -21,7 +21,7 @@ interface Profile {
   sub: number;
 }
 
-const PROFILES: Record<EngineProfileName, Profile> = {
+export const ENGINE_PROFILES: Record<EngineProfileName, Profile> = {
   v8: {
     idleHz: 38,
     redlineHz: 170,
@@ -111,7 +111,7 @@ const PROFILES: Record<EngineProfileName, Profile> = {
 const SM = 0.05; // param smoothing time constant
 
 export class SynthEngineVoice implements EngineVoice {
-  private ctx: AudioContext;
+  private ctx: BaseAudioContext;
   private out: GainNode;
   private master: GainNode;
   private lp: BiquadFilterNode;
@@ -142,10 +142,10 @@ export class SynthEngineVoice implements EngineVoice {
   private noiseSources: AudioBufferSourceNode[] = [];
   private nextBackfire = 0;
 
-  constructor(ctx: AudioContext, bus: AudioNode, profile: EngineProfileName, simple: boolean) {
+  constructor(ctx: BaseAudioContext, bus: AudioNode, profile: EngineProfileName, simple: boolean) {
     this.ctx = ctx;
     this.simple = simple;
-    this.profile = PROFILES[profile];
+    this.profile = ENGINE_PROFILES[profile];
     const p = this.profile;
     const t = ctx.currentTime;
 

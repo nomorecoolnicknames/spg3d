@@ -199,6 +199,11 @@ async function scMenuScreens(page, base, vp) {
   });
   check('audio unlocked after click', !!audioState?.unlocked, JSON.stringify(audioState));
   check('music plays after unlock', !!audioState?.music && (audioState?.time ?? 0) > 0, JSON.stringify(audioState));
+  // engine loops are pre-rendered offline: every layer must be audible and loop without a click
+  const bank = await page.evaluate(() => window.__spg.knobs.engineBank?.('v8')).catch((e) => ({ error: String(e) }));
+  const layers = [...(bank?.on ?? []), ...(bank?.off ?? [])];
+  check('engine bank v8: 8 audible layers', layers.length === 8 && layers.every((l) => l.rms > 0.01), JSON.stringify(bank));
+  check('engine bank v8: seamless loop seams (jump < 6× mean step)', layers.length === 8 && layers.every((l) => l.seam < 6), JSON.stringify(layers.map((l) => l.seam)));
   assertNoErrors(await pushPageErrors(page));
   const s = await snap(page);
   if (s) current.snapshots.menu = s;

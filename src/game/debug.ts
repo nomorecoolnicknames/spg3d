@@ -3,6 +3,8 @@ import { getState, goto, startRace, startBoss, setState, carColor, setSettings, 
 import { viewport } from './Viewport';
 import { TRACK_BY_ID } from '@/data/tracks';
 import { audio } from './audio';
+import { prepareEngineBank } from './audio/engineBank';
+import type { EngineProfileName } from './audio/engine';
 import { input } from './input/Input';
 import { maybeStartBenchFromUrl, snapshotReport } from './perf';
 
@@ -87,6 +89,21 @@ export function installDebug(): void {
       },
       audioState: () => ({ unlocked: audio.unlocked, music: audio.music.state.playing, track: audio.music.state.track.title, time: audio.music.state.time }),
       audioPlay: (name: unknown) => audio.play(name as 'ui-click'),
+      /** render an engine bank and report loudness per layer + the loop seam jump vs the typical sample step */
+      engineBank: async (profile: unknown) => {
+        const t0 = performance.now();
+        const b = await prepareEngineBank((profile as EngineProfileName) ?? 'v8');
+        const stat = (buf: AudioBuffer) => {
+          const d = buf.getChannelData(0);
+          let sq = 0, step = 0;
+          for (let i = 1; i < d.length; i++) {
+            sq += d[i] * d[i];
+            step += Math.abs(d[i] - d[i - 1]);
+          }
+          return { rms: +Math.sqrt(sq / d.length).toFixed(3), seam: +(Math.abs(d[0] - d[d.length - 1]) / (step / d.length)).toFixed(2) };
+        };
+        return { ms: Math.round(performance.now() - t0), on: b.on.map(stat), off: b.off.map(stat) };
+      },
       setTouch: (k: unknown, v: unknown) => input.setTouch(k as 'brake', v as never),
     },
   };

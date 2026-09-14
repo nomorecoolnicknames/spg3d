@@ -1,6 +1,7 @@
 import type { AudioSystem, EngineVoice, SfxName } from './api';
 import { getBuses, isUnlocked, liveBuses, onUnlocked, panGain, unlock as ctxUnlock } from './context';
-import { SynthEngineVoice, type EngineProfileName } from './engine';
+import type { EngineProfileName } from './engine';
+import { BankEngineVoice, engineBankReady, prepareEngineBank } from './engineBank';
 import { Loops } from './loops';
 import { MusicManager } from './music';
 import { SFX, pitchRatio } from './sfx';
@@ -11,15 +12,19 @@ const SFX_MIN_GAP = 0.04;
 class AudioSystemImpl implements AudioSystem {
   readonly music = new MusicManager();
   private loops: Loops | null = null;
-  private voices: SynthEngineVoice[] = [];
+  private voices: BankEngineVoice[] = [];
+  /** every voice handed out and not stopped yet (attached or still waiting for its bank) */
+  private handles = new Set<LazyVoice>();
   private lastPlayed = new Map<SfxName, number>();
   private volumes = { master: 0.9, music: 0.45, sfx: 0.8, engine: 0.7 };
-  private pendingVoices: { profile: EngineProfileName; simple: boolean; handle: LazyVoice }[] = [];
+  private pendingVoices: { profile: EngineProfileName; player: boolean; handle: LazyVoice }[] = [];
 
   constructor() {
     onUnlocked(() => {
       this.applyVolumes();
-      for (const p of this.pendingVoices.splice(0)) p.handle.attach(this.makeVoice(p.profile, p.simple));
+      for (const p of this.pendingVoices.splice(0)) this.attachWhenReady(p.profile, p.player, p.handle);
+      // pre-render the engine loops while the player is still in the menus
+      void ['v8', 'i6-turbo', 'v6', 'w16'].reduce<Promise<unknown>>((chain, pr) => chain.then(() => prepareEngineBank(pr as EngineProfileName)), Promise.resolve());
       this.music.resumeIfWanted();
     });
   }
@@ -68,23 +73,31 @@ class AudioSystemImpl implements AudioSystem {
     window.setTimeout(() => out.disconnect(), 5000);
   }
 
-  private makeVoice(profile: EngineProfileName, simple: boolean): SynthEngineVoice {
-    const b = getBuses();
-    if (!b) throw new Error('no audio');
-    const v = new SynthEngineVoice(b.ctx, b.engine, profile, simple);
-    this.voices.push(v);
-    return v;
+  private attachWhenReady(profile: EngineProfileName, player: boolean, handle: LazyVoice): void {
+    const make = () => {
+      const b = getBuses();
+      const bank = engineBankReady(profile);
+      if (!b || !bank) return;
+      const v = new BankEngineVoice(b.ctx, b.engine, bank, player);
+      this.voices.push(v);
+      handle.attach(v);
+    };
+    if (engineBankReady(profile)) make();
+    else void prepareEngineBank(profile).then(make);
   }
 
   createEngine(profile: EngineProfileName): EngineVoice {
-    const simple = this.voices.length + this.pendingVoices.length > 0;
-    if (this.voices.length + this.pendingVoices.length >= MAX_VOICES) return { update() {}, stop() {} };
+    // the first voice of a session is the player's (RaceScene creates it first)
+    const player = this.handles.size === 0;
+    if (this.handles.size >= MAX_VOICES) return { update() {}, stop() {} };
     const handle = new LazyVoice(() => {
+      this.handles.delete(handle);
       this.voices = this.voices.filter((v) => v !== handle.inner);
       this.pendingVoices = this.pendingVoices.filter((p) => p.handle !== handle);
     });
-    if (isUnlocked()) handle.attach(this.makeVoice(profile, simple));
-    else this.pendingVoices.push({ profile, simple, handle });
+    this.handles.add(handle);
+    if (isUnlocked()) this.attachWhenReady(profile, player, handle);
+    else this.pendingVoices.push({ profile, player, handle });
     return handle;
   }
 
@@ -102,16 +115,17 @@ class AudioSystemImpl implements AudioSystem {
   stopAll(): void {
     this.loops?.stopAll();
     for (const v of this.voices.splice(0)) v.stop();
+    for (const h of [...this.handles]) h.stop();
     this.pendingVoices = [];
   }
 }
 
 /** Engine voice proxy: created before unlock, attached to a real voice once audio is live. */
 class LazyVoice implements EngineVoice {
-  inner: SynthEngineVoice | null = null;
+  inner: BankEngineVoice | null = null;
   private stopped = false;
   constructor(private onStop: () => void) {}
-  attach(v: SynthEngineVoice): void {
+  attach(v: BankEngineVoice): void {
     if (this.stopped) {
       v.stop();
       return;
