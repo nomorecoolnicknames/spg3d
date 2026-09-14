@@ -335,6 +335,9 @@ async function scBoss(page, base, vp) {
   if (!vp.mobile) {
     const knobs = await page.evaluate(() => Object.keys(window.__spg.knobs || {}));
     check('boss knobs registered (setBossHP)', knobs.includes('setBossHP'), knobs.join(','));
+    // the phase/win flow is under test here, not the autopilot's luck against phase 3 (it dies in roughly
+    // half the runs on either arena — qa/boss-probe.mjs A/B, PLAN_V4 journal)
+    await page.evaluate(() => window.__spg.knobs.godMode?.(true)).catch(() => {});
     await page.evaluate(() => window.__spg.knobs.setBossHP?.(60)).catch(() => {});
     await sleep(2500);
     let h = await hud(page);

@@ -137,7 +137,9 @@ export class BossScene implements SceneController {
       this.scene.environment = this.pmrem;
     }
     this.scene.environmentIntensity = envTex ? 1.0 : 0.4;
-    this.arena = buildArena(this.scene, { shadows: q.shadows, low: q.level === 'low' }, getMapWorld('ligovsky'));
+    // ?yard=0 builds the old fictional plaza (A/B for QA)
+    const yard = new URLSearchParams(location.search).get('yard') !== '0';
+    this.arena = buildArena(this.scene, { shadows: q.shadows, low: q.level === 'low' }, yard ? getMapWorld('ligovsky') : undefined);
     this.mech = new BossMech(getTexture('madkidFace'), q.shadows, q.level === 'low');
     this.mech.root.position.copy(this.mechPos);
     this.scene.add(this.mech.root);

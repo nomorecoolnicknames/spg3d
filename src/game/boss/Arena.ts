@@ -15,9 +15,9 @@ import type { OsmWorld } from '../world/osm/types';
  * (world/osm from the Ligovsky map data), the door with the 1703 sign is on the rim straight ahead of the
  * player (−z). Without map data the old fictional plaza is built.
  */
-export const ARENA_RADIUS = 48;
-/** Ligovsky map frame: centre of the fight and the club door (OSM node 6471066191 «1703») */
-const LIG50 = { centre: [36, 50] as const, door: [-10.4, 34.6] as const };
+export const ARENA_RADIUS = 58;
+/** Ligovsky map frame: centre of the fight (one radius from the door, into the driveway) and the club door (OSM node 6471066191 «1703») */
+const LIG50 = { centre: [44.6, 52.9] as const, door: [-10.4, 34.6] as const };
 
 function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas');
@@ -220,7 +220,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
 
   // central plaza inlay: big concentric ring markings (emissive faint)
   const ringMat = new THREE.MeshBasicMaterial({ color: '#2a2f3d', transparent: true, opacity: 0.55, depthWrite: false });
-  for (const r of [10, 22, 36]) {
+  for (const r of [12, 26, 44]) {
     const rg = new THREE.Mesh(new THREE.RingGeometry(r - 0.25, r + 0.25, 128), ringMat);
     rg.rotation.x = -Math.PI / 2;
     rg.position.y = 0.02;
@@ -291,7 +291,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
   const ribs = new THREE.BoxGeometry(12.02, 0.12, 2.62);
   const ribMat = new THREE.MeshStandardMaterial({ color: '#0e0f13', roughness: 0.8 });
   const stacks: [number, number, number, number][] = [
-    [31, 15, 0.5, 2], [-33, 12, -0.4, 1], [22, -26, 1.2, 2], [-21, -30, 0.3, 1], [36, -8, 2.1, 1],
+    [38, 18, 0.5, 2], [-40, 15, -0.4, 1], [27, -31, 1.2, 2], [-26, -36, 0.3, 1], [44, -10, 2.1, 1],
   ];
   stacks.forEach(([x, z, rot, layers], si) => {
     for (let l = 0; l < layers; l++) {
@@ -314,7 +314,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
     // ---- Ligovsky 50: the real loft warehouses, Moskovsky station tracks and Galeria around the yard ----
     const [cx, cz] = LIG50.centre;
     const dx = LIG50.door[0] - cx, dz = LIG50.door[1] - cz;
-    const yard = buildOsmCity(null, world, { level: quality.low ? 'low' : 'medium' }, { arena: { x: cx, z: cz, r: ARENA_RADIUS, reach: quality.low ? 220 : 320 } });
+    const yard = buildOsmCity(null, world, { level: quality.low ? 'low' : 'medium' }, { arena: { x: cx, z: cz, r: ARENA_RADIUS, reach: quality.low ? 170 : 320 } });
     const frame = new THREE.Group();
     frame.name = 'arena:lig50';
     yard.group.position.set(-cx, 0, -cz);
