@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeStaticMeshes } from '../world/merge';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
@@ -531,6 +532,10 @@ export class BossMech {
         o.receiveShadow = true;
       }
     });
+    // ~80 part meshes → one mesh per material per rigid joint; anchors, eye and shutters stay separate
+    const a = this.anchors;
+    const keep = new Set<THREE.Object3D>([this.eye, this.shutterL, this.shutterR, a.core, a.eye, a.gatling, a.cigar, a.chest, a.hat, ...a.rocketPod, ...a.shoulderRack, ...a.feet]);
+    this.geometries.push(...mergeStaticMeshes(this.root, keep));
     this.setCore(false);
     this.pose(0, 0, 0);
   }

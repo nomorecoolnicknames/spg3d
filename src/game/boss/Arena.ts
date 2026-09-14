@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeStaticMeshes } from '../world/merge';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { BOSS_ENV } from '@/data/tracks';
@@ -410,6 +411,8 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
   group.add(rain.points);
   const rainColor = new THREE.Color('#9fc4ff');
 
+  // static dressing → one mesh per material (beams sweep, the scanning sign flickers)
+  mergeStaticMeshes(group, new Set<THREE.Object3D>([...beams, s1]));
   scene.add(group);
 
   let rainT = 0;

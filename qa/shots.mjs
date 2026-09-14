@@ -337,7 +337,8 @@ async function scBoss(page, base, vp) {
     await page.evaluate(() => window.__spg.knobs.setBossHP?.(60)).catch(() => {});
     await sleep(2500);
     let h = await hud(page);
-    check('phase 2 after setBossHP(60)', h?.bossPhase === 2, `phase=${h?.bossPhase}`);
+    // phases only advance — the autopilot may already have pushed the boss into phase 3 by now
+    check('phase ≥ 2 after setBossHP(60)', (h?.bossPhase ?? 0) >= 2, `phase=${h?.bossPhase}`);
     await shot(page, `boss-phase2${vp.tag}`);
     await page.evaluate(() => window.__spg.knobs.setBossHP?.(25)).catch(() => {});
     await sleep(2500);

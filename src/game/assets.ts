@@ -16,6 +16,7 @@ import bmwM8Hd from '@/assets/cars/2020_bmw_m8-hd.glb';
 import gt40Hd from '@/assets/cars/ford_gt40-hd.glb';
 import bolideHd from '@/assets/cars/bugatti_bolide_2024-hd.glb';
 import xbotUrl from '@/assets/Xbot.glb';
+import xbotLodUrl from '@/assets/Xbot-lod.glb';
 import madkidFaceUrl from '@/assets/madk1d_face_big.jpg';
 
 /**
@@ -33,6 +34,8 @@ const MODEL_URLS: Record<string, string> = {
   ford_gt40: gt40Url,
   bugatti_bolide_2024: bolideUrl,
   Xbot: xbotUrl,
+  // boss minions: 4k-triangle skin, clips come from Xbot (scripts/simplify-xbot.mjs)
+  'Xbot-lod': xbotLodUrl,
 };
 const HD_URLS: Record<string, string> = {
   BMW_2018: bmw2018Hd,

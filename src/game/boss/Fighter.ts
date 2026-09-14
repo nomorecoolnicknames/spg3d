@@ -1,11 +1,24 @@
 import * as THREE from 'three';
 import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { getGLTF } from '../assets';
 
 /**
  * Humanoid built from the Mixamo Xbot GLB (idle / run / walk clips). Used for the
  * player fighter (red/black suit + bazooka) and the green minions.
  */
+let eyesGeo: THREE.BufferGeometry | null = null;
+function zombieEyes(): THREE.BufferGeometry {
+  if (!eyesGeo) {
+    const l = new THREE.SphereGeometry(0.035, 6, 6).translate(-0.045, 0.1, 0.11);
+    const r = new THREE.SphereGeometry(0.035, 6, 6).translate(0.045, 0.1, 0.11);
+    eyesGeo = mergeGeometries([l, r])!;
+    l.dispose();
+    r.dispose();
+  }
+  return eyesGeo;
+}
+
 export class Humanoid {
   readonly root = new THREE.Group();
   readonly model: THREE.Object3D;
@@ -20,7 +33,8 @@ export class Humanoid {
   constructor(kind: 'fighter' | 'zombie', shadows: boolean) {
     const gltf = getGLTF('Xbot');
     if (gltf) {
-      const m = skeletonClone(gltf.scene);
+      // minions use the simplified skin (same skeleton, clips from the full file)
+      const m = skeletonClone((kind === 'zombie' && getGLTF('Xbot-lod')?.scene) || gltf.scene);
       const body = new THREE.MeshStandardMaterial({ color: kind === 'fighter' ? '#1a1a1f' : '#4a7a3a', roughness: 0.55, metalness: kind === 'fighter' ? 0.55 : 0.1 });
       const suit = new THREE.MeshStandardMaterial({ color: kind === 'fighter' ? '#c41e3a' : '#2f4f2a', roughness: 0.4, metalness: 0.35 });
       this.materials.push(body, suit);
@@ -35,17 +49,10 @@ export class Humanoid {
       });
       // minion eyes glow
       if (kind === 'zombie') {
-        const eyeG = new THREE.SphereGeometry(0.035, 6, 6);
         const eyeM = new THREE.MeshBasicMaterial({ color: '#ff2020', toneMapped: false });
         this.materials.push(eyeM);
         const head = m.getObjectByName('mixamorig:Head') ?? m.getObjectByName('mixamorigHead');
-        if (head) {
-          for (const s of [-1, 1]) {
-            const e = new THREE.Mesh(eyeG, eyeM);
-            e.position.set(s * 0.045, 0.1, 0.11);
-            head.add(e);
-          }
-        }
+        if (head) head.add(new THREE.Mesh(zombieEyes(), eyeM)); // both eyes in one draw call
       }
       this.model = m;
       this.root.add(m);
