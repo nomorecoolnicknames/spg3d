@@ -81,6 +81,7 @@ export class Viewport {
   private framesThisSecond = 0;
   private secondStart = 0;
   private scale = 1;
+  private sizeDirty = false;
   private scaleCheckT = 0;
   private lastInfo = { calls: 0, triangles: 0 };
   readonly stats: FrameStats = { fps: 0, frameP50: 0, frameP95: 0, cpuP50: 0, cpuP95: 0, hitches: 0, drawCalls: 0, triangles: 0, geometries: 0, textures: 0, resScale: 1, bufferW: 0, bufferH: 0, cap: 60 };
@@ -222,6 +223,10 @@ export class Viewport {
     if (!c) return;
 
     const c0 = performance.now();
+    if (this.sizeDirty) {
+      this.sizeDirty = false;
+      this.applySize();
+    }
     this.renderer.info.reset();
     c.update(dt, this.elapsed);
     c.render(this);
@@ -274,7 +279,9 @@ export class Viewport {
     if (Math.abs(next - this.scale) > 0.001) {
       this.scale = next;
       this.scaleCheckT = t;
-      this.applySize();
+      // resizing clears the drawing buffer: never do it between render and presentation
+      // (that shows a black frame) — apply right before the next frame renders
+      this.sizeDirty = true;
     }
   }
 
