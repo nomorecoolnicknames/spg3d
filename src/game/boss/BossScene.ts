@@ -1,9 +1,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { createPost, DEFAULT_GRADE, type Post } from '../render/Post';
+import { BOSS_ENV } from '@/data/tracks';
 import type { SceneController, Viewport } from '../Viewport';
 import type { BossHUD, BossParams, SceneCallbacks, SpgSnapshot } from '../types';
 import { buildArena, ARENA_RADIUS, type Arena } from './Arena';
@@ -50,8 +48,7 @@ export class BossScene implements SceneController {
   private arena!: Arena;
   private mech!: BossMech;
   private fighter!: Humanoid;
-  private composer: EffectComposer | null = null;
-  private bloom: UnrealBloomPass | null = null;
+  private post: Post | null = null;
   private pmrem: THREE.Texture | null = null;
   private fire!: ParticlePool;
   private smoke!: ParticlePool;
@@ -213,18 +210,9 @@ export class BossScene implements SceneController {
   }
 
   private buildComposer(): void {
-    this.composer?.dispose();
-    this.composer = null;
-    this.bloom = null;
-    if (!this.vp.quality.bloom) return;
-    const c = new EffectComposer(this.vp.renderer);
-    c.setPixelRatio(this.vp.quality.pixelRatio);
-    c.setSize(this.vp.width, this.vp.height);
-    c.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(this.vp.width, this.vp.height), 0.6, 0.55, 0.8);
-    c.addPass(this.bloom);
-    c.addPass(new OutputPass());
-    this.composer = c;
+    this.post?.dispose();
+    this.post = createPost(this.vp, BOSS_ENV.grade);
+    this.post?.setSize(this.vp.width, this.vp.height);
   }
 
   setPaused(p: boolean): void {
@@ -262,7 +250,7 @@ export class BossScene implements SceneController {
   resize(w: number, h: number): void {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.composer?.setSize(w, h);
+    this.post?.setSize(w, h);
   }
 
   private say(text: string): void {
@@ -345,7 +333,7 @@ export class BossScene implements SceneController {
       const cp = this.mech.worldPos(this.mech.anchors.cigar, this.tmp);
       this.smoke.emit({ x: cp.x, y: cp.y, z: cp.z, vy: 1.2, spread: 0.2, speed: 0.6, life: 2.2, size0: 0.3, size1: 1.6, color: 0x8a8a90, fade: 0.35, drag: 0.5 });
     }
-    if (this.bloom) this.bloom.strength = 0.6 + (this.laserState === 'fire' ? 0.25 : 0);
+    if (this.post) this.post.grade.bloom = (BOSS_ENV.grade?.bloom ?? DEFAULT_GRADE.bloom) + (this.laserState === 'fire' ? 0.25 : 0);
     this.hudTick(dt);
   }
 
@@ -919,7 +907,7 @@ export class BossScene implements SceneController {
   }
 
   render(vp: Viewport): void {
-    if (this.composer) this.composer.render();
+    if (this.post) this.post.render(this.scene, this.camera);
     else vp.renderer.render(this.scene, this.camera);
   }
 
@@ -957,7 +945,7 @@ export class BossScene implements SceneController {
     this.bossRocketMat.dispose();
     this.pickupGeo.dispose();
     this.pickupMat.dispose();
-    this.composer?.dispose();
+    this.post?.dispose();
     this.pmrem?.dispose();
     const k = window.__spg.knobs;
     for (const n of ['setBossHP', 'setPhase', 'skipIntro', 'killMinions', 'godMode']) delete k[n];

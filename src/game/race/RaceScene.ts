@@ -1,9 +1,6 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { createPost, DEFAULT_GRADE, type Post } from '../render/Post';
 import type { SceneController, Viewport } from '../Viewport';
 import type { CarInput, CarSpec, LeaderboardEntry, RaceHUD, RaceParams, RaceResultEntry, SceneCallbacks, SpgSnapshot } from '../types';
 import { TrackData, SECTORS } from '../world/TrackData';
@@ -80,8 +77,7 @@ export class RaceScene implements SceneController {
   private weather: WeatherRig | null = null;
   private props!: PropsRig;
   private sun!: THREE.DirectionalLight;
-  private composer: EffectComposer | null = null;
-  private bloom: UnrealBloomPass | null = null;
+  private post: Post | null = null;
   private racers: Racer[] = [];
   private player!: Racer;
   private smoke!: Smoke;
@@ -304,20 +300,9 @@ export class RaceScene implements SceneController {
   }
 
   private buildComposer(): void {
-    const vp = this.vp;
-    this.composer?.dispose();
-    this.composer = null;
-    this.bloom = null;
-    if (!vp.quality.bloom) return;
-    const composer = new EffectComposer(vp.renderer);
-    composer.setPixelRatio(vp.quality.pixelRatio);
-    composer.setSize(vp.width, vp.height);
-    composer.addPass(new RenderPass(this.scene, this.cam.camera));
-    const theme = this.track.spec.theme;
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(vp.width, vp.height), theme === 'city' ? 0.55 : theme === 'snow' ? 0.35 : 0.25, 0.6, 0.85);
-    composer.addPass(this.bloom);
-    composer.addPass(new OutputPass());
-    this.composer = composer;
+    this.post?.dispose();
+    this.post = createPost(this.vp, this.track.spec.env.grade);
+    this.post?.setSize(this.vp.width, this.vp.height);
   }
 
   setPaused(p: boolean): void {
@@ -344,7 +329,7 @@ export class RaceScene implements SceneController {
 
   resize(w: number, h: number): void {
     this.cam.resize(w / h);
-    this.composer?.setSize(w, h);
+    this.post?.setSize(w, h);
   }
 
   // ---------------------------------------------------------------- update
@@ -416,7 +401,10 @@ export class RaceScene implements SceneController {
     this.weather?.update(dt, this.cam.camera.position, this.tmp2.set(pp.forwardX * pp.vx, 0, pp.forwardZ * pp.vx));
     this.smoke.update(dt);
     this.sparks.update(dt);
-    if (this.bloom) this.bloom.strength += (((this.track.spec.theme === 'city' ? 0.55 : 0.3) + (pp.nitroActive ? 0.35 : 0)) - this.bloom.strength) * Math.min(1, dt * 5);
+    if (this.post) {
+      const want = (this.track.spec.env.grade?.bloom ?? DEFAULT_GRADE.bloom) + (pp.nitroActive ? 0.35 : 0);
+      this.post.grade.bloom += (want - this.post.grade.bloom) * Math.min(1, dt * 5);
+    }
 
     // audio
     for (const r of this.racers) {
@@ -811,7 +799,7 @@ export class RaceScene implements SceneController {
 
   // ---------------------------------------------------------------- render
   render(vp: Viewport): void {
-    if (this.composer) this.composer.render();
+    if (this.post) this.post.render(this.scene, this.cam.camera);
     else vp.renderer.render(this.scene, this.cam.camera);
   }
 
@@ -841,7 +829,7 @@ export class RaceScene implements SceneController {
     this.smoke.dispose();
     this.sparks.dispose();
     this.skids.dispose();
-    this.composer?.dispose();
+    this.post?.dispose();
     this.pmrem?.dispose();
     this.sun.shadow.dispose();
     delete window.__spg.knobs.skipCountdown;

@@ -122,6 +122,8 @@ export function installDebug(): void {
   if (quality === 'low' || quality === 'medium' || quality === 'high') {
     setSettings({ quality, shadows: quality === 'high', bloom: quality !== 'low', reflections: quality === 'high' });
   }
+  const bloom = q.get('bloom');
+  if (bloom === '0' || bloom === '1') setSettings({ bloom: bloom === '1' });
 }
 
 /** Called by App once assets are loaded and the menu is visible. Applies URL routing. */

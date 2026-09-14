@@ -55,6 +55,11 @@ p { margin: 0; }
 }
 
 .spg-viewport { position: fixed; inset: 0; z-index: 0; }
+/* phones render without a post pass: the vignette is a free compositor overlay instead */
+body.in-game .spg-viewport.no-post::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 75% 70% at 50% 48%, transparent 55%, rgba(0, 0, 0, 0.42) 100%);
+}
 .spg-canvas { display: block; }
 
 /* ─── Layers ─────────────────────────────────────────────────────────── */

@@ -96,5 +96,5 @@ export function GameHost() {
     });
   }, []);
 
-  return <div ref={ref} className="spg-viewport" />;
+  return <div ref={ref} className={`spg-viewport${settings.quality === 'low' && !settings.bloom ? ' no-post' : ''}`} />;
 }

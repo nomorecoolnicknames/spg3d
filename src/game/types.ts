@@ -84,6 +84,8 @@ export interface TrackEnv {
   stars: boolean;
   aurora: boolean;
   headlights: boolean;
+  /** colour grade + bloom for the post pass (render/Post.ts); missing fields use DEFAULT_GRADE */
+  grade?: Partial<import('./render/Post').Grade>;
   /** scene.environmentIntensity for the track HDRI (src/assets/env) */
   envIntensity?: number;
   rain: boolean;

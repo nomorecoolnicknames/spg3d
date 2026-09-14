@@ -1,4 +1,4 @@
-import type { TrackSpec } from '@/game/types';
+import type { TrackEnv, TrackSpec } from '@/game/types';
 
 export const TRACKS: TrackSpec[] = [
   {
@@ -39,6 +39,7 @@ export const TRACKS: TrackSpec[] = [
       stars: true,
       aurora: false,
       headlights: true,
+      grade: { exposure: 1.0, contrast: 1.08, saturation: 1.12, lift: [0.008, 0.0, 0.02], gain: [1.02, 0.98, 1.05], vignette: 0.42, bloom: 0.75, bloomThreshold: 0.85 },
       rain: true,
       snow: false,
       grip: 0.96,
@@ -83,6 +84,7 @@ export const TRACKS: TrackSpec[] = [
       stars: false,
       aurora: false,
       headlights: false,
+      grade: { exposure: 1.0, contrast: 1.06, saturation: 1.08, lift: [0.03, 0.012, 0.0], gain: [1.05, 1.0, 0.92], vignette: 0.3, bloom: 0.35, bloomThreshold: 1.1 },
       rain: false,
       snow: false,
       grip: 1.0,
@@ -127,6 +129,7 @@ export const TRACKS: TrackSpec[] = [
       stars: true,
       aurora: true,
       headlights: true,
+      grade: { exposure: 1.02, contrast: 1.04, saturation: 1.0, lift: [0.0, 0.01, 0.03], gain: [0.95, 1.0, 1.06], vignette: 0.36, bloom: 0.55, bloomThreshold: 0.9 },
       rain: false,
       snow: true,
       grip: 0.82,
@@ -138,7 +141,7 @@ export const TRACKS: TrackSpec[] = [
 export const TRACK_BY_ID: Record<string, TrackSpec> = Object.fromEntries(TRACKS.map((t) => [t.id, t]));
 
 /** Boss arena reuses the city environment; geometry is built in BossScene. */
-export const BOSS_ENV = {
+export const BOSS_ENV: TrackEnv = {
   ...TRACKS[0].env,
   skyTop: '#0a0208',
   skyBottom: '#2a0a12',
@@ -150,4 +153,5 @@ export const BOSS_ENV = {
   neonA: '#ff003c',
   neonB: '#ffd400',
   rain: true,
+  grade: { exposure: 1.0, contrast: 1.08, saturation: 1.08, lift: [0.02, 0.0, 0.004], gain: [1.05, 0.97, 0.96], vignette: 0.45, bloom: 0.5, bloomThreshold: 1.3 },
 };
