@@ -142,9 +142,12 @@ export function parkedCars(spots: { x: number; y: number; z: number; rot: number
     const inst = new THREE.InstancedMesh(geo, mat, mine.length);
     const m = new THREE.Matrix4();
     const q = new THREE.Quaternion();
+    // the mesh's own node transform (meshopt dequantisation, rig offset) comes first
+    gltf.scene.updateMatrixWorld(true);
+    const local = src.matrixWorld.clone();
     mine.forEach((s, i) => {
       q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), s.rot);
-      m.compose(new THREE.Vector3(s.x, s.y, s.z), q, new THREE.Vector3(1, 1, 1));
+      m.compose(new THREE.Vector3(s.x, s.y, s.z), q, new THREE.Vector3(1, 1, 1)).multiply(local);
       inst.setMatrixAt(i, m);
       inst.setColorAt(i, palette[(i * 3 + mi) % palette.length]);
     });
@@ -159,4 +162,86 @@ export function parkedCars(spots: { x: number; y: number; z: number; rot: number
       for (const d of disposables) d.dispose();
     },
   };
+}
+
+/**
+ * Steam rising from manholes: all motion happens in the vertex shader from one time uniform,
+ * so the CPU never touches the particles. One draw call.
+ */
+export function steam(vents: { x: number; y: number; z: number }[], perVent = 14): { points: THREE.Points; time: { value: number }; dispose(): void } {
+  const n = vents.length * perVent;
+  const pos = new Float32Array(n * 3);
+  const seed = new Float32Array(n * 2);
+  let k = 0;
+  for (const v of vents) {
+    for (let i = 0; i < perVent; i++, k++) {
+      pos.set([v.x + (Math.random() - 0.5) * 0.8, v.y, v.z + (Math.random() - 0.5) * 0.8], k * 3);
+      seed.set([Math.random(), 0.12 + Math.random() * 0.1], k * 2);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('aSeed', new THREE.BufferAttribute(seed, 2));
+  const time = { value: 0 };
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { time, scale: { value: 520 } },
+    transparent: true,
+    depthWrite: false,
+    vertexShader: /* glsl */ `
+      attribute vec2 aSeed;
+      uniform float time, scale;
+      varying float vA;
+      void main() {
+        float t = fract(time * aSeed.y + aSeed.x);
+        vec3 p = position + vec3(sin(aSeed.x * 40.0 + t * 3.0) * t * 1.2, t * 5.5, cos(aSeed.x * 23.0) * t * 1.2);
+        vA = sin(t * 3.14159) * 0.22;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_PointSize = (0.8 + t * 2.8) * scale / -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */ `
+      varying float vA;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        if (d > 0.5) discard;
+        gl_FragColor = vec4(vec3(0.72, 0.7, 0.78), vA * (1.0 - d * 2.0));
+      }`,
+  });
+  const points = new THREE.Points(geo, mat);
+  points.name = 'city:steam';
+  points.frustumCulled = false;
+  return {
+    points,
+    time,
+    dispose() {
+      geo.dispose();
+      mat.dispose();
+    },
+  };
+}
+
+/** stone arch bridge across the river (decor, not on the route) */
+export function bridge(gb: B, x: number, z0: number, z1: number, deckY: number, waterY: number): void {
+  const w = 16;
+  const len = z1 - z0;
+  const zc = (z0 + z1) / 2;
+  const b = gb(x, zc);
+  const stone = (tile: [number, number]) => ({ cell: 'granite' as CellName, tile });
+  b.box(x, zc, deckY - 1.4, w, len, 1.4, 0, { left: stone([len / 4, 0.4]), right: stone([len / 4, 0.4]), top: { cell: 'courtyard', tile: [w / 6, len / 6] } });
+  for (const s of [-1, 1]) {
+    b.box(x + s * (w / 2 - 0.3), zc, deckY, 0.6, len, 1.1, 0, { left: stone([len / 4, 0.3]), right: stone([len / 4, 0.3]), top: stone([len / 4, 0.1]) });
+  }
+  const spans = 4;
+  for (let i = 1; i < spans; i++) {
+    const pz = z0 + (len * i) / spans;
+    b.box(x, pz, waterY - 1, w - 1, 5, deckY - 1.4 - waterY + 1, 0, { front: stone([w / 4, 1]), back: stone([w / 4, 1]), left: stone([1, 1]), right: stone([1, 1]) });
+  }
+  // lanterns along the parapets
+  for (let i = 0; i <= 6; i++) {
+    const pz = z0 + (len * i) / 6;
+    for (const s of [-1, 1]) {
+      b.box(x + s * (w / 2 - 0.3), pz, deckY + 1.1, 0.25, 0.25, 3.2, 0, all('metalVent', [0.05, 1]));
+      b.box(x + s * (w / 2 - 0.3), pz, deckY + 4.3, 0.6, 0.6, 0.7, 0, { ...all('tunnelCeil', [0.1, 0.12], [0.45, 0.78]), top: { cell: 'metalVent', tile: [0.1, 0.1] } });
+    }
+  }
 }

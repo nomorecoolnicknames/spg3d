@@ -41,7 +41,7 @@ export const TRACKS: TrackSpec[] = [
       aurora: false,
       headlights: true,
       skyline: true,
-      grade: { exposure: 1.0, contrast: 1.08, saturation: 1.12, lift: [0.008, 0.0, 0.02], gain: [1.02, 0.98, 1.05], vignette: 0.42, bloom: 0.75, bloomThreshold: 0.85 },
+      grade: { exposure: 1.0, contrast: 1.08, saturation: 1.12, lift: [0.008, 0.0, 0.02], gain: [1.02, 0.98, 1.05], vignette: 0.42, bloom: 0.55, bloomThreshold: 1.0 },
       rain: true,
       snow: false,
       grip: 0.96,

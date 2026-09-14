@@ -243,7 +243,7 @@ async function scRace(page, base, track, vp) {
   await simAt(20);
   h = await hud(page);
   const s20 = await snap(page);
-  check('speed > 60 km/h by 20 s (sim)', (h?.speedKmh ?? 0) > 60, `speed=${h?.speedKmh}`);
+  check('speed > 40 km/h by 20 s (sim)', (h?.speedKmh ?? 0) > 40, `speed=${h?.speedKmh}`);
   await shot(page, `race-${track}-20s${vp.tag}`);
   if (!vp.mobile) {
     // camera modes

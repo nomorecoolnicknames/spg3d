@@ -5,7 +5,7 @@ import { softSpriteTexture } from '../textures';
 import { BUILD, LOT_SIZE, type Archetype, type Lot } from './buildings';
 import { GeoBuilder, createCityMaterial, type LampSpace } from './kit';
 import type { CellName } from './atlas';
-import { billboard, busStop, kiosk, parkedCars, trafficLight, trees } from './street';
+import { billboard, bridge, busStop, kiosk, parkedCars, steam, trafficLight, trees } from './street';
 import { CITY_BOUNDS, GRID, OVERPASS, PAVEMENT, RAIL_Z, ROAD_WIDTH, SQUARE, TUNNEL, districtAt, routeElevation, type District } from './layout';
 
 /**
@@ -404,6 +404,7 @@ export function buildCity(track: TrackData, quality: { level: 'low' | 'medium' |
       buildingCount++;
       x += len + range(2, 8);
     }
+    bridge(gb, -1.5 * GRID, zp + 0.6, farZ - 8, 2.2, RIVER_Y);
     const b = gb(0, farZ);
     flat(b, (gx0 - 2) * GRID, farZ - 8, (gx1 + 2) * GRID, farZ + 40, 0, 'granite', 12);
     b.quadFacing(v(0, 0, -1), v((gx0 - 2) * GRID, RIVER_Y - 1, farZ - 8), v((gx1 + 2) * GRID, RIVER_Y - 1, farZ - 8), v((gx1 + 2) * GRID, 0, farZ - 8), v((gx0 - 2) * GRID, 0, farZ - 8), 'granite', [80, 1]);
@@ -503,8 +504,20 @@ export function buildCity(track: TrackData, quality: { level: 'low' | 'medium' |
     disposables.push(geo);
   }
 
-  // ── trees and parked cars (instanced)
+  // ── trees, parked cars (instanced), steam from manholes on the route
+  let steamTime: { value: number } | null = null;
   {
+    const vents: V[] = [];
+    for (let i = 0; i < track.count; i += Math.round(170 / track.spacing)) {
+      const s = track.samples[i];
+      if (s.pos.y < -1 || s.pos.y > 0.5) continue; // not in the tunnel or on the overpass
+      const side = (i / 7) % 2 < 1 ? 1 : -1;
+      vents.push(v(s.pos.x + s.left.x * side * 4.5, s.pos.y, s.pos.z + s.left.z * side * 4.5));
+    }
+    const st = steam(vents, quality.level === 'low' ? 8 : 14);
+    group.add(st.points);
+    disposables.push(st);
+    steamTime = st.time;
     const t = trees(treeSpots);
     group.add(t.mesh);
     disposables.push(t);
@@ -561,6 +574,7 @@ export function buildCity(track: TrackData, quality: { level: 'low' | 'medium' |
     stats: { sectors: sectors.size, buildings: buildingCount, triangles, lamps: lamps.length },
     update(t: number) {
       uniforms.time.value = t;
+      if (steamTime) steamTime.value = t;
     },
     dispose() {
       for (const d of disposables) d.dispose();
