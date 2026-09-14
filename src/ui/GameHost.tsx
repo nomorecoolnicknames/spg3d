@@ -10,6 +10,7 @@ import { audio } from '@/game/audio';
 import { S } from '@/data/strings';
 import type { GameEvent, SceneCallbacks } from '@/game/types';
 import { emitHudEvent } from '@/ui/HUD';
+import { applyRefreshRate } from '@/game/perf';
 
 const SHOWCASE_SCREENS = new Set(['menu', 'garage', 'career', 'quick', 'records', 'settings', 'story', 'results']);
 
@@ -36,8 +37,11 @@ export function GameHost() {
       shadows: settings.shadows,
       bloom: settings.bloom,
       reflections: settings.reflections,
-      pixelRatio: settings.quality === 'low' ? 1 : settings.quality === 'medium' ? Math.min(1.5, window.devicePixelRatio || 1) : Math.min(2, window.devicePixelRatio || 1),
+      pixelRatio: Math.min(window.devicePixelRatio || 1, settings.quality === 'low' ? 1.25 : settings.quality === 'medium' ? 1.75 : 2),
     });
+    viewport.fpsCap = settings.fpsCap;
+    viewport.dynamicRes = settings.dynamicRes;
+    applyRefreshRate(settings.fpsCap);
     audio.setVolumes({ master: settings.master, music: settings.music, sfx: settings.sfx, engine: settings.engine });
     input.invertY = settings.invertY;
   }, [settings]);
@@ -79,6 +83,7 @@ export function GameHost() {
 
   useEffect(() => {
     viewport.getController()?.setPaused?.(paused);
+    viewport.wake();
     input.enabled = !paused;
   }, [paused]);
 

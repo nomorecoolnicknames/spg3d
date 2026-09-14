@@ -309,6 +309,10 @@ export class RaceScene implements SceneController {
     if (p) for (const r of this.racers) r.engine?.update({ rpm: 0.2, throttle: 0, gear: 1, speed: 0, nitro: false, slip: 0, scraping: false, distance: 1 });
   }
 
+  targetFps(): number | undefined {
+    return this.paused ? 0 : undefined;
+  }
+
   setCameraMode(m: number): void {
     this.cam.mode = m < 0 ? (this.cam.mode + 1) % 4 : m % 4;
     this.cb.onEvent({ type: 'message', text: S.race.cameras[this.cam.mode], tone: 'info' });
@@ -791,21 +795,7 @@ export class RaceScene implements SceneController {
 
   snapshot(): Partial<SpgSnapshot> {
     const c = this.player.car;
-    // diagnostic: heaviest objects in the scene
-    const heavy: [string, number][] = [];
-    let meshCount = 0;
-    this.scene.traverse((o) => {
-      if (o instanceof THREE.Mesh || o instanceof THREE.Points) {
-        meshCount++;
-        const g = o.geometry as THREE.BufferGeometry;
-        const tris = (g.index ? g.index.count : g.attributes.position?.count ?? 0) / 3;
-        const inst = o instanceof THREE.InstancedMesh ? o.count : 1;
-        heavy.push([`${o.name || o.type}/${(o.parent?.name ?? '')}`, Math.round(tris * inst)]);
-      }
-    });
-    heavy.sort((a, b) => b[1] - a[1]);
     return {
-      extra2: { meshCount, heavy: heavy.slice(0, 8) },
       playerPos: [c.x, c.y, c.z],
       playerSpeed: c.speed,
       extra: { lap: this.player.lap, progress: this.player.progress, idx: this.player.idx, lat: this.player.lat, started: this.started, finished: this.player.finished, camera: this.cam.mode, racers: this.racers.length },

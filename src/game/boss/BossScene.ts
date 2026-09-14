@@ -226,6 +226,10 @@ export class BossScene implements SceneController {
     this.paused = p;
   }
 
+  targetFps(): number | undefined {
+    return this.paused ? 0 : undefined;
+  }
+
   retry(): void {
     if (!this.dead) return;
     this.dead = false;

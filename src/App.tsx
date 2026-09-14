@@ -12,6 +12,7 @@ import { Records, Settings, Story, Results, useIsTouchLayout } from '@/ui/screen
 import { RaceHUD, BossHUD, PauseOverlay } from '@/ui/HUD';
 import { RaceTouch, BossTouch } from '@/ui/TouchControls';
 import { MusicWidget } from '@/ui/MusicWidget';
+import { PerfOverlay } from '@/ui/PerfOverlay';
 
 export default function App() {
   const screen = useStore((s) => s.screen);
@@ -66,6 +67,7 @@ export default function App() {
         </div>
       )}
       {(screen === 'menu' || screen === 'results' || (inGame && paused)) && <MusicWidget mini={screen !== 'menu'} />}
+      <PerfOverlay />
     </>
   );
 }

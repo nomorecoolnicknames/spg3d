@@ -24,6 +24,10 @@ export interface Settings {
   dsp: { bass: boolean; mode: 'normal' | 'nightcore' | 'slowed' };
   musicTrack: number;
   musicPlaying: boolean;
+  /** frame cap: 60, 30 (battery saver) or 0 (display refresh rate) */
+  fpsCap: 0 | 30 | 60;
+  dynamicRes: boolean;
+  perfOverlay: boolean;
 }
 
 export interface SaveData {
@@ -61,6 +65,9 @@ export const DEFAULT_SETTINGS: Settings = {
   dsp: { bass: false, mode: 'normal' },
   musicTrack: 0,
   musicPlaying: true,
+  fpsCap: 60,
+  dynamicRes: true,
+  perfOverlay: false,
 };
 
 export const DEFAULT_SAVE: SaveData = {

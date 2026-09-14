@@ -4,6 +4,7 @@ import { viewport } from './Viewport';
 import { TRACK_BY_ID } from '@/data/tracks';
 import { audio } from './audio';
 import { input } from './input/Input';
+import { maybeStartBenchFromUrl, snapshotReport } from './perf';
 
 /**
  * window.__spg — QA hooks used by qa/shots.mjs. Also honours URL params on boot:
@@ -110,6 +111,8 @@ export function installDebug(): void {
 export function debugBootRouting(): void {
   const dbg = window.__spg;
   dbg.ready = true;
+  dbg.knobs.perfReport = () => snapshotReport();
+  maybeStartBenchFromUrl();
   const q = new URLSearchParams(location.search);
   const screen = q.get('screen') as ScreenId | null;
   if (!screen || screen === 'menu' || screen === 'boot') return;

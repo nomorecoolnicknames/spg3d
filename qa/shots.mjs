@@ -28,6 +28,8 @@ const SKIP_MOBILE = flag('--skip-mobile');
 const TS = Number(opt('--ts', 3));
 const MAXDT = Number(opt('--maxdt', 0.5));
 const QUALITY = opt('--quality', 'low');
+// per-scene budgets for the phone tier (docs/PLAN_V3.md §3)
+const BUDGET = { low: { calls: 150, tris: 300_000 }, medium: { calls: 300, tris: 700_000 }, high: { calls: 600, tris: 1_500_000 } }[QUALITY] ?? { calls: 600, tris: 1_500_000 };
 const HEADED = flag('--headed');
 const RUN = opt('--run', new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19));
 const OUT = join(ROOT, 'qa', 'out', RUN);
@@ -259,7 +261,8 @@ async function scRace(page, base, track, vp) {
   check('raceTime increases (20 s → 45 s)', (s45?.hud?.raceTime ?? 0) > t1, `${t1?.toFixed?.(1)} → ${s45?.hud?.raceTime?.toFixed?.(1)}`);
   if (s20 && s45) {
     if (s45.fps < 8) note(`fps ${s45.fps} (swiftshader, box load-dependent — informational)`);
-    check('drawCalls < 900', s45.drawCalls < 900, `calls=${s45.drawCalls}, tris=${s45.triangles}`);
+    check(`draw calls ≤ ${BUDGET.calls} (${QUALITY})`, s45.drawCalls <= BUDGET.calls, `calls=${s45.drawCalls}`);
+    check(`triangles ≤ ${BUDGET.tris / 1000}k (${QUALITY})`, s45.triangles <= BUDGET.tris, `tris=${s45.triangles}`);
     check('geometries stable 20s→45s (±30)', Math.abs(s45.geometries - s20.geometries) <= 30, `${s20.geometries} → ${s45.geometries}`);
     current.snapshots.at20 = s20;
     current.snapshots.at45 = s45;
@@ -320,7 +323,8 @@ async function scBoss(page, base, vp) {
   if (s20) {
     current.snapshots.at20 = s20;
     if (s20.fps < 8) note(`fps ${s20.fps} (swiftshader — informational)`);
-    check('drawCalls < 900', s20.drawCalls < 900, `calls=${s20.drawCalls}, tris=${s20.triangles}`);
+    check(`draw calls ≤ ${BUDGET.calls} (${QUALITY})`, s20.drawCalls <= BUDGET.calls, `calls=${s20.drawCalls}`);
+    check(`triangles ≤ ${BUDGET.tris / 1000}k (${QUALITY})`, s20.triangles <= BUDGET.tris, `tris=${s20.triangles}`);
   }
   if (!vp.mobile) {
     const knobs = await page.evaluate(() => Object.keys(window.__spg.knobs || {}));

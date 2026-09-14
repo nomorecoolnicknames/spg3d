@@ -9,6 +9,9 @@ import { Screen, click, fmtTime, money } from '../common';
 import { Portrait } from '../Portrait';
 import { IMedal, IRefresh, IFlag, ISkull } from '../icons';
 import { audio } from '@/game/audio';
+import { bench, onBench, startBench } from '@/game/perf';
+import { copyText } from '../PerfOverlay';
+import { toast } from '@/state/store';
 
 // ───────────────────────────────────────────── Records
 export function Records() {
@@ -66,6 +69,9 @@ export function Records() {
 // ───────────────────────────────────────────── Settings
 export function Settings() {
   const st = useStore((s) => s.save.settings);
+  const [, force] = useState(0);
+  useEffect(() => onBench(() => force((n) => n + 1)), []);
+  const report = bench.report ? (JSON.parse(bench.report) as { summary: Record<string, number | null> }) : null;
   const Seg = <T extends string | number | boolean>({ value, opts, onChange }: { value: T; opts: [T, string][]; onChange: (v: T) => void }) => (
     <div className="seg">
       {opts.map(([v, l]) => (
@@ -93,6 +99,34 @@ export function Settings() {
           <div className="set-row"><span>{S.settings.camera}</span><Seg value={st.camera} opts={S.race.cameras.map((n, i) => [i, n] as [number, string])} onChange={(v) => setSettings({ camera: v })} /></div>
           <div className="set-row"><span>{S.settings.invertY}</span><Seg value={st.invertY} opts={onOff} onChange={(v) => setSettings({ invertY: v })} /></div>
           <div className="set-row"><span>{S.settings.touch}</span><Seg value={st.touch} opts={[['auto', S.settings.touchAuto], ['on', S.settings.on], ['off', S.settings.off]]} onChange={(v) => setSettings({ touch: v })} /></div>
+        </div>
+        <div className="panel">
+          <h2>{S.settings.performance}</h2>
+          <div className="set-row"><span>{S.settings.fpsCap}</span><Seg value={st.fpsCap} opts={[[30, S.settings.fpsCapNames[30]], [60, S.settings.fpsCapNames[60]], [0, S.settings.fpsCapNames[0]]]} onChange={(v) => setSettings({ fpsCap: v })} /></div>
+          <div className="set-row"><span>{S.settings.dynamicRes}</span><Seg value={st.dynamicRes} opts={onOff} onChange={(v) => setSettings({ dynamicRes: v })} /></div>
+          <div className="set-row"><span>{S.settings.perfOverlay}</span><Seg value={st.perfOverlay} opts={onOff} onChange={(v) => setSettings({ perfOverlay: v })} /></div>
+          <div className="hr" />
+          <h2>{S.settings.bench}</h2>
+          <p className="muted" style={{ marginBottom: 8 }}>{S.settings.benchHint}</p>
+          <button className="btn primary sm" disabled={bench.running} onClick={() => { click(); startBench('neon', 90); }}>{S.settings.benchStart}</button>
+          {report && (
+            <>
+              <div className="hr" />
+              <h2>{S.settings.benchResult}</h2>
+              <div className="kv">
+                <span>{S.settings.fpsAvg}</span><b>{report.summary.fpsAvg}</b>
+                <span>{S.settings.fpsP5}</span><b>{report.summary.fpsP5}</b>
+                <span>{S.settings.frameP95}</span><b>{report.summary.frameP95Max} мс</b>
+                <span>{S.settings.drawCallsMax}</span><b>{report.summary.drawCallsMax}</b>
+                <span>{S.settings.trianglesMax}</span><b>{Math.round((report.summary.trianglesMax ?? 0) / 1000)} тыс.</b>
+                <span>{S.settings.tempDelta}</span><b>{report.summary.batteryTempStart != null ? `${report.summary.batteryTempStart}° → ${report.summary.batteryTempEnd}°` : '—'}</b>
+              </div>
+              <div className="btn-row" style={{ marginTop: 8 }}>
+                <button className="btn sm" onClick={async () => { const ok = await copyText(bench.report ?? ''); toast(ok ? S.settings.copied : S.settings.copyFailed, ok ? 'good' : 'warn'); }}>{S.settings.copyReport}</button>
+              </div>
+              <textarea className="report-box" readOnly value={bench.report ?? ''} onFocus={(e) => e.currentTarget.select()} />
+            </>
+          )}
         </div>
         <div className="panel">
           <h2>{S.settings.audio}</h2>

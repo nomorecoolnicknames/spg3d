@@ -131,6 +131,11 @@ export class ShowcaseScene implements SceneController {
     this.camera.lookAt(target);
   }
 
+  /** the backdrop is a slow turntable: 30 FPS is indistinguishable and halves the heat */
+  targetFps(): number {
+    return 30;
+  }
+
   render(vp: Viewport): void {
     vp.renderer.render(this.scene, this.camera);
   }
