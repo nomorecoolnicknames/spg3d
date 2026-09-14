@@ -27,7 +27,10 @@ export type CellName =
   // roofs and street objects
   | 'roofBitumen' | 'roofGravel' | 'kioskWall' | 'adStop' | 'adRival1' | 'adRival2' | 'metalVent' | 'concrete'
   // ground
-  | 'pavement' | 'courtyard' | 'grass' | 'ballast' | 'granite' | 'water' | 'tunnelWall' | 'tunnelCeil';
+  | 'pavement' | 'courtyard' | 'grass' | 'ballast' | 'granite' | 'water' | 'tunnelWall' | 'tunnelCeil'
+  // roadside and alpine kit (canyon, pass)
+  | 'shopRoadCafe' | 'shopFuel' | 'fuelFascia' | 'woodWall' | 'woodWin' | 'roofRed' | 'roofSnow' | 'galleryWall'
+  | 'trussRed' | 'signPass' | 'fuelPump' | 'liftChair';
 
 const ORDER: CellName[] = [
   'panelWin', 'panelLoggia', 'panelBlank', 'panelDoor', 'panelWinB', 'panelLoggiaB', 'panelStripe', 'panelTop',
@@ -38,12 +41,16 @@ const ORDER: CellName[] = [
   'shopFood', 'shopPharmacy', 'shopShawarma', 'shopFlowers', 'shopOptics', 'shopKeys', 'shopHardware', 'shopCafe',
   'roofBitumen', 'roofGravel', 'kioskWall', 'adStop', 'adRival1', 'adRival2', 'metalVent', 'concrete',
   'pavement', 'courtyard', 'grass', 'ballast', 'granite', 'water', 'tunnelWall', 'tunnelCeil',
+  'shopRoadCafe', 'shopFuel', 'fuelFascia', 'woodWall', 'woodWin', 'roofRed', 'roofSnow', 'galleryWall',
+  'trussRed', 'signPass', 'fuelPump', 'liftChair',
 ];
+const ROWS = Math.ceil(ORDER.length / COLS);
 
 export interface CityAtlas {
   albedo: THREE.CanvasTexture;
   emissive: THREE.CanvasTexture;
   size: number;
+  height: number;
   /** [offsetU, offsetV, scaleU, scaleV] of the drawable (unpadded) area, in texture UV (flipY = false) */
   cell(name: CellName): [number, number, number, number];
 }
@@ -545,6 +552,91 @@ function paintCell(name: CellName, p: Paint): void {
     case 'adRival2': return ad(p, 'ТЁМНЫЙ', 'ПРИНЦ · live', '#ffb000', '#3a1200');
     case 'metalVent': corrugated(p, '#7c8085'); return;
     case 'concrete': wall(p, '#8a8781', 24); streaks(p.a, p.w, p.h, 0.1); return;
+    case 'shopRoadCafe': return shopFront(p, '#8a6d52', 'КАФЕ «ПРИВАЛ»', '#5a2d14', '#ffd27a');
+    case 'shopFuel': return shopFront(p, '#d9d4c8', 'АЗС 24', '#c21f1f', '#fff');
+    case 'fuelFascia': {
+      wall(p, '#eeeae2', 8);
+      p.a.fillStyle = '#c21f1f';
+      p.a.fillRect(0, 80, p.w, 60);
+      p.e.fillStyle = '#00ff00';
+      p.e.fillRect(0, 80, p.w, 60);
+      p.a.fillStyle = '#20242a';
+      p.a.fillRect(0, 200, p.w, 56);
+      return;
+    }
+    case 'woodWall': {
+      p.a.fillStyle = '#5b3a22';
+      p.a.fillRect(0, 0, p.w, p.h);
+      for (let y = 0; y < p.h; y += 32) {
+        const g = p.a.createLinearGradient(0, y, 0, y + 32);
+        g.addColorStop(0, 'rgba(255,220,180,0.18)');
+        g.addColorStop(0.7, 'rgba(0,0,0,0.05)');
+        g.addColorStop(1, 'rgba(0,0,0,0.45)');
+        p.a.fillStyle = g;
+        p.a.fillRect(0, y, p.w, 32);
+      }
+      noise(p.a, 0, 0, p.w, p.h, 26, 3);
+      return;
+    }
+    case 'woodWin': {
+      paintCell('woodWall', p);
+      window_(p, 72, 64, 112, 120, '#e8dcc4', 2);
+      p.a.fillStyle = '#2f5a3a'; // shutters
+      p.a.fillRect(40, 60, 30, 128);
+      p.a.fillRect(186, 60, 30, 128);
+      return;
+    }
+    case 'roofRed': corrugated(p, '#7a2a22'); return;
+    case 'roofSnow': {
+      p.a.fillStyle = '#dfe8f2';
+      p.a.fillRect(0, 0, p.w, p.h);
+      noise(p.a, 0, 0, p.w, p.h, 18, 4);
+      return;
+    }
+    case 'galleryWall': {
+      wall(p, '#8f8c86', 22);
+      streaks(p.a, p.w, p.h, 0.14);
+      p.a.fillStyle = '#e0b400';
+      p.a.fillRect(0, 214, p.w, 18);
+      p.a.fillStyle = '#ff3b1f';
+      p.a.fillRect(120, 150, 16, 16); // reflector
+      p.e.fillStyle = '#004000';
+      p.e.fillRect(120, 150, 16, 16);
+      return;
+    }
+    case 'trussRed': {
+      p.a.fillStyle = '#20150f';
+      p.a.fillRect(0, 0, p.w, p.h);
+      p.a.strokeStyle = '#9c2b1c';
+      p.a.lineWidth = 22;
+      p.a.strokeRect(11, 11, p.w - 22, p.h - 22);
+      p.a.beginPath();
+      p.a.moveTo(0, p.h);
+      p.a.lineTo(p.w, 0);
+      p.a.stroke();
+      noise(p.a, 0, 0, p.w, p.h, 20, 3);
+      return;
+    }
+    case 'signPass': {
+      p.a.fillStyle = '#1f4fa8';
+      p.a.fillRect(0, 0, p.w, p.h);
+      p.a.strokeStyle = '#fff';
+      p.a.lineWidth = 8;
+      p.a.strokeRect(10, 10, p.w - 20, p.h - 20);
+      sign(p, 'ПЕРЕВАЛ АВРОРА', '#1f4fa8', '#fff', 80, 90);
+      return;
+    }
+    case 'fuelPump': {
+      wall(p, '#d8d8d8', 10);
+      p.a.fillStyle = '#c21f1f';
+      p.a.fillRect(0, 0, p.w, 70);
+      p.a.fillStyle = '#101418';
+      p.a.fillRect(60, 90, 136, 70);
+      p.e.fillStyle = '#00a000';
+      p.e.fillRect(60, 90, 136, 70);
+      return;
+    }
+    case 'liftChair': wall(p, '#303640', 10); p.a.fillStyle = '#c9a227'; p.a.fillRect(0, 150, p.w, 60); return;
     default: return ground(p, name);
   }
 }
@@ -555,16 +647,17 @@ export function cityAtlas(): CityAtlas {
   if (cached) return cached;
   seed = 424242;
   const size = CELL * COLS;
+  const height = CELL * ROWS;
   const mk = () => {
     const c = document.createElement('canvas');
     c.width = size;
-    c.height = size;
+    c.height = height;
     return [c, c.getContext('2d', { willReadFrequently: true })!] as const;
   };
   const [ca, a] = mk();
   const [ce, e] = mk();
   e.fillStyle = '#000';
-  e.fillRect(0, 0, size, size);
+  e.fillRect(0, 0, size, height);
   const inner = CELL - PAD * 2;
   // draw each module on a scratch canvas, then copy with edge-extended padding
   const [sa, sac] = (() => {
@@ -606,10 +699,11 @@ export function cityAtlas(): CityAtlas {
     albedo,
     emissive,
     size,
+    height,
     cell(name) {
       const i = ORDER.indexOf(name);
       const s = inner / size;
-      return [((i % COLS) * CELL + PAD) / size, (Math.floor(i / COLS) * CELL + PAD) / size, s, s];
+      return [((i % COLS) * CELL + PAD) / size, (Math.floor(i / COLS) * CELL + PAD) / height, s, (inner / height)];
     },
   };
   return cached;

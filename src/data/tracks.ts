@@ -60,6 +60,7 @@ export const TRACKS: TrackSpec[] = [
     difficulty: 2,
     rival: 'glwzbll',
     lengthHint: 1820,
+    features: { cliffs: [[0.3, 0.45]], arch: [0.36, 0.39], gorge: { at: 0.495, half: 34, depth: 38 }, stop: 0.87 },
     points: [
       [0, -190, 0], [110, -180, 4], [180, -120, 9], [150, -40, 14], [190, 30, 16],
       [160, 120, 12], [90, 150, 8], [60, 210, 6], [-30, 200, 5], [-90, 150, 8],
@@ -105,6 +106,7 @@ export const TRACKS: TrackSpec[] = [
     difficulty: 3,
     rival: 'prince',
     lengthHint: 1830,
+    features: { galleries: [[0.175, 0.23], [0.6, 0.64]], village: 0.485, lift: 0.32 },
     points: [
       [0, -210, 0], [100, -200, 2], [170, -160, 5], [210, -80, 8], [180, -10, 10],
       [210, 60, 9], [170, 130, 7], [120, 190, 5], [40, 210, 4], [-50, 190, 5],

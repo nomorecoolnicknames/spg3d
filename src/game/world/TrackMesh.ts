@@ -198,11 +198,22 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean; lo
       const c = Math.sin((x + z) * 0.05) * 0.2;
       return (a + b + c) * amp + amp * 0.4;
     };
+    // a gorge crossing the track (the road spans it on a bridge — world/features/Canyon.ts)
+    const gorge = spec.features?.gorge;
+    const gc = gorge ? track.samples[Math.round(gorge.at * n) % n] : null;
+    const gt = gc ? new THREE.Vector2(gc.tan.x, gc.tan.z).normalize() : null;
     terrainHeight = (x: number, z: number): number => {
       const [d, ry] = distAndHeight(x, z);
       // flat band wide enough to always contain a vertex ring, then blend into the hills
       const t = THREE.MathUtils.smoothstep(d, halfW + 14, halfW + 80);
-      return THREE.MathUtils.lerp(ry - 0.55, terrainNoise(x, z) - 0.6, t);
+      let h = THREE.MathUtils.lerp(ry - 0.55, terrainNoise(x, z) - 0.6, t);
+      if (gorge && gc && gt) {
+        const dx = x - gc.pos.x, dz = z - gc.pos.z;
+        const lateral = -dx * gt.y + dz * gt.x;
+        const along = dx * gt.x + dz * gt.y + Math.sin(lateral * 0.018) * Math.min(1, Math.abs(lateral) / 60) * 14;
+        h -= gorge.depth * (1 - THREE.MathUtils.smoothstep(Math.abs(along), gorge.half * 0.35, gorge.half));
+      }
+      return h;
     };
     const tg = new THREE.PlaneGeometry(size, size, segs, segs);
     tg.rotateX(-Math.PI / 2);

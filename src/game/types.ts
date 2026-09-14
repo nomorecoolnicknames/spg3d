@@ -98,6 +98,23 @@ export interface TrackEnv {
   wet: boolean;
 }
 
+export interface TrackFeatures {
+  /** rock cliffs on both sides */
+  cliffs?: [number, number][];
+  /** the cliffs close over the road */
+  arch?: [number, number];
+  /** the road crosses a gorge on a bridge: centre, half length (m), depth (m) */
+  gorge?: { at: number; half: number; depth: number };
+  /** roadside café + fuel station */
+  stop?: number;
+  /** avalanche galleries */
+  galleries?: [number, number][];
+  /** mountain village */
+  village?: number;
+  /** chair lift crossing near the road */
+  lift?: number;
+}
+
 export interface TrackSpec {
   id: string;
   name: string;
@@ -112,6 +129,8 @@ export interface TrackSpec {
   scale?: number;
   /** drivable run-off beyond the road edge before the wall (m, default 4.6) */
   runoff?: number;
+  /** set pieces along the lap, positions as lap fractions 0..1 (world/features) */
+  features?: TrackFeatures;
   /** dense generated centrelines want centripetal Catmull-Rom (no overshoot at uneven spacing) */
   spline?: 'catmullrom' | 'centripetal';
   /** difficulty 1..3 */

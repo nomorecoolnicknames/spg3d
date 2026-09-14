@@ -12,6 +12,7 @@ import { CarPhysics } from '../vehicle/CarPhysics';
 import { createCarVisual, type CarVisual } from '../vehicle/CarVisual';
 import { getEnvMap, type EnvName } from '../assets';
 import { buildCity } from '../world/city/City';
+import { buildCanyonFeatures } from '../world/features/Canyon';
 import { RacerAI, type AIContext, type AIOther } from '../ai/RacerAI';
 import { RaceCamera } from './RaceCamera';
 import { Smoke, Sparks, SkidMarks } from './Fx';
@@ -77,6 +78,7 @@ export class RaceScene implements SceneController {
   private sky!: SkyRig;
   private weather: WeatherRig | null = null;
   private props!: PropsRig;
+  private features: PropsRig | null = null;
   private sun!: THREE.DirectionalLight;
   private post: Post | null = null;
   private racers: Racer[] = [];
@@ -172,6 +174,8 @@ export class RaceScene implements SceneController {
     this.scene.add(this.mesh.group);
     this.props = spec.theme === 'city' ? buildCity(this.track, q) : buildProps(this.track, this.mesh.terrainHeight, { shadows: q.shadows, level: q.level });
     this.scene.add(this.props.group);
+    if (spec.theme === 'desert' && spec.features) this.features = buildCanyonFeatures(this.track, this.mesh.terrainHeight, q);
+    if (this.features) this.scene.add(this.features.group);
     if (env.rain || env.snow) {
       this.weather = createWeather(env.rain ? 'rain' : 'snow', q.level === 'low' ? 350 : 1600);
       this.scene.add(this.weather.group);
@@ -292,6 +296,19 @@ export class RaceScene implements SceneController {
       const o = this.mesh.group.getObjectByName(String(name));
       if (o) o.visible = !o.visible;
       return o ? o.visible : null;
+    };
+    // QA tour: put the player at a lap fraction, rolling at the racing-line speed (lap counting is not touched)
+    window.__spg.knobs.warp = (u: unknown) => {
+      const r = this.player;
+      const idx = Math.floor(((Number(u) % 1) + 1) % 1 * this.track.count);
+      const s = this.track.samples[idx];
+      r.car.place(s.pos.x + s.left.x * s.lineOffset, s.pos.z + s.left.z * s.lineOffset, s.pos.y, this.track.headingAt(idx));
+      r.car.vx = Math.min(s.lineSpeed, 30);
+      r.idx = idx;
+      r.lat = s.lineOffset;
+      r.progress = Math.floor(r.progress / this.track.count) * this.track.count + idx;
+      this.cam.update(r.car, 1, this.elapsed);
+      return idx;
     };
     window.__spg.knobs.finishNow = () => {
       this.player.lap = this.params.laps + 1;
@@ -833,6 +850,7 @@ export class RaceScene implements SceneController {
     this.sky.dispose();
     this.weather?.dispose();
     this.props.dispose();
+    this.features?.dispose();
     this.smoke.dispose();
     this.sparks.dispose();
     this.skids.dispose();

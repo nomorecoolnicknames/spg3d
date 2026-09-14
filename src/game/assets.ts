@@ -28,6 +28,8 @@ import asphaltAlbedoUrl from '@/assets/materials/asphalt_albedo.jpg';
 import asphaltNormalUrl from '@/assets/materials/asphalt_normal.jpg';
 import asphaltRoughUrl from '@/assets/materials/asphalt_rough.jpg';
 import puddlesUrl from '@/assets/materials/puddles.jpg';
+import rockAlbedoUrl from '@/assets/materials/rock_albedo.jpg';
+import rockNormalUrl from '@/assets/materials/rock_normal.jpg';
 
 /**
  * Central asset registry. Everything heavy is loaded once, progress is byte-based
@@ -151,7 +153,7 @@ export function loadAllAssets(): Promise<void> {
     );
   });
   // tiling surface textures (scripts/materials.sh): data textures, repeat-wrapped, mipmapped
-  const surfaces = Object.entries({ asphaltAlbedo: asphaltAlbedoUrl, asphaltNormal: asphaltNormalUrl, asphaltRough: asphaltRoughUrl, puddles: puddlesUrl }).map(
+  const surfaces = Object.entries({ asphaltAlbedo: asphaltAlbedoUrl, asphaltNormal: asphaltNormalUrl, asphaltRough: asphaltRoughUrl, puddles: puddlesUrl, rockAlbedo: rockAlbedoUrl, rockNormal: rockNormalUrl }).map(
     ([key, url]) =>
       new Promise<void>((resolve) => {
         new THREE.TextureLoader().load(

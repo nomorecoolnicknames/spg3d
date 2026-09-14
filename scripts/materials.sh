@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 WORK=/mnt/ramdisk/spg3d-mat
 mkdir -p "$WORK" src/assets/materials
-for id in Asphalt031; do
+for id in Asphalt031 Rock030; do
   [ -s "$WORK/$id.zip" ] || curl -sSfL -m 300 -o "$WORK/$id.zip" "https://ambientcg.com/get?file=${id}_1K-JPG.zip"
   unzip -o -q "$WORK/$id.zip" -d "$WORK/$id"
 done
@@ -16,6 +16,10 @@ const a = (f) => W + '/Asphalt031/Asphalt031_1K-JPG_' + f + '.jpg';
 await sharp(a('Color')).greyscale().jpeg({ quality: 84 }).toFile(O + '/asphalt_albedo.jpg');
 await sharp(a('NormalGL')).jpeg({ quality: 90 }).toFile(O + '/asphalt_normal.jpg');
 await sharp(a('Roughness')).greyscale().resize(512, 512).jpeg({ quality: 88 }).toFile(O + '/asphalt_rough.jpg');
+// cliffs (canyon walls, alpine rock): albedo as luminance, tinted per track in the shader
+const r = (f) => W + '/Rock030/Rock030_1K-JPG_' + f + '.jpg';
+await sharp(r('Color')).greyscale().jpeg({ quality: 82 }).toFile(O + '/rock_albedo.jpg');
+await sharp(r('NormalGL')).resize(512, 512).jpeg({ quality: 88 }).toFile(O + '/rock_normal.jpg');
 // wet patches: tileable smooth blobs — seeded noise, tiled 3×3, blurred, centre tile cropped
 const N = 48, T = 256;
 let seed = 20260914;
