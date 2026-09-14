@@ -26,6 +26,8 @@ export interface AppState {
   /** quick race form (persisted in memory only) */
   quick: { trackId: string; laps: number; opponents: number; difficulty: number; timeAttack: boolean };
   garageCar: string;
+  /** Winamp panel shown in the menu (toggled from the top bar) */
+  playerOpen: boolean;
   toast: { text: string; tone: 'info' | 'good' | 'warn'; id: number } | null;
   paused: boolean;
   /** bumps whenever the race/boss scene should be recreated */
@@ -48,6 +50,7 @@ let state: AppState = {
   boss: null,
   quick: { trackId: 'neon', laps: 2, opponents: 5, difficulty: 1.0, timeAttack: false },
   garageCar: 'm5cs',
+  playerOpen: true,
   toast: null,
   paused: false,
   sessionKey: 0,

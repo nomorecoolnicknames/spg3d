@@ -246,13 +246,16 @@ vec4 cityEmis;`,
 		float h = cityHash(wid);
 		float lit = step(h, litRatio * mix(1.0, 0.7, office));
 		vec3 warm = mix(vec3(1.0, 0.72, 0.42), vec3(1.0, 0.86, 0.62), cityHash(wid + 7.1));
-		vec3 cool = vec3(0.62, 0.78, 1.0) * (0.75 + 0.25 * sin(time * 7.0 + h * 40.0)); // TV glow
+		vec3 cool = vec3(0.62, 0.78, 1.0);
 		vec3 wc = mix(warm, cool, step(0.86, cityHash(wid + 3.3)));
-		totalEmissiveRadiance += cityEmis.r * lit * windowGain * mix(1.0, 0.45, office) * wc * (0.55 + 0.45 * cityHash(wid + 1.9));
-		// a few signs flicker like tired neon, a few blink on and off
-		float sh = cityHash(floor(vTile * 0.5) + vec2(sd * 17.0, 5.0));
-		float flick = sh < 0.08 ? step(0.25, fract(sin(floor(time * 14.0) + sh * 91.0) * 43758.5)) : sh < 0.14 ? step(0.5, fract(time * 0.45 + sh * 7.0)) : 1.0;
-		totalEmissiveRadiance += cityEmis.g * signGain * diffuseColor.rgb * 2.0 * flick;
+		float win = lit * (0.55 + 0.45 * cityHash(wid + 1.9));
+		// far away a window is a pixel or less: per-window on/off would sparkle as the camera moves,
+		// so fade to the average glow once a module shrinks below ~3 px
+		float farW = smoothstep(0.25, 0.6, length(fwidth(vTile)));
+		win = mix(win, litRatio * 0.75, farW);
+		wc = mix(wc, vec3(1.0, 0.8, 0.55), farW);
+		totalEmissiveRadiance += cityEmis.r * win * windowGain * mix(1.0, 0.45, office) * wc;
+		totalEmissiveRadiance += cityEmis.g * signGain * diffuseColor.rgb * 2.0;
 		if (vLamp.w > 0.0) {
 			// nearest lamp along the street: horizontal offset, height difference, distance from the lamp line
 			float along = (fract(vLamp.x / vLamp.z) - 0.5) * vLamp.z;

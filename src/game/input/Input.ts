@@ -21,7 +21,7 @@ export interface TouchState {
   lookY: number;
 }
 
-export type InputAction = 'camera' | 'pause' | 'respawn';
+export type InputAction = 'camera' | 'pause' | 'respawn' | 'fly';
 
 export class Input {
   private keys = new Set<string>();
@@ -60,6 +60,9 @@ export class Input {
         break;
       case 'KeyR':
         this.fire('respawn');
+        break;
+      case 'KeyF':
+        this.fire('fly');
         break;
     }
     if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight'].includes(e.code)) e.preventDefault();

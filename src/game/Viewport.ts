@@ -272,6 +272,14 @@ export class Viewport {
   /** Lower the render resolution when frames miss the cap, raise it back slowly. */
   private adaptResolution(t: number, cap: number, s: FrameStats): void {
     if (!this.dynamicRes || t - this.scaleCheckT < 1500 || this.ringN < 60) return;
+    // menus / pause run a scene-set cap: resizing the canvas there only flickers behind the UI
+    if (this.controller?.targetFps?.() !== undefined) {
+      if (this.scale !== 1) {
+        this.scale = 1;
+        this.sizeDirty = true;
+      }
+      return;
+    }
     const target = 1000 / (cap > 0 ? cap : 60);
     let next = this.scale;
     if (s.frameP95 > target * 1.3 || s.fps < (cap > 0 ? cap : 60) * 0.85) next = Math.max(this.minScale(), this.scale - 0.1);

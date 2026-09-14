@@ -422,8 +422,7 @@ export function buildArena(scene: THREE.Scene, quality: { shadows: boolean; low:
         rain.emit({ x: camPos.x, y: camPos.y + 18, z: camPos.z, spread: 70, vy: -22, vx: 1.5, life: 1.1, size0: 0.55, size1: 0.45, color: rainColor, fade: 0.45 });
       }
       rain.update(dt);
-      const scan = (t * 0.6) % 1;
-      (s1.material as THREE.MeshBasicMaterial).opacity = 0.85 + Math.sin(t * 30) * 0.05 + (scan < 0.02 ? -0.5 : 0);
+      (s1.material as THREE.MeshBasicMaterial).opacity = 0.9;
       if (cityUniforms) cityUniforms.time.value = t;
       sun.target.position.set(camPos.x, 0, camPos.z);
       sun.position.set(camPos.x - 40, 90, camPos.z - 30);

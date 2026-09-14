@@ -120,6 +120,10 @@ export class RaceScene implements SceneController {
   private bestSectorTimes: number[] | null = null;
   private curSectorTimes: number[] = [];
   private aiOthers: AIOther[] = [];
+  /** F: free flight through everything (debug / sightseeing), laps are not counted */
+  private fly = false;
+  private flySpeed = 0;
+  private flyProbe = 0;
   private aiCtx: AIContext = { progress: 0, lat: 0, others: this.aiOthers, selfIndex: -1, canDrive: false };
 
   constructor(
@@ -341,6 +345,25 @@ export class RaceScene implements SceneController {
     this.cb.onEvent({ type: 'message', text: S.race.cameras[this.cam.mode], tone: 'info' });
   }
 
+  toggleFly(): void {
+    this.fly = !this.fly;
+    const r = this.player;
+    if (this.fly) {
+      this.flySpeed = Math.max(0, r.car.vx);
+      this.cb.onEvent({ type: 'message', text: S.race.flyOn, tone: 'info' });
+    } else {
+      // land on the nearest point of the track
+      const p = this.track.projectGlobal(r.car.x, r.car.z);
+      r.idx = p.idx;
+      r.progress = Math.floor(r.progress / this.track.count) * this.track.count + p.idx;
+      const s = this.track.samples[p.idx];
+      const lat = THREE.MathUtils.clamp(p.lat, -this.track.halfW, this.track.halfW);
+      r.car.place(s.pos.x + s.left.x * lat, s.pos.z + s.left.z * lat, s.pos.y, this.track.headingAt(p.idx));
+      r.lat = lat;
+      this.cb.onEvent({ type: 'message', text: S.race.flyOff, tone: 'info' });
+    }
+  }
+
   respawn(): void {
     const r = this.player;
     const idx = Math.floor(r.progress % this.track.count);
@@ -480,6 +503,10 @@ export class RaceScene implements SceneController {
         ctx.canDrive = canDrive && !r.finished;
         r.input = r.ai.drive(r.car, ctx, dt);
         if (r.finished) r.input.throttle = Math.min(r.input.throttle, 0.4);
+      }
+      if (r.isPlayer && this.fly) {
+        this.flyStep(r, dt);
+        continue;
       }
       // physics
       const s0 = this.track.samples[r.idx];
@@ -686,6 +713,31 @@ export class RaceScene implements SceneController {
           this.skids.add(bl, br, Math.min(1, cc.slip + cc.wheelspin));
         } else this.skids.add(null, null);
       }
+    }
+  }
+
+  private flyStep(r: Racer, dt: number): void {
+    const c = r.car;
+    const inp = r.input;
+    const target = inp.throttle * 110 - inp.brake * 60;
+    this.flySpeed += (target - this.flySpeed) * Math.min(1, dt * 2.5);
+    c.heading += inp.steer * 2.2 * dt;
+    c.x += Math.sin(c.heading) * this.flySpeed * dt;
+    c.z += Math.cos(c.heading) * this.flySpeed * dt;
+    c.y = THREE.MathUtils.clamp(c.y + ((inp.handbrake ? 35 : 0) - (inp.nitro ? 35 : 0)) * dt, -20, 320);
+    c.vx = this.flySpeed;
+    c.vy = 0;
+    c.yawRate = 0;
+    c.pitch = 0;
+    c.roll = 0;
+    c.nitroActive = false;
+    c.wheelSpin += (this.flySpeed / 0.34) * dt;
+    c.steerAngle = inp.steer * 0.4;
+    // keep the minimap dot roughly right without paying a global search every step
+    if (++this.flyProbe % 12 === 0) {
+      const p = this.track.projectGlobal(c.x, c.z);
+      r.idx = p.idx;
+      r.lat = p.lat;
     }
   }
 

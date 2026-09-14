@@ -11,7 +11,7 @@ function fmt(t: number): string {
 }
 
 /** Winamp 2.81 — the house player. Restored from settings on mount, collapsible. */
-export function MusicWidget({ mini = false }: { mini?: boolean }) {
+export function MusicWidget({ mini = false, docked = false }: { mini?: boolean; docked?: boolean }) {
   const settings = useStore((s) => s.save.settings);
   const [st, setSt] = useState<MusicState>(audio.music.state);
   const [collapsed, setCollapsed] = useState(mini);
@@ -32,7 +32,7 @@ export function MusicWidget({ mini = false }: { mini?: boolean }) {
   const tr = st.track;
   const title = tr.title ? `${st.index + 1}. ${tr.artist} — ${tr.title}` : '—';
   return (
-    <div className={`wa ${st.playing ? '' : 'paused'} ${collapsed ? 'mini' : ''}`}>
+    <div className={`wa ${st.playing ? '' : 'paused'} ${collapsed ? 'mini' : ''} ${docked ? 'docked' : ''}`}>
       <div className="tb">
         <b>{S.player.title}</b>
         <button onClick={() => setCollapsed(!collapsed)} aria-label="toggle">{collapsed ? '▴' : '▾'}</button>

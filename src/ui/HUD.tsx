@@ -7,6 +7,7 @@ import { S } from '@/data/strings';
 import { TrackData } from '@/game/world/TrackData';
 import { fmtTime, click } from './common';
 import { IPause } from './icons';
+import { viewport } from '@/game/Viewport';
 
 /** Event bus from GameHost → HUD (messages, drift popups). */
 type Listener = (e: GameEvent) => void;
@@ -311,6 +312,7 @@ export function PauseOverlay() {
         <h2>{S.race.pause}</h2>
         <button className="btn primary" onClick={() => { click(); setPaused(false); }}>{S.race.resume}</button>
         <button className="btn" onClick={() => { click(); setPaused(false); restartSession(); }}>{S.race.restart}</button>
+        {screen === 'race' && <button className="btn" onClick={() => { click(); setPaused(false); (viewport.getController() as { toggleFly?: () => void } | null)?.toggleFly?.(); }}>{S.race.fly}</button>}
         <button className="btn ghost" onClick={() => { click(); setPaused(false); goto(getState().race?.career || screen === 'boss' ? 'career' : 'menu'); }}>{S.race.quit}</button>
         <div className="keys">{screen === 'boss' ? (touch ? S.boss.controlsTouch : S.boss.controls) : touch ? S.menu.controlsTouch : S.menu.controls}</div>
       </div>

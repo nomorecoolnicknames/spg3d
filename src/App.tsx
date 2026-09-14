@@ -31,6 +31,7 @@ export default function App() {
   const screen = useStore((s) => s.screen);
   const paused = useStore((s) => s.paused);
   const toast = useStore((s) => s.toast);
+  const playerOpen = useStore((s) => s.playerOpen);
   const touch = useIsTouchLayout();
   const inGame = screen === 'race' || screen === 'boss';
 
@@ -75,7 +76,8 @@ export default function App() {
           <div key={toast.id} className={`toast ${toast.tone}`}>{toast.text}</div>
         </div>
       )}
-      {(screen === 'menu' || screen === 'results' || (inGame && paused)) && <MusicWidget mini={screen !== 'menu'} />}
+      {screen === 'menu' && playerOpen && <MusicWidget docked />}
+      {(screen === 'results' || (inGame && paused)) && <MusicWidget mini />}
       <PerfOverlay />
     </>
   );

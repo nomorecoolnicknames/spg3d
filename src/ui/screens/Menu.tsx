@@ -3,7 +3,7 @@ import { useStore, goto, setState, getState } from '@/state/store';
 import { S } from '@/data/strings';
 import { CAREER } from '@/data/story';
 import logoUrl from '@/assets/logo.jpg';
-import { IFlag, ICar, IWrench, ITrophy, ISettings } from '../icons';
+import { IFlag, ICar, IWrench, ITrophy, ISettings, IMusic } from '../icons';
 import { Balance, click } from '../common';
 import type { ScreenId } from '@/game/types';
 import { useIsTouchLayout } from './Misc';
@@ -44,6 +44,7 @@ export function Boot() {
 export function Menu() {
   const wins = useStore((s) => s.save.careerWins.length);
   const touch = useIsTouchLayout();
+  const playerOpen = useStore((s) => s.playerOpen);
   const [active, setActive] = useState(0);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -60,6 +61,17 @@ export function Menu() {
   }, [active]);
   return (
     <div className="ui-layer tint stripes">
+      {/* always on screen, whatever the height: player toggle and settings */}
+      <div className="menu-tools">
+        <button className={`tool ${playerOpen ? 'on' : ''}`} onClick={() => { click(); audio.unlock(); setState({ playerOpen: !playerOpen }); }}>
+          <IMusic />
+          <span>{S.menu.player}</span>
+        </button>
+        <button className="tool" onClick={() => { click(); goto('settings'); }}>
+          <ISettings />
+          <span>{S.menu.settings}</span>
+        </button>
+      </div>
       <div className="screen menu">
         <img className="menu-logo" src={logoUrl} alt={S.title} />
         <div className="menu-tagline">{S.tagline}</div>

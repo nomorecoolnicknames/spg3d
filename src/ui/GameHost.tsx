@@ -96,6 +96,7 @@ export function GameHost() {
       if (a === 'pause' && (s.screen === 'race' || s.screen === 'boss')) setPaused(!s.paused);
       if (a === 'camera' && s.screen === 'race') (viewport.getController() as RaceScene | null)?.setCameraMode?.(-1);
       if (a === 'respawn' && s.screen === 'race') (viewport.getController() as RaceScene | null)?.respawn?.();
+      if (a === 'fly' && s.screen === 'race') (viewport.getController() as RaceScene | null)?.toggleFly?.();
     });
   }, []);
 
