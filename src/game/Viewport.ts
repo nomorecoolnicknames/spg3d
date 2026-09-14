@@ -149,16 +149,30 @@ export class Viewport {
    */
   warmup(scene: THREE.Scene, camera: THREE.Camera): void {
     const hidden: THREE.Object3D[] = [];
+    const culled: THREE.Object3D[] = [];
     scene.traverse((o) => {
       if (!o.visible) {
         hidden.push(o);
         o.visible = true;
       }
+      if (o.frustumCulled) {
+        culled.push(o);
+        o.frustumCulled = false;
+      }
     });
     try {
       this.renderer.compile(scene, camera);
+      // one offscreen draw of everything uploads every vertex buffer now: a city sector seen for the first
+      // time mid-race would otherwise stall that frame while its geometry goes to the GPU
+      const rt = new THREE.WebGLRenderTarget(4, 4);
+      const prev = this.renderer.getRenderTarget();
+      this.renderer.setRenderTarget(rt);
+      this.renderer.render(scene, camera);
+      this.renderer.setRenderTarget(prev);
+      rt.dispose();
     } finally {
       for (const o of hidden) o.visible = false;
+      for (const o of culled) o.frustumCulled = true;
     }
   }
 
