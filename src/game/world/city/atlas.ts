@@ -384,42 +384,110 @@ function ground(p: Paint, kind: CellName): void {
   const { a } = p;
   switch (kind) {
     case 'pavement': {
-      a.fillStyle = '#5d5d5f';
+      // grey concrete pavers in running bond (the Moscow-region «кирпичик»), a few tinted ones, dark joints
+      a.fillStyle = '#4a4a4c';
       a.fillRect(0, 0, p.w, p.h);
-      for (let y = 0; y < p.h; y += 64) {
-        for (let x = 0; x < p.w; x += 64) {
-          const v = 80 + rnd() * 20;
-          a.fillStyle = `rgb(${v},${v},${v + 2})`;
-          a.fillRect(x + 2, y + 2, 60, 60);
+      const bw = 32, bh = 16;
+      for (let y = 0; y < p.h; y += bh) {
+        const off = (y / bh) % 2 ? bw / 2 : 0;
+        for (let x = -bw; x < p.w + bw; x += bw) {
+          const r = rnd();
+          const v = 92 + rnd() * 24;
+          a.fillStyle = r < 0.06 ? `rgb(${v + 10},${v - 22},${v - 30})` : r < 0.12 ? `rgb(${v - 30},${v - 30},${v - 28})` : `rgb(${v},${v},${v + 3})`;
+          a.fillRect(x + off + 1, y + 1, bw - 2, bh - 2);
         }
       }
-      noise(a, 0, 0, p.w, p.h, 22, 2);
+      noise(a, 0, 0, p.w, p.h, 20, 1);
+      // wear and grime patches
+      for (let i = 0; i < 6; i++) {
+        const g = a.createRadialGradient(0, 0, 0, 0, 0, 1);
+        g.addColorStop(0, 'rgba(30,30,28,0.22)');
+        g.addColorStop(1, 'rgba(30,30,28,0)');
+        a.save();
+        a.translate(40 + rnd() * (p.w - 80), 40 + rnd() * (p.h - 80));
+        a.scale(20 + rnd() * 30, 14 + rnd() * 24);
+        a.fillStyle = g;
+        a.fillRect(-1, -1, 2, 2);
+        a.restore();
+      }
       break;
     }
-    case 'courtyard':
-      a.fillStyle = '#3a3b3f';
+    case 'courtyard': {
+      // worn asphalt: aggregate, a patch, hairline cracks
+      a.fillStyle = '#3d3e42';
       a.fillRect(0, 0, p.w, p.h);
-      noise(a, 0, 0, p.w, p.h, 30, 2);
+      noise(a, 0, 0, p.w, p.h, 34, 1);
+      a.fillStyle = 'rgba(20,20,22,0.25)';
+      a.fillRect(40 + rnd() * 80, 30 + rnd() * 80, 70 + rnd() * 60, 50 + rnd() * 40);
+      a.strokeStyle = 'rgba(12,12,14,0.55)';
+      a.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        let x = 20 + rnd() * (p.w - 40), y = 20 + rnd() * (p.h - 40);
+        a.beginPath();
+        a.moveTo(x, y);
+        for (let k = 0; k < 6; k++) {
+          x += (rnd() - 0.5) * 30;
+          y += (rnd() - 0.5) * 30;
+          a.lineTo(x, y);
+        }
+        a.stroke();
+      }
       break;
-    case 'grass':
-      a.fillStyle = '#2f3a24';
+    }
+    case 'grass': {
+      // a mown town lawn: blades in several greens, darker clumps, a few dandelions and clover
+      a.fillStyle = '#3c5428';
       a.fillRect(0, 0, p.w, p.h);
-      noise(a, 0, 0, p.w, p.h, 40, 3);
+      for (let i = 0; i < 10; i++) {
+        const g = a.createRadialGradient(0, 0, 0, 0, 0, 1);
+        const light = rnd() < 0.5;
+        g.addColorStop(0, light ? 'rgba(110,140,60,0.35)' : 'rgba(25,40,18,0.35)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        a.save();
+        a.translate(rnd() * p.w, rnd() * p.h);
+        a.scale(30 + rnd() * 50, 30 + rnd() * 50);
+        a.fillStyle = g;
+        a.fillRect(-1, -1, 2, 2);
+        a.restore();
+      }
+      const blades = ['#4f6d31', '#5f7f3a', '#35502a', '#6c8c42', '#2d4424'];
+      a.lineWidth = 1;
+      for (let i = 0; i < 2600; i++) {
+        const x = rnd() * p.w, y = rnd() * p.h;
+        a.strokeStyle = blades[Math.floor(rnd() * blades.length)];
+        a.beginPath();
+        a.moveTo(x, y);
+        a.lineTo(x + (rnd() - 0.5) * 3, y - 2 - rnd() * 4);
+        a.stroke();
+      }
+      for (let i = 0; i < 14; i++) {
+        a.fillStyle = rnd() < 0.6 ? '#e8c832' : '#e9e6da';
+        a.beginPath();
+        a.arc(8 + rnd() * (p.w - 16), 8 + rnd() * (p.h - 16), 1.6, 0, Math.PI * 2);
+        a.fill();
+      }
       break;
+    }
     case 'ballast':
       a.fillStyle = '#4a4540';
       a.fillRect(0, 0, p.w, p.h);
       noise(a, 0, 0, p.w, p.h, 70, 3);
       break;
-    case 'granite':
-      a.fillStyle = '#6d6560';
+    case 'granite': {
+      // granite curb and paving slabs: speckled grey-pink stone, joints every 48 px, chipped edges
+      a.fillStyle = '#6e6862';
       a.fillRect(0, 0, p.w, p.h);
       for (let y = 0; y < p.h; y += 48) {
-        a.fillStyle = 'rgba(0,0,0,0.35)';
-        a.fillRect(0, y, p.w, 3);
+        for (let x = 0; x < p.w; x += 96) {
+          const v = 100 + rnd() * 18;
+          a.fillStyle = `rgb(${v + 4},${v},${v - 3})`;
+          a.fillRect(x + ((y / 48) % 2 ? 48 : 0) + 2, y + 2, 92, 44);
+          a.fillRect(x + ((y / 48) % 2 ? 48 : 0) - 94, y + 2, 92, 44);
+        }
       }
-      noise(a, 0, 0, p.w, p.h, 34, 2);
+      noise(a, 0, 0, p.w, p.h, 46, 1);
       break;
+    }
     case 'water': {
       const g = a.createLinearGradient(0, 0, 0, p.h);
       g.addColorStop(0, '#0c1a24');

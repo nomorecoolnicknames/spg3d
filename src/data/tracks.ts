@@ -36,15 +36,46 @@ const NIGHT_CITY: TrackEnv = {
   wet: true,
 };
 
+/** a clear summer day in a Moscow-region town (owner: Shchyolkovo must be daytime) */
+const DAY_TOWN: TrackEnv = {
+  skyTop: '#3f78c9',
+  skyBottom: '#a9c8e8',
+  horizon: '#e4ecf1',
+  fog: '#b7c8d8',
+  fogDensity: 0.0008,
+  sunColor: '#fff0d6',
+  sunIntensity: 2.6,
+  sunDir: [-0.55, 0.85, -0.35],
+  ambient: 0.85,
+  ambientColor: '#9fb8d4',
+  groundColor: '#5b6048',
+  roadColor: '#2b2c30',
+  curbA: '#c8322b',
+  curbB: '#f1f1f1',
+  barrierColor: '#b9bcc0',
+  neonA: '#00b8e6',
+  neonB: '#ff2d78',
+  stars: false,
+  aurora: false,
+  headlights: false,
+  skyline: false,
+  envIntensity: 0.9,
+  grade: { exposure: 1.0, contrast: 1.05, saturation: 1.06, lift: [0.008, 0.008, 0.012], gain: [1.02, 1.0, 0.97], vignette: 0.22, bloom: 0.22, bloomThreshold: 1.45 },
+  rain: false,
+  snow: false,
+  grip: 1.0,
+  wet: false,
+};
+
 export const TRACKS: TrackSpec[] = [
   {
     id: 'shchyolkovo',
     name: 'Щёлково',
     subtitle: 'Центр · набережная Клязьмы',
-    desc: 'Реальный центр Щёлково ночью: набережная Серафима Саровского с часовней и солнечными часами, розовый Пролетарский мост, 1-й Советский переулок к музею со стелой-гербом, улица Шмидта, пешеходный мост и башня отеля «Премиум».',
+    desc: 'Реальный центр Щёлково днём: набережная Серафима Саровского с часовней и солнечными часами, розовый Пролетарский мост, 1-й Советский переулок к музею со стелой-гербом, улица Шмидта, пешеходный мост и башня отеля «Премиум».',
     theme: 'city',
     map: 'shchyolkovo',
-    envMap: 'neon',
+    envMap: 'day',
     laps: 2,
     roadWidth: 14,
     runoff: 1.2,
@@ -53,7 +84,7 @@ export const TRACKS: TrackSpec[] = [
     rival: 'sqwore',
     lengthHint: shchyolkovo.length,
     points: shchyolkovo.points as [number, number, number][],
-    env: NIGHT_CITY,
+    env: DAY_TOWN,
   },
   {
     id: 'ligovsky',

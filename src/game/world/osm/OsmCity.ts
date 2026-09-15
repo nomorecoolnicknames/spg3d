@@ -3,7 +3,6 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import polygonClipping from 'polygon-clipping';
 import type { TrackData } from '../TrackData';
 import type { Lamp } from '../../render/LampField';
-import { softSpriteTexture } from '../textures';
 import { GeoBuilder, createCityMaterial, type LampSpace } from '../city/kit';
 import type { CellName } from '../city/atlas';
 import { busStop, parkedCars, trafficLight, trees } from '../city/street';
@@ -153,11 +152,14 @@ function facadeFor(style: OsmStyle, kind: number, h: number, footprint: number, 
 export interface OsmCityOptions {
   /** boss courtyard: keep this circle clear (buildings slide out of it) and build only `reach` metres around it */
   arena?: { x: number; z: number; r: number; reach: number };
+  /** night: lit windows, glowing signs and bridge LEDs, light pools under the lamps (default) */
+  night?: boolean;
 }
 
 /** `track` = the race route (pavements, lamps, bridges, signs); null builds the surroundings of an arena */
-export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: { level: 'low' | 'medium' | 'high' }, opts: OsmCityOptions = {}): OsmCityRig {
+export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: { level: 'low' | 'medium' | 'high'; shadows?: boolean }, opts: OsmCityOptions = {}): OsmCityRig {
   seed = 20260915;
+  const night = opts.night ?? true;
   const style = world.style;
   const SEC = world.sector;
   const HALF = track?.halfW ?? 8;
@@ -217,7 +219,8 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
   // ── ground: solid sectors, or the land pieces of sectors that touch water; embankment walls on banks
   const wetSectors = new Map(world.ground.map(([sx, sz, polys]) => [`${sx},${sz}`, polys]));
   const bankCell: CellName = style === 'shch' ? 'concrete' : 'granite';
-  const groundCell: CellName = style === 'shch' ? 'courtyard' : 'pavement';
+  // Shchyolkovo's blocks stand on lawns; the Petersburg and Warsaw centres are paved
+  const groundCell: CellName = style === 'shch' ? 'grass' : 'pavement';
   for (let x = bx0; x < bx1; x += SEC) {
     for (let z = bz0; z < bz1; z += SEC) {
       const sx = Math.round(x / SEC), sz = Math.round(z / SEC);
@@ -312,6 +315,13 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
       const quad = [{ x: a.x + nx - ex, z: a.z + nz - ez }, { x: c.x + nx + ex, z: c.z + nz + ez }, { x: c.x - nx + ex, z: c.z - nz + ez }, { x: a.x - nx - ex, z: a.z - nz - ez }];
       const b = gb((a.x + c.x) / 2, (a.z + c.z) / 2);
       b.flatPoly(quad, [[0, 1, 2], [0, 2, 3]], y, cell, foot ? 3 : 6);
+      if (!(flags & 1)) {
+        // granite kerbs down to the ground (their tops stay flush with the surface, so crossings show no seams)
+        for (const sd of [-1, 1]) {
+          const p0 = v(a.x + nx * sd, GROUND_Y, a.z + nz * sd), p1 = v(c.x + nx * sd, GROUND_Y, c.z + nz * sd);
+          b.quadFacing(v(-uz * sd, 0, ux * sd), p0, p1, v(p1.x, y, p1.z), v(p0.x, y, p0.z), 'granite', [l / 2, 0.15]);
+        }
+      }
       if (flags & 1) {
         // bridge deck edge: a fascia under both sides
         for (const s of [-1, 1]) {
@@ -392,7 +402,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
           const pierH = s.pos.y - 1.2 - (waterY - 1);
           gb(s.pos.x, s.pos.z).box(s.pos.x, s.pos.z, waterY - 1, (HALF + PAVE) * 1.6, 1.6, pierH, heading, { front: { cell: 'concrete', tile: [3, 1] }, back: { cell: 'concrete', tile: [3, 1] }, left: { cell: 'concrete', tile: [0.5, 1] }, right: { cell: 'concrete', tile: [0.5, 1] } });
         }
-        if (pink) {
+        if (pink && night) {
           const pos: number[] = [];
           for (let k = 0; k + 1 < run.length; k++) {
             const a = track.samples[run[k]], c = track.samples[run[k + 1]];
@@ -432,14 +442,44 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     }
     const pole = { cell: 'metalVent' as CellName, tile: [0.1, 2] as [number, number] };
     const head = { cell: 'tunnelCeil' as CellName, tile: [0.1, 0.12] as [number, number], start: [0.45, 0.78] as [number, number] };
+    const plinth = { cell: 'concrete' as CellName, tile: [0.2, 0.3] as [number, number] };
+    const all = <T,>(f: T) => ({ front: f, back: f, left: f, right: f });
     for (const l of lampPosts) {
       const b = gb(l.x, l.z);
       const sm = track.samples[l.i];
-      b.box(l.x, l.z, l.y, 0.28, 0.28, LAMP_H, 0, { front: pole, back: pole, left: pole, right: pole });
-      const ax = -sm.left.x * l.side * 1.6, az = -sm.left.z * l.side * 1.6;
+      // a slim pole on a concrete foot, an arm over the road and a flat «cobra» luminaire
+      b.box(l.x, l.z, l.y, 0.38, 0.38, 0.9, 0, { ...all(plinth), top: plinth });
+      b.box(l.x, l.z, l.y + 0.9, 0.2, 0.2, LAMP_H - 0.9, 0, all(pole));
+      const ux = -sm.left.x * l.side, uz = -sm.left.z * l.side;
       const heading = Math.atan2(sm.tan.x, sm.tan.z);
-      b.box(l.x + ax, l.z + az, l.y + LAMP_H - 0.25, 0.5, 3.2, 0.3, heading + Math.PI / 2, { front: head, back: head, left: head, right: head, top: { cell: 'metalVent', tile: [0.2, 0.2] } });
-      lamps.push({ x: l.x + ax * 1.8, y: l.y + LAMP_H - 0.35, z: l.z + az * 1.8, color: style === 'waw' ? '#ffd9a8' : '#ffc58a', range: 26 });
+      b.box(l.x + ux * 1.0, l.z + uz * 1.0, l.y + LAMP_H - 0.12, 0.09, 2.0, 0.09, heading + Math.PI / 2, { ...all(pole), top: pole });
+      b.box(l.x + ux * 2.2, l.z + uz * 2.2, l.y + LAMP_H - 0.24, 0.38, 0.95, 0.18, heading + Math.PI / 2, { ...all(head), top: { cell: 'metalVent', tile: [0.2, 0.2] } });
+      lamps.push({ x: l.x + ux * 2.9, y: l.y + LAMP_H - 0.35, z: l.z + uz * 2.9, color: style === 'waw' ? '#ffd9a8' : '#ffc58a', range: 26 });
+    }
+    // Shchyolkovo: benches and litter bins at the back of the pavement, halfway between the lamps
+    if (style === 'shch') {
+      const wood = { cell: 'woodWall' as CellName, tile: [0.3, 0.3] as [number, number] };
+      for (let k = 1; ; k++) {
+        const s = k * LAMP_SPACING;
+        if (s > track.length - LAMP_SPACING) break;
+        const i = Math.floor(s / track.spacing) % track.count;
+        const sm = track.samples[i];
+        if (sm.pos.y > 0.05) continue;
+        const side = k % 2 ? 1 : -1;
+        const heading = Math.atan2(sm.tan.x, sm.tan.z);
+        const at = (lat: number, along: number) => ({ x: sm.pos.x + sm.left.x * side * lat + sm.tan.x * along, z: sm.pos.z + sm.left.z * side * lat + sm.tan.z * along });
+        const y = sm.pos.y + CURB;
+        const b = gb(sm.pos.x, sm.pos.z);
+        const seat = at(HALF + PAVE - 0.9, 0), back = at(HALF + PAVE - 0.66, 0);
+        b.box(seat.x, seat.z, y + 0.42, 0.46, 1.8, 0.06, heading, { ...all(wood), top: wood });
+        b.box(back.x, back.z, y + 0.52, 0.06, 1.8, 0.42, heading, { ...all(wood), top: wood });
+        for (const along of [-0.78, 0.78]) {
+          const leg = at(HALF + PAVE - 0.82, along);
+          b.box(leg.x, leg.z, y, 0.5, 0.07, 0.95, heading, { ...all(pole), top: pole });
+        }
+        const bin = at(HALF + PAVE - 0.8, 1.45);
+        b.box(bin.x, bin.z, y, 0.42, 0.42, 0.8, heading, { ...all({ cell: 'garageGreen' as CellName, tile: [0.2, 0.3] as [number, number] }), top: pole });
+      }
     }
   }
 
@@ -706,7 +746,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
   }
 
   // ── merge sectors
-  const { material, uniforms } = createCityMaterial(true);
+  const { material, uniforms } = createCityMaterial(night);
   disposables.push(material);
   let triangles = 0;
   for (const [key, b] of sectors) {
@@ -716,13 +756,15 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     const mesh = new THREE.Mesh(geo, material);
     mesh.name = `osm:${key}`;
     mesh.matrixAutoUpdate = false;
+    // by day the houses throw shadows across the streets (the sun map follows the player's car)
+    mesh.castShadow = mesh.receiveShadow = !night && !!quality.shadows;
     group.add(mesh);
     disposables.push(geo);
   }
 
   // ── trees (OSM trees + park planting) and parked cars along side streets near the route
   {
-    const cap = quality.level === 'high' ? 1400 : quality.level === 'medium' ? 800 : 300;
+    const cap = quality.level === 'high' ? 1400 : quality.level === 'medium' ? 650 : 300;
     const spots: { x: number; y: number; z: number; s: number; d: number }[] = [];
     const clear = HALF + PAVE + 1.5;
     for (let k = 0; k + 1 < world.trees.length; k += 2) {
@@ -751,8 +793,67 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
         got++;
       }
     }
+    // Shchyolkovo's streets are lined with lindens and birches: a row behind each pavement of the route,
+    // wherever no house, street or bridge is in the way (2 m occupancy grid of footprints and streets)
+    if (track && style === 'shch') {
+      const G = 2;
+      const busy = new Set<string>();
+      const mark = (x: number, z: number) => busy.add(`${Math.floor(x / G)},${Math.floor(z / G)}`);
+      for (const bl of world.buildings) {
+        const ring = decode(bl[8]);
+        let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+        for (const p of ring) {
+          x0 = Math.min(x0, p.x);
+          x1 = Math.max(x1, p.x);
+          z0 = Math.min(z0, p.z);
+          z1 = Math.max(z1, p.z);
+        }
+        if (!inReach((x0 + x1) / 2, (z0 + z1) / 2)) continue;
+        for (let x = x0 - G; x <= x1 + G; x += G) for (let z = z0 - G; z <= z1 + G; z += G) if (inside({ x, z }, ring)) for (const [ox, oz] of [[0, 0], [G, 0], [-G, 0], [0, G], [0, -G]]) mark(x + ox, z + oz);
+      }
+      for (const [kind, wdm, , flat] of world.roads) {
+        if (kind >= 5) continue;
+        const line = decode(flat);
+        const hw = wdm / 20 + 1.5;
+        for (let i = 0; i + 1 < line.length; i++) {
+          const a = line[i], c = line[i + 1];
+          const l = Math.hypot(c.x - a.x, c.z - a.z);
+          for (let t = 0; t <= l; t += G) {
+            const px = a.x + ((c.x - a.x) * t) / (l || 1), pz = a.z + ((c.z - a.z) * t) / (l || 1);
+            for (let ox = -hw; ox <= hw; ox += G) for (let oz = -hw; oz <= hw; oz += G) mark(px + ox, pz + oz);
+          }
+        }
+      }
+      // lawns by the route: lindens and shrubs scattered where the ground is free (a jittered 9 m grid)
+      for (let i = 0; i < track.count; i += Math.max(1, Math.round(9 / track.spacing))) {
+        const sm = track.samples[i];
+        for (const side of [-1, 1]) {
+          for (let lat = HALF + PAVE + 9; lat < 70; lat += 9) {
+            if (rnd() < 0.45) continue;
+            const x = sm.pos.x + sm.left.x * side * lat + (rnd() - 0.5) * 7, z = sm.pos.z + sm.left.z * side * lat + (rnd() - 0.5) * 7;
+            if (busy.has(`${Math.floor(x / G)},${Math.floor(z / G)}`) || near(x, z, 3).d < HALF + PAVE + 4) continue;
+            const shrub = rnd() < 0.3;
+            spots.push({ x, y: GROUND_Y, z, s: shrub ? 0.32 + rnd() * 0.15 : 0.7 + rnd() * 0.5, d: lat });
+            mark(x, z);
+          }
+        }
+      }
+      const off = HALF + PAVE + 1.8;
+      const every = Math.max(1, Math.round(9.5 / track.spacing));
+      for (let i = 0; i < track.count; i += every) {
+        const sm = track.samples[i];
+        if (sm.pos.y > 0.3) continue;
+        for (const side of [-1, 1]) {
+          const along = (rnd() - 0.5) * 2;
+          const x = sm.pos.x + sm.left.x * side * (off + rnd() * 0.8) + sm.tan.x * along;
+          const z = sm.pos.z + sm.left.z * side * (off + rnd() * 0.8) + sm.tan.z * along;
+          if (busy.has(`${Math.floor(x / G)},${Math.floor(z / G)}`) || near(x, z, 2).d < off - 0.5) continue;
+          spots.push({ x, y: GROUND_Y, z, s: 0.75 + rnd() * 0.45, d: 0 });
+        }
+      }
+    }
     spots.sort((a, b) => a.d - b.d);
-    const t = trees(spots.slice(0, cap));
+    const t = trees(spots.slice(0, cap), !night && !!quality.shadows);
     group.add(t.mesh);
     disposables.push(t);
 
@@ -783,33 +884,9 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     }
   }
 
-  // ── light pools on the race road under the lamps
-  if (track) {
-    const pools: THREE.BufferGeometry[] = [];
-    for (const l of lampPosts) {
-      const sm = track.samples[l.i];
-      const p = sm.pos.clone().addScaledVector(sm.left, l.side * (HALF - 2.5));
-      const g = new THREE.PlaneGeometry(11, 11);
-      g.rotateX(-Math.PI / 2);
-      g.translate(p.x, sm.pos.y + 0.05, p.z);
-      pools.push(g);
-    }
-    if (pools.length) {
-      const geo = mergeGeometries(pools)!;
-      pools.forEach((p) => p.dispose());
-      const tex = softSpriteTexture(1, 0);
-      const mat = new THREE.MeshBasicMaterial({ map: tex, color: '#ffb25c', transparent: true, opacity: 0.13, depthWrite: false, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -2 });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.renderOrder = 2;
-      mesh.name = 'osm:pools';
-      group.add(mesh);
-      disposables.push(geo, mat, tex);
-    }
-  }
-
   return {
     group,
-    lamps: [...lamps, ...pinkLights],
+    lamps: night ? [...lamps, ...pinkLights] : [],
     walls,
     stats: { sectors: sectors.size, buildings: buildingCount, triangles, lamps: lamps.length },
     update(t: number) {

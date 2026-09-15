@@ -39,6 +39,32 @@ export function curbTexture(a: string, b: string): THREE.CanvasTexture {
 }
 
 /** Concrete barrier with hazard stripes near the top edge. */
+/**
+ * A town railing on a low granite plinth, for city barriers by day (alpha-tested, 4 m per tile along the road,
+ * 1.05 m tall): black steel pickets between two rails, a post at each tile edge.
+ */
+export function railingTexture(): THREE.CanvasTexture {
+  const W = 256, H = 128;
+  const [c, ctx] = canvas(W, H);
+  ctx.clearRect(0, 0, W, H);
+  const steel = '#1f2326';
+  ctx.fillStyle = steel;
+  ctx.fillRect(0, 6, W, 7); // top rail
+  ctx.fillRect(0, 78, W, 5); // bottom rail
+  for (let x = 8; x < W; x += 14) ctx.fillRect(x, 13, 3, 66);
+  ctx.fillRect(0, 0, 9, 104); // posts (the tile edge carries half of each)
+  ctx.fillRect(W - 9, 0, 9, 104);
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(0, 6, W, 2);
+  // plinth
+  ctx.fillStyle = '#8b857e';
+  ctx.fillRect(0, 100, W, 28);
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(0, 100, W, 3);
+  for (let x = 0; x < W; x += 128) ctx.fillRect(x, 100, 2, 28);
+  return finish(c);
+}
+
 export function barrierTexture(base: string, stripeA: string, stripeB: string): THREE.CanvasTexture {
   reseed(23);
   const W = 256, H = 128;

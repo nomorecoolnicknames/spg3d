@@ -143,7 +143,7 @@ export interface TrackSpec {
   /** real-place map built from OpenStreetMap (src/data/maps/<map>.world.json, world/osm/OsmCity.ts) */
   map?: string;
   /** HDRI for reflections (src/assets/env), defaults to the track id */
-  envMap?: 'neon' | 'canyon' | 'aurora' | 'boss' | 'garage';
+  envMap?: 'neon' | 'canyon' | 'aurora' | 'boss' | 'garage' | 'day';
   /** lap length hint for UI (m), computed at build time */
   lengthHint: number;
 }

@@ -26,6 +26,7 @@ import envCanyon from '@/assets/env/canyon.hdr?url';
 import envAurora from '@/assets/env/aurora.hdr?url';
 import envBoss from '@/assets/env/boss.hdr?url';
 import envGarage from '@/assets/env/garage.hdr?url';
+import envDay from '@/assets/env/day.hdr?url';
 import asphaltAlbedoUrl from '@/assets/materials/asphalt_albedo.jpg';
 import asphaltNormalUrl from '@/assets/materials/asphalt_normal.jpg';
 import asphaltRoughUrl from '@/assets/materials/asphalt_rough.jpg';
@@ -64,8 +65,8 @@ const HD_URLS: Record<string, string> = {
 };
 
 /** CC0 HDRIs (scripts/env-maps.sh) — reflections and image-based light; the visible sky is our own */
-export type EnvName = 'neon' | 'canyon' | 'aurora' | 'boss' | 'garage';
-const ENV_URLS: Record<EnvName, string> = { neon: envNeon, canyon: envCanyon, aurora: envAurora, boss: envBoss, garage: envGarage };
+export type EnvName = 'neon' | 'canyon' | 'aurora' | 'boss' | 'garage' | 'day';
+const ENV_URLS: Record<EnvName, string> = { neon: envNeon, canyon: envCanyon, aurora: envAurora, boss: envBoss, garage: envGarage, day: envDay };
 
 const gltfs = new Map<string, GLTF>();
 const textures = new Map<string, THREE.Texture>();

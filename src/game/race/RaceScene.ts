@@ -148,7 +148,9 @@ export class RaceScene implements SceneController {
     this.vp = vp;
     const spec = TRACK_BY_ID[this.params.trackId] ?? TRACKS[0];
     const env = spec.env;
-    const q = vp.quality;
+    // by day shadows carry the picture: on from the medium tier (one 1024 map following the car)
+    const q = !env.headlights && vp.quality.level !== 'low' ? { ...vp.quality, shadows: true } : vp.quality;
+    vp.renderer.shadowMap.enabled = q.shadows;
     this.track = new TrackData(spec);
     this.scene.fog = new THREE.FogExp2(env.fog, env.fogDensity);
     this.scene.background = new THREE.Color(env.fog);
@@ -189,7 +191,7 @@ export class RaceScene implements SceneController {
     this.scene.add(this.mesh.group);
     const world = spec.map ? getMapWorld(spec.map) : undefined;
     const worldT0 = performance.now();
-    const osm = world ? buildOsmCity(this.track, world, q) : null;
+    const osm = world ? buildOsmCity(this.track, world, q, { night: env.headlights }) : null;
     this.props = osm ?? (spec.theme === 'city' ? buildCity(this.track, q) : buildProps(this.track, this.mesh.terrainHeight, { shadows: q.shadows, level: q.level }));
     const worldMs = Math.round(performance.now() - worldT0);
     // QA: how long the world took to build (phones are a few times slower than the headless desktop)
@@ -934,6 +936,7 @@ export class RaceScene implements SceneController {
 
   dispose(): void {
     this.disposed = true;
+    if (this.vp) this.vp.renderer.shadowMap.enabled = this.vp.quality.shadows;
     audio.loop('rain', false);
     audio.loop('wind', false);
     audio.duckMusic(1, 0.5);

@@ -21,6 +21,7 @@ export function createSky(env: TrackEnv, radius = 2400): SkyRig {
     sunDir: { value: new THREE.Vector3(...env.sunDir).normalize() },
     sunColor: { value: new THREE.Color(env.sunColor) },
     skyline: { value: env.skyline ? 1 : 0 },
+    clouds: { value: env.stars || env.headlights ? 0 : 1 },
   };
   const domeMat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
@@ -37,9 +38,19 @@ export function createSky(env: TrackEnv, radius = 2400): SkyRig {
     `,
     fragmentShader: /* glsl */ `
       uniform vec3 topColor, bottomColor, horizonColor, neonA, neonB, sunColor, sunDir;
-      uniform float time, aurora, skyline;
+      uniform float time, aurora, skyline, clouds;
       varying vec3 vDir;
       float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float vnoise(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+      }
+      float fbm(vec2 p) {
+        float s = 0.0, a = 0.5;
+        for (int k = 0; k < 5; k++) { s += a * vnoise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; }
+        return s;
+      }
       void main() {
         float h = vDir.y;
         vec3 col = mix(bottomColor, topColor, smoothstep(0.0, 0.55, h));
@@ -58,6 +69,16 @@ export function createSky(env: TrackEnv, radius = 2400): SkyRig {
           float a1 = smoothstep(0.55, 0.95, band1) * glow;
           float a2 = smoothstep(0.6, 0.98, band2) * glow * 0.7;
           col += neonA * a1 * 0.6 + neonB * a2 * 0.45;
+        }
+        // fair-weather cumulus by day: fbm on a cloud deck, white tops, grey bellies, thinning to the horizon
+        if (clouds > 0.5 && h > 0.0) {
+          vec2 deck = vDir.xz / (h + 0.08) * 1.4 + vec2(time * 0.004, time * 0.0015);
+          float d = fbm(deck);
+          float cover = smoothstep(0.52, 0.72, d) * smoothstep(0.0, 0.18, h);
+          float belly = smoothstep(0.55, 0.9, fbm(deck * 1.9 + 3.1));
+          vec3 cloud = mix(vec3(1.0, 0.99, 0.97), vec3(0.72, 0.76, 0.82), belly * 0.7);
+          cloud += sunColor * pow(max(0.0, dot(vDir, sunDir)), 6.0) * 0.25;
+          col = mix(col, cloud, cover * 0.92);
         }
         // distant city: two silhouette layers along the horizon with lit windows (fog hides real geometry there)
         if (skyline > 0.5 && h < 0.2) {
