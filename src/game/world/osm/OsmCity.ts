@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import polygonClipping from 'polygon-clipping';
 import type { TrackData } from '../TrackData';
 import type { Lamp } from '../../render/LampField';
 import { softSpriteTexture } from '../textures';
@@ -18,11 +19,24 @@ import { getGLTF } from '../../assets';
  * Height layers (m) keep coplanar surfaces apart: ground −0.40, railway land −0.34, parks −0.30,
  * squares −0.26, footways −0.20, streets −0.12, race road 0 (TrackMesh), route pavement +0.15.
  */
+/** a building wall facing an arena: A→B along the ground, n = unit normal towards the yard, h = eaves height */
+export interface YardWall {
+  ax: number;
+  az: number;
+  bx: number;
+  bz: number;
+  nx: number;
+  nz: number;
+  h: number;
+}
+
 export interface OsmCityRig {
   group: THREE.Group;
   update(t: number): void;
   dispose(): void;
   lamps: Lamp[];
+  /** arena mode: walls within 14 m of the rim that face the yard (for wall dressing) */
+  walls: YardWall[];
   stats: { sectors: number; buildings: number; triangles: number; lamps: number };
 }
 
@@ -431,83 +445,116 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
 
   // ── buildings
   let buildingCount = 0;
+  const walls: YardWall[] = [];
+  /**
+   * Around an arena the footprints are cut by the fight circle (plus a 2.5 m margin): a warehouse that crosses
+   * the yard keeps both ends, and its cut walls follow the rim. Holes (a circle inside a courtyard) are dropped.
+   */
+  const cutByArena = (ring: P2[]): P2[][] => {
+    if (!arena) return [ring];
+    const R = arena.r + 2.5;
+    let touches = false;
+    for (let i = 0; i < ring.length && !touches; i++) {
+      const p = ring[i], q = ring[(i + 1) % ring.length];
+      const dx = q.x - p.x, dz = q.z - p.z, l2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((arena.x - p.x) * dx + (arena.z - p.z) * dz) / l2));
+      if (Math.hypot(p.x + dx * t - arena.x, p.z + dz * t - arena.z) < R) touches = true;
+    }
+    if (!touches) return [ring];
+    const snap = (x: number) => Math.round(x * 20) / 20;
+    const SEG = 36;
+    const circle: [number, number][] = Array.from({ length: SEG }, (_, k) => [snap(arena.x + Math.cos((k / SEG) * Math.PI * 2) * R), snap(arena.z + Math.sin((k / SEG) * Math.PI * 2) * R)]);
+    try {
+      const out = polygonClipping.difference([ring.map((p) => [snap(p.x), snap(p.z)] as [number, number])], [circle]);
+      return out
+        .filter((poly) => poly.length === 1)
+        .map((poly) => poly[0].slice(0, -1).map(([x, z]) => ({ x, z })))
+        .filter((r) => r.length >= 3 && Math.abs(area(r)) >= 25)
+        .map((r) => (area(r) < 0 ? r.reverse() : r));
+    } catch {
+      // degenerate input: the whole building goes
+      return [];
+    }
+  };
   for (const bl of world.buildings) {
     const [hdm, mdm, kind, colour, , , landmark, , outerF] = bl;
-    let ring = decode(outerF);
-    if (ring.length < 3) continue;
-    if (area(ring) < 0) ring = ring.reverse();
+    let ring0 = decode(outerF);
+    if (ring0.length < 3) continue;
+    if (area(ring0) < 0) ring0 = ring0.reverse();
     const h = hdm / 10;
     const minH = mdm / 10;
     const base = minH > 0.5 ? minH : GROUND_Y;
-    let cx = 0, cz = 0;
-    for (const p of ring) {
-      cx += p.x;
-      cz += p.z;
+    let cx0 = 0, cz0 = 0;
+    for (const p of ring0) {
+      cx0 += p.x;
+      cz0 += p.z;
     }
-    cx /= ring.length;
-    cz /= ring.length;
-    if (!inReach(cx, cz) && h < 40) continue;
-    if (arena) {
-      // the yard is cleared for the fight: walls inside the circle slide out to its rim
-      if (inArena(cx, cz, -arena.r * 0.15)) continue;
-      const a0 = Math.abs(area(ring));
-      const R = arena.r + 2.5;
-      ring = ring.map((p) => {
-        const dx = p.x - arena.x, dz = p.z - arena.z, d = Math.hypot(dx, dz);
-        return d >= R ? p : { x: arena.x + (dx / (d || 1)) * R, z: arena.z + (dz / (d || 1)) * R };
-      });
-      if (Math.abs(area(ring)) < Math.max(20, a0 * 0.3)) continue;
-    }
-    const fp = Math.abs(area(ring));
-    const fa = facadeFor(style, kind, h, fp, colour, landmark);
-    const b = gb(cx, cz);
-    const bseed = rnd() + (fa.office ? 10 : 0);
-    b.tint = fa.tint;
-    const groundTop = minH > 0.5 || !fa.ground || h < 7 ? base : Math.min(h - 2, fa.groundH);
-    const capBottom = fa.cap && h - groundTop > 6 ? h - fa.capH : h;
-    const nearC = near(cx, cz, 2);
-    for (let i = 0; i < ring.length; i++) {
-      const p = ring[i], q = ring[(i + 1) % ring.length];
-      const dx = q.x - p.x, dz = q.z - p.z, len = Math.hypot(dx, dz);
-      if (len < 0.3) continue;
-      const dir = v(dz / len, 0, -dx / len);
-      let lamp: LampSpace | undefined;
-      if (track && nearC.d < 60) {
-        const ra = near(p.x, p.z, 2), rq = near(q.x, q.z, 2);
-        const mid = near((p.x + q.x) / 2, (p.z + q.z) / 2, 2);
-        if (ra.i >= 0 && rq.i >= 0 && mid.d < 45 && Math.abs(ra.s - rq.s) < len * 1.5 + 4) {
-          const sm = track.samples[mid.i];
-          const toRoad = (sm.pos.x - (p.x + q.x) / 2) * dir.x + (sm.pos.z - (p.z + q.z) / 2) * dir.z;
-          if (toRoad > 0) lamp = { s0: ra.s, s1: rq.s, perp0: Math.abs(mid.lat) - LAMP_OFF, perp1: Math.abs(mid.lat) - LAMP_OFF, spacing: LAMP_SPACING, height: LAMP_H, k: 0.55 };
-        }
+    if (!inReach(cx0 / ring0.length, cz0 / ring0.length) && h < 40) continue;
+    for (const ring of cutByArena(ring0)) {
+      let cx = 0, cz = 0;
+      for (const p of ring) {
+        cx += p.x;
+        cz += p.z;
       }
-      const eseed = bseed + ((i * 0.0713) % 1) * 0.3;
-      const bays = len < fa.bay * 0.75 ? len / fa.bay : Math.max(1, Math.round(len / fa.bay));
-      const band = (y0: number, y1: number, cell: CellName, rows: number) => {
-        if (y1 - y0 < 0.2) return;
-        b.quadFacing(dir, v(p.x, y0, p.z), v(q.x, y0, q.z), v(q.x, y1, q.z), v(p.x, y1, p.z), cell, [bays, rows], eseed, [0, 0], lamp);
-      };
-      if (groundTop > base && fa.groundMix && bays >= 2) {
-        // shop fronts in runs of 1–3 bays along the edge
-        let k = 0;
-        while (k < bays) {
-          const run = Math.min(bays - k, 1 + Math.floor(rnd() * 3));
-          const t0 = k / bays, t1 = (k + run) / bays;
-          const p0 = v(p.x + dx * t0, base, p.z + dz * t0), p1 = v(p.x + dx * t1, base, p.z + dz * t1);
-          const ls = lamp && { ...lamp, s0: lamp.s0 + (lamp.s1 - lamp.s0) * t0, s1: lamp.s0 + (lamp.s1 - lamp.s0) * t1 };
-          b.quadFacing(dir, p0, p1, v(p1.x, groundTop, p1.z), v(p0.x, groundTop, p0.z), pick(fa.groundMix), [run, 1], eseed + k * 0.013, [0, 0], ls);
-          k += run;
+      cx /= ring.length;
+      cz /= ring.length;
+      const fp = Math.abs(area(ring));
+      const fa = facadeFor(style, kind, h, fp, colour, landmark);
+      // the Ligovsky 50 yard is all dark-red brick warehouses
+      if (arena && fa.main === 'brickWin' && h <= 11) fa.main = 'redWin';
+      const b = gb(cx, cz);
+      const bseed = rnd() + (fa.office ? 10 : 0);
+      b.tint = fa.tint;
+      const groundTop = minH > 0.5 || !fa.ground || h < 7 ? base : Math.min(h - 2, fa.groundH);
+      const capBottom = fa.cap && h - groundTop > 6 ? h - fa.capH : h;
+      const nearC = near(cx, cz, 2);
+      for (let i = 0; i < ring.length; i++) {
+        const p = ring[i], q = ring[(i + 1) % ring.length];
+        const dx = q.x - p.x, dz = q.z - p.z, len = Math.hypot(dx, dz);
+        if (len < 0.3) continue;
+        const dir = v(dz / len, 0, -dx / len);
+        if (arena && len > 3 && h > 3) {
+          const mx = (p.x + q.x) / 2, mz = (p.z + q.z) / 2;
+          if (Math.hypot(mx - arena.x, mz - arena.z) < arena.r + 14 && (arena.x - mx) * dir.x + (arena.z - mz) * dir.z > 0) walls.push({ ax: p.x, az: p.z, bx: q.x, bz: q.z, nx: dir.x, nz: dir.z, h });
         }
-      } else if (groundTop > base) band(base, groundTop, fa.ground!, 1);
-      const floors = Math.max(1, Math.round((capBottom - groundTop) / fa.floor));
-      band(groundTop, capBottom, fa.main, floors);
-      if (capBottom < h) band(capBottom, h, fa.cap!, 1);
+        let lamp: LampSpace | undefined;
+        if (track && nearC.d < 60) {
+          const ra = near(p.x, p.z, 2), rq = near(q.x, q.z, 2);
+          const mid = near((p.x + q.x) / 2, (p.z + q.z) / 2, 2);
+          if (ra.i >= 0 && rq.i >= 0 && mid.d < 45 && Math.abs(ra.s - rq.s) < len * 1.5 + 4) {
+            const sm = track.samples[mid.i];
+            const toRoad = (sm.pos.x - (p.x + q.x) / 2) * dir.x + (sm.pos.z - (p.z + q.z) / 2) * dir.z;
+            if (toRoad > 0) lamp = { s0: ra.s, s1: rq.s, perp0: Math.abs(mid.lat) - LAMP_OFF, perp1: Math.abs(mid.lat) - LAMP_OFF, spacing: LAMP_SPACING, height: LAMP_H, k: 0.55 };
+          }
+        }
+        const eseed = bseed + ((i * 0.0713) % 1) * 0.3;
+        const bays = len < fa.bay * 0.75 ? len / fa.bay : Math.max(1, Math.round(len / fa.bay));
+        const band = (y0: number, y1: number, cell: CellName, rows: number) => {
+          if (y1 - y0 < 0.2) return;
+          b.quadFacing(dir, v(p.x, y0, p.z), v(q.x, y0, q.z), v(q.x, y1, q.z), v(p.x, y1, p.z), cell, [bays, rows], eseed, [0, 0], lamp);
+        };
+        if (groundTop > base && fa.groundMix && bays >= 2) {
+          // shop fronts in runs of 1–3 bays along the edge
+          let k = 0;
+          while (k < bays) {
+            const run = Math.min(bays - k, 1 + Math.floor(rnd() * 3));
+            const t0 = k / bays, t1 = (k + run) / bays;
+            const p0 = v(p.x + dx * t0, base, p.z + dz * t0), p1 = v(p.x + dx * t1, base, p.z + dz * t1);
+            const ls = lamp && { ...lamp, s0: lamp.s0 + (lamp.s1 - lamp.s0) * t0, s1: lamp.s0 + (lamp.s1 - lamp.s0) * t1 };
+            b.quadFacing(dir, p0, p1, v(p1.x, groundTop, p1.z), v(p0.x, groundTop, p0.z), pick(fa.groundMix), [run, 1], eseed + k * 0.013, [0, 0], ls);
+            k += run;
+          }
+        } else if (groundTop > base) band(base, groundTop, fa.ground!, 1);
+        const floors = Math.max(1, Math.round((capBottom - groundTop) / fa.floor));
+        band(groundTop, capBottom, fa.main, floors);
+        if (capBottom < h) band(capBottom, h, fa.cap!, 1);
+      }
+      b.tint = [1, 1, 1];
+      const { pts, tris } = triangulate(ring);
+      b.flatPoly(pts, tris, h, fa.roof, 6);
+      if (landmark) landmarkDetails(landmark, ring, cx, cz, h, b);
+      buildingCount++;
     }
-    b.tint = [1, 1, 1];
-    const { pts, tris } = triangulate(ring);
-    b.flatPoly(pts, tris, h, fa.roof, 6);
-    if (landmark) landmarkDetails(landmark, ring, cx, cz, h, b);
-    buildingCount++;
   }
 
   function landmarkDetails(kind: string, ring: P2[], cx: number, cz: number, h: number, b: GeoBuilder): void {
@@ -763,6 +810,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
   return {
     group,
     lamps: [...lamps, ...pinkLights],
+    walls,
     stats: { sectors: sectors.size, buildings: buildingCount, triangles, lamps: lamps.length },
     update(t: number) {
       uniforms.time.value = t;

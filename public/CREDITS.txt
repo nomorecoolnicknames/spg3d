@@ -27,7 +27,10 @@ HDRI-окружения (отражения и освещение): Poly Haven, 
 Ориентиры смоделированы в Blender по фотографиям Wikimedia Commons (фото в игре не используются):
   «Въездной знак на фоне Историко-краеведческого музея» — Vzorets, CC BY-SA 4.0;
   фото набережной и моста в Щёлково — авторы Panoramio/Commons, CC BY / CC BY-SA;
-  «Saint Petersburg Ligovsky Avenue 50 …» (2025-03) — Commons, CC BY 4.0.
+  «Saint Petersburg Ligovsky Avenue 50 …» (2025-03) — Artyom Svetlov, Commons, CC BY 4.0;
+  «Zoccolo 2.0, St Petersburg, Russia, 17.10.2018» — Commons, CC BY-SA 2.0 (двор Лиговского, 50 ночью).
+Образ финального босса — по фото «Madkid 2026.jpg» (JessePinkman, Commons, CC BY 4.0); лицо, каре, свитер
+  и шарф нарисованы процедурно, пиксели фото в игре не используются.
 Герб города Щёлково — официальный символ, общественное достояние (ст. 1259 ГК РФ).
 Шрифт букв стелы — DejaVu Sans Bold (Bitstream Vera License), глифы переведены в геометрию.
 

@@ -16,3 +16,11 @@ https://www.openstreetmap.org/copyright
 ## Reference photos
 
 Landmarks are modelled after photographs on Wikimedia Commons (not redistributed with the game).
+
+- Щёлково: «Въездной знак на фоне Историко-краеведческого музея» — Vzorets, CC BY-SA 4.0; embankment and
+  bridge photos by Panoramio/Commons authors, CC BY / CC BY-SA
+- Ligovsky 50 yard (warehouses, wall dressing): «Saint Petersburg Ligovsky Avenue 50 lit… 2025-03» — Artyom
+  Svetlov, CC BY 4.0; «Zoccolo 2.0, St Petersburg, Russia, 17.10.2018» — CC BY-SA 2.0 (night entrance,
+  floodlights, ducts, canopy with posters)
+- Final boss look: «Madkid 2026.jpg» — JessePinkman, CC BY 4.0 (hair, face, sweater and scarf are modelled
+  procedurally in `src/game/boss/BossMech.ts`; no pixels of the photo are used)

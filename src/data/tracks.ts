@@ -130,16 +130,16 @@ export const TRACKS: TrackSpec[] = [
 
 export const TRACK_BY_ID: Record<string, TrackSpec> = Object.fromEntries(TRACKS.map((t) => [t.id, t]));
 
-/** Boss arena reuses the city environment; geometry is built in BossScene. */
+/** Boss arena: a rainy Petersburg night over the Ligovsky 50 yard (sodium glow on the low clouds, cold moonlight); geometry is built in BossScene. */
 export const BOSS_ENV: TrackEnv = {
-  ...TRACKS[0].env,
-  skyTop: '#0a0208',
-  skyBottom: '#2a0a12',
-  horizon: '#5a1020',
-  fog: '#150609',
+  ...TRACK_BY_ID.ligovsky.env,
+  skyTop: '#06080e',
+  skyBottom: '#121622',
+  horizon: '#3a2b26',
+  fog: '#0c0e13',
   fogDensity: 0.0035,
-  sunColor: '#ff2b4c',
-  sunIntensity: 0.7,
+  sunColor: '#9fb2e0',
+  sunIntensity: 0.45,
   neonA: '#ff003c',
   neonB: '#ffd400',
   rain: true,

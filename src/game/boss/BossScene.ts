@@ -214,6 +214,11 @@ export class BossScene implements SceneController {
     k.bossView = (ang?: unknown, r?: unknown, y?: unknown, lookY?: unknown) => {
       this.debugView = ang === undefined ? null : [Number(ang), Number(r ?? 30), Number(y ?? 10), Number(lookY ?? 10)];
     };
+    // QA: free camera (position, target) and the club door pose
+    k.bossCam = (...v: unknown[]) => {
+      this.debugCam = v.length === 6 ? v.map(Number) : null;
+    };
+    k.arenaDoor = () => this.arena.door;
     this.sendHUD();
     vp.warmup(this.scene, this.camera);
   }
@@ -374,7 +379,18 @@ export class BossScene implements SceneController {
 
   private debugView: [number, number, number, number] | null = null;
 
+  private debugCam: number[] | null = null;
+
   private applyDebugView(): void {
+    const c = this.debugCam;
+    if (c) {
+      this.camera.position.set(c[0], c[1], c[2]);
+      this.camera.lookAt(c[3], c[4], c[5]);
+      this.camera.fov = 50;
+      this.camera.updateProjectionMatrix();
+      this.reticle.visible = false;
+      return;
+    }
     const v = this.debugView;
     if (!v) return;
     const m = this.mech.root.position;
@@ -990,7 +1006,7 @@ export class BossScene implements SceneController {
     this.post?.dispose();
     this.pmrem?.dispose();
     const k = window.__spg.knobs;
-    for (const n of ['setBossHP', 'setPhase', 'skipIntro', 'killMinions', 'godMode', 'bossView']) delete k[n];
+    for (const n of ['setBossHP', 'setPhase', 'skipIntro', 'killMinions', 'godMode', 'bossView', 'bossCam', 'arenaDoor']) delete k[n];
     this.scene.clear();
   }
 }
