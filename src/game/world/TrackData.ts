@@ -45,6 +45,8 @@ export class TrackData {
   readonly halfW: number;
   /** drivable width beyond the road edge (to the wall) */
   readonly runoff: number;
+  /** lateral offset of the barrier's inner face (TrackMesh builds the barrier at halfW + runoff + 0.6, 0.16 thick) */
+  readonly barrierFace: number;
   readonly length: number;
   readonly spacing: number;
   readonly curve: THREE.CatmullRomCurve3;
@@ -53,6 +55,7 @@ export class TrackData {
   constructor(readonly spec: TrackSpec) {
     this.halfW = spec.roadWidth / 2;
     this.runoff = spec.runoff ?? 4.6;
+    this.barrierFace = this.halfW + this.runoff + 0.44;
     const sc = spec.scale ?? 1;
     this.curve = new THREE.CatmullRomCurve3(
       spec.points.map(([x, z, y]) => new THREE.Vector3(x * sc, y, z * sc)),
@@ -147,7 +150,7 @@ export class TrackData {
     }
     this.smoothField('lineOffset', Math.round(18 / this.spacing), 3);
     for (const s of this.samples) s.lineOffset = THREE.MathUtils.clamp(s.lineOffset, -maxOff, maxOff);
-    this.computeSpeedProfile(7.6 * this.spec.env.grip, 9.0, 5.5);
+    this.computeSpeedProfile(10.5 * this.spec.env.grip, 9.5, 5.5);
   }
 
   /** Curvature-limited speeds with backward braking pass and forward acceleration pass. */

@@ -71,10 +71,10 @@ function run(trackIdx: number, carIdx: number, nCars: number): Sim[] {
       }
       s.progress = s.lap * track.count + q.progress;
       // walls
-      const maxLat = track.halfW + track.runoff - s.car.width * 0.5;
+      const qs = track.samples[q.idx];
+      const maxLat = track.barrierFace - s.car.extentAlong(qs.left.x, qs.left.z);
       if (Math.abs(q.lat) > maxLat) {
         const sgn = Math.sign(q.lat);
-        const qs = track.samples[q.idx];
         s.car.x -= qs.left.x * (q.lat - sgn * maxLat);
         s.car.z -= qs.left.z * (q.lat - sgn * maxLat);
         const into = s.car.hitWall(-qs.left.x * sgn, -qs.left.z * sgn);

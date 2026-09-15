@@ -254,7 +254,6 @@ export class RaceScene implements SceneController {
         opaqueGlass: q.level === 'low',
         lod: isPlayer ? (q.level === 'high' ? 0 : 1) : 2,
         underglow: isPlayer && env.headlights ? env.neonA : undefined,
-        trails: isPlayer && q.level !== 'low',
       });
       this.scene.add(vis.root, ...vis.extras);
       const r: Racer = {
@@ -563,7 +562,8 @@ export class RaceScene implements SceneController {
       // projection + walls
       const p = this.track.project(c.x, c.z, r.idx, 14);
       const s = this.track.samples[p.idx];
-      const maxLat = this.track.halfW + this.track.runoff - c.width * 0.5;
+      // the barrier stops the car's rotated footprint, not a point with half a width
+      const maxLat = this.track.barrierFace - c.extentAlong(s.left.x, s.left.z);
       c.scraping = false;
       if (Math.abs(p.lat) > maxLat) {
         const sgn = Math.sign(p.lat);
@@ -573,7 +573,8 @@ export class RaceScene implements SceneController {
         c.scraping = c.speed > 4;
         if (into > 2.5) {
           r.wallHitsThisLap++;
-          const hp = this.tmp.set(c.x + s.left.x * sgn * c.width * 0.5, c.y + 0.4, c.z + s.left.z * sgn * c.width * 0.5);
+          const ext = c.extentAlong(s.left.x, s.left.z);
+          const hp = this.tmp.set(c.x + s.left.x * sgn * ext, c.y + 0.4, c.z + s.left.z * sgn * ext);
           this.sparks.burst(hp, this.tmp2.set(c.forwardX, 0, c.forwardZ), Math.min(40, 6 + into * 2), 6 + into * 0.5);
           if (r.isPlayer) {
             this.cam.shake = Math.min(1, this.cam.shake + into * 0.06);

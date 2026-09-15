@@ -41,6 +41,7 @@ export class CarPhysics {
   private lastGear = 1;
   readonly wheelbase: number;
   readonly width: number;
+  readonly length: number;
   readonly mass: number;
   private readonly a: number;
   private readonly dragK: number;
@@ -54,6 +55,7 @@ export class CarPhysics {
   constructor(readonly spec: CarSpec) {
     this.wheelbase = spec.length * 0.6;
     this.width = spec.length * 0.42;
+    this.length = spec.length;
     this.mass = spec.mass;
     this.a = this.wheelbase * 0.48;
     this.power = spec.power * 1000 * 1.05;
@@ -100,9 +102,15 @@ export class CarPhysics {
 
   /** max front-wheel lock at the current speed (also used by the AI's pure pursuit) */
   maxSteer(v: number): number {
-    const base = 0.55 * this.handling;
-    const s = base / (1 + (v / 28) * (v / 28) * 0.8);
-    return Math.max(0.06 * this.handling, s);
+    // the handling stat shades the lock a little; it used to scale it 1:1 and made the light cars twitchy
+    const k = 0.8 + 0.2 * this.handling;
+    const s = (0.55 * k) / (1 + (v / 28) * (v / 28) * 0.8);
+    return Math.max(0.06 * k, s);
+  }
+
+  /** half the car's footprint measured along the unit direction (nx, nz): the rotated rectangle, not a circle */
+  extentAlong(nx: number, nz: number): number {
+    return (this.length / 2) * Math.abs(this.forwardX * nx + this.forwardZ * nz) + (this.width / 2) * Math.abs(this.leftX * nx + this.leftZ * nz);
   }
 
   /** smoothed steering input −1..1: rate-limited so digital (touch/keyboard) steering is not twitchy */
@@ -139,7 +147,8 @@ export class CarPhysics {
     this.nitroActive = wantNitro && this.nitro > 0;
 
     // --- grip budget ---
-    const aLat = this.muBase * grip * G * 1.08 + 0.0015 * v * v;
+    // arcade grip (NFS-style): ~1.5 g plus downforce, city corners of 20–30 m are taken at 80–100 km/h
+    const aLat = this.muBase * grip * G * 1.45 + 0.002 * v * v;
     const L = this.wheelbase;
 
     // --- longitudinal forces ---
@@ -198,7 +207,8 @@ export class CarPhysics {
       // asking for more than the tyres give: understeer scrubs speed
       scrub = Math.min(3, Math.max(0, Math.abs(omegaKin) / omegaCap - 1) * 2.2) * m;
     } else {
-      const cap = omegaCap * 1.9;
+      // the drift yaw keeps the pre-arcade grip scale: with the higher cornering grip the slide over-rotated to 60°
+      const cap = ((this.muBase * grip * G * 1.08 + 0.0015 * v * v) / Math.max(4, v)) * 1.9;
       // β < 0 while sliding through a left-hander (velocity right of the nose): +β·k yaws the nose back toward the velocity
       omegaT = Math.max(-cap, Math.min(cap, omegaKin * 1.7)) + this.steerIn * 0.45 * sgnV + beta * 0.35;
     }
@@ -270,10 +280,13 @@ export class CarPhysics {
     const rpmClamped = Math.min(1, throttle < 0.05 && v < 2 ? 0.18 : rpmTarget);
     this.rpm += (rpmClamped - this.rpm) * Math.min(1, dt * (this.shiftTimer > 0 ? 30 : 9));
 
-    // body motion: visible squat, dive and roll (lateral accel = v·ω)
+    // body motion: a hint of squat, dive and roll (lateral accel = v·ω). It was ~30° in a hard corner, which read
+    // as the car leaning like a scooter instead of turning; a real car rolls 1–2° per g
     const latAcc = this.vx * this.yawRate;
-    this.pitch += ((-ax * 0.014) - this.pitch) * Math.min(1, dt * 7);
-    this.roll += ((-latAcc * 0.022) - this.roll) * Math.min(1, dt * 7);
+    const pitchT = Math.max(-0.03, Math.min(0.03, -ax * 0.0025));
+    const rollT = Math.max(-0.035, Math.min(0.035, -latAcc * 0.0018));
+    this.pitch += (pitchT - this.pitch) * Math.min(1, dt * 7);
+    this.roll += (rollT - this.roll) * Math.min(1, dt * 7);
   }
 
   /** wall contact along a lateral normal (lx,lz points from wall into the road). Returns impact strength (m/s). */
@@ -308,13 +321,24 @@ export class CarPhysics {
 
   /** elastic-ish push between two cars */
   static collide(a: CarPhysics, b: CarPhysics): number {
-    const dx = b.x - a.x, dz = b.z - a.z;
-    const d2 = dx * dx + dz * dz;
-    const minD = (a.width + b.width) * 0.5 + 0.35;
-    if (d2 >= minD * minD || d2 < 1e-6) return 0;
-    const d = Math.sqrt(d2);
+    // each car is a capsule along its length (radius = half width): nose-to-tail contact is real now,
+    // the old circles of ~1.2 m let 5 m cars drive through each other end-on
+    const reach = (a.length + b.length) * 0.5 + 0.2;
+    if ((b.x - a.x) ** 2 + (b.z - a.z) ** 2 > reach * reach) return 0;
+    const ra = a.width * 0.5, rb = b.width * 0.5;
+    const ha = Math.max(0, a.length * 0.5 - ra), hb = Math.max(0, b.length * 0.5 - rb);
+    const [pa, pb] = closestOnSegments(a.x, a.z, a.forwardX * ha, a.forwardZ * ha, b.x, b.z, b.forwardX * hb, b.forwardZ * hb);
+    let dx = pb[0] - pa[0], dz = pb[1] - pa[1];
+    let d = Math.hypot(dx, dz);
+    const minD = ra + rb + 0.1;
+    if (d >= minD) return 0;
+    if (d < 1e-4) {
+      dx = b.x - a.x;
+      dz = b.z - a.z;
+      d = Math.hypot(dx, dz) || 1;
+    }
     const nx = dx / d, nz = dz / d;
-    const overlap = minD - d;
+    const overlap = minD - Math.min(d, minD);
     const wa = b.mass / (a.mass + b.mass), wb = a.mass / (a.mass + b.mass);
     a.x -= nx * overlap * wa;
     a.z -= nz * overlap * wa;
@@ -338,3 +362,17 @@ export class CarPhysics {
     return -rel;
   }
 }
+
+/** closest points between segments centre ± half-vector (2D, x/z) */
+function closestOnSegments(ax: number, az: number, ux: number, uz: number, bx: number, bz: number, vx: number, vz: number): [[number, number], [number, number]] {
+  // segments P(s) = A + s·U, Q(t) = B + t·V with s, t in [−1, 1]
+  const wx = ax - bx, wz = az - bz;
+  const a = ux * ux + uz * uz, b = ux * vx + uz * vz, c = vx * vx + vz * vz, d = ux * wx + uz * wz, e = vx * wx + vz * wz;
+  const den = a * c - b * b;
+  const clamp = (x: number) => Math.max(-1, Math.min(1, x));
+  let s = den > 1e-9 ? clamp((b * e - c * d) / den) : 0;
+  let t = c > 1e-9 ? clamp((b * s + e) / c) : 0;
+  s = a > 1e-9 ? clamp((b * t - d) / a) : 0;
+  return [[ax + ux * s, az + uz * s], [bx + vx * t, bz + vz * t]];
+}
+
