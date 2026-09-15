@@ -89,6 +89,8 @@ export function installDebug(): void {
       },
       audioState: () => ({ unlocked: audio.unlocked, music: audio.music.state.playing, track: audio.music.state.track.title, time: audio.music.state.time }),
       audioPlay: (name: unknown) => audio.play(name as 'ui-click'),
+      /** the playlist moving on by itself (QA: a later player mount must not jump back) */
+      musicNext: () => audio.music.next(),
       /** render an engine bank and report loudness per layer + the loop seam jump vs the typical sample step */
       engineBank: async (profile: unknown) => {
         const t0 = performance.now();
