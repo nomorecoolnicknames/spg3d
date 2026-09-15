@@ -266,10 +266,15 @@ async function scRace(page, base, track, vp) {
   await shot(page, `race-${track}-45s${vp.tag}`);
   check('raceTime increases (20 s → 45 s)', (s45?.hud?.raceTime ?? 0) > t1, `${t1?.toFixed?.(1)} → ${s45?.hud?.raceTime?.toFixed?.(1)}`);
   if (s20 && s45) {
-    if (s45.fps < 8) note(`fps ${s45.fps} (swiftshader, box load-dependent — informational)`);
-    check(`draw calls ≤ ${BUDGET.calls} (${QUALITY})`, s45.drawCalls <= BUDGET.calls, `calls=${s45.drawCalls}`);
-    check(`triangles ≤ ${BUDGET.tris / 1000}k (${QUALITY})`, s45.triangles <= BUDGET.tris, `tris=${s45.triangles}`);
-    check('geometries stable 20s→45s (±30)', Math.abs(s45.geometries - s20.geometries) <= 30, `${s20.geometries} → ${s45.geometries}`);
+    // a one-lap race can be over by 45 s (the lap ends on the first crossing since bb7c2ca): then the 45 s
+    // snapshot is the results screen, and the budgets come from the 20 s one
+    const racing = s45.hud?.kind === 'race' && !s45.hud?.finished;
+    const late = racing ? s45 : s20;
+    if (!racing) note('race finished before 45 s (sim): budgets sampled at 20 s, geometry stability not measured');
+    if (late.fps < 8) note(`fps ${late.fps} (swiftshader, box load-dependent — informational)`);
+    check(`draw calls ≤ ${BUDGET.calls} (${QUALITY})`, late.drawCalls <= BUDGET.calls, `calls=${late.drawCalls}`);
+    check(`triangles ≤ ${BUDGET.tris / 1000}k (${QUALITY})`, late.triangles <= BUDGET.tris, `tris=${late.triangles}`);
+    if (racing) check('geometries stable 20s→45s (±30)', Math.abs(s45.geometries - s20.geometries) <= 30, `${s20.geometries} → ${s45.geometries}`);
     current.snapshots.at20 = s20;
     current.snapshots.at45 = s45;
   }

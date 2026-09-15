@@ -22,7 +22,7 @@ for (const u of list.split(',').map(Number)) {
   await page.evaluate((x) => window.__spg.knobs.warp?.(x), u);
   await page.waitForTimeout(Number(settle));
   const s = await page.evaluate(() => window.__spg.snapshot());
-  await page.screenshot({ path: `${out}-${u.toFixed(3)}.png` });
+  await page.screenshot({ path: `${out}-${u.toFixed(3)}.png`, timeout: 240000 });
   console.log(u, 'calls', s.drawCalls, 'tris', s.triangles, 'speed', s.hud?.speedKmh);
 }
 console.log('errors', logs.slice(0, 5));
