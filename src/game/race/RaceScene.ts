@@ -51,6 +51,8 @@ interface Racer {
   lastLap: number | null;
   bestLap: number | null;
   finished: boolean;
+  /** the easter-egg flight was used during this lap: it counts, but not as a best lap or record */
+  flewThisLap: boolean;
   finishTime: number | null;
   wallHitsThisLap: number;
   wrongWayT: number;
@@ -260,7 +262,7 @@ export class RaceScene implements SceneController {
         ai: isPlayer ? null : new RacerAI(this.track, skill, this.params.difficulty, 0.4 + Math.random() * 0.5),
         engine: null,
         idx: gridIdx, lat, progress: gridIdx, lap: 0, nextSector: 0, lapStart: 0, lastLap: null, bestLap: null,
-        finished: false, finishTime: null, wallHitsThisLap: 0, wrongWayT: 0, lastGear: 1,
+        finished: false, finishTime: null, wallHitsThisLap: 0, flewThisLap: false, wrongWayT: 0, lastGear: 1,
         input: { steer: 0, throttle: 0, brake: 0, handbrake: false, nitro: false },
         rec: isPlayer && this.params.timeAttack ? new Float32Array(20 * 240 * 4) : null,
         recN: 0,
@@ -345,7 +347,7 @@ export class RaceScene implements SceneController {
       this.viewOverride = a.length >= 6 ? (a.slice(0, 6).map(Number) as [number, number, number, number, number, number]) : null;
     };
     window.__spg.knobs.finishNow = () => {
-      this.player.lap = this.params.laps + 1;
+      this.player.lap = this.params.laps;
       this.player.finished = true;
       this.player.finishTime = this.raceTime;
       this.finishT = 0;
@@ -388,6 +390,9 @@ export class RaceScene implements SceneController {
       const lat = THREE.MathUtils.clamp(p.lat, -this.track.halfW, this.track.halfW);
       r.car.place(s.pos.x + s.left.x * lat, s.pos.z + s.left.z * lat, s.pos.y, this.track.headingAt(p.idx));
       r.lat = lat;
+      // the anti-shortcut sector chain restarts where the car lands, so the next line crossing completes the lap
+      r.nextSector = s.sector + 1;
+      r.flewThisLap = true;
       this.cb.onEvent({ type: 'message', text: S.race.flyOff, tone: 'info' });
     }
   }
@@ -544,6 +549,7 @@ export class RaceScene implements SceneController {
         if (r.finished) r.input.throttle = Math.min(r.input.throttle, 0.4);
       }
       if (r.isPlayer && this.fly) {
+        r.flewThisLap = true;
         this.flyStep(r, dt);
         continue;
       }
@@ -662,43 +668,38 @@ export class RaceScene implements SceneController {
 
   private completeLap(r: Racer): void {
     if (!this.started || r.finished) return;
-    r.lap++;
     const lapTime = this.raceTime - r.lapStart;
-    if (r.lap > 1 || r.lapStart > 0 || this.raceTime > 5) {
-      // first crossing after the start is lap 1 begin only when lap==1 ... we start on the line, so
-      // the first crossing counts as lap 1 completion only if enough time passed
-    }
-    if (r.lap >= 1 && lapTime > 5) {
-      r.lastLap = lapTime;
-      const best = r.bestLap === null || lapTime < r.bestLap;
-      if (best) r.bestLap = lapTime;
-      if (r.isPlayer) {
-        const clean = r.wallHitsThisLap === 0;
-        if (clean) this.cleanLaps++;
-        r.car.nitro = Math.min(100, r.car.nitro + 25);
-        this.cb.onEvent({ type: 'lap', lap: r.lap, total: this.params.laps, lapTime, best });
-        audio.play(best && r.lap > 1 ? 'best-lap' : 'lap');
-        if (this.params.laps > 1 && r.lap === this.params.laps - 1) this.cb.onEvent({ type: 'message', text: S.race.finalLap, tone: 'warn' });
-        // sector bests + ghost
-        if (best) {
-          this.bestSectorTimes = [...this.curSectorTimes];
-          if (r.rec) {
-            this.ghostRec = r.rec.slice(0, r.recN * 4);
-            this.ghostN = r.recN;
-            this.ghostLapTime = lapTime;
-            if (!this.ghost) this.spawnGhost();
-          }
+    // r.lap = laps completed; a crossing seconds after the start is not a lap
+    if (lapTime <= 5) return;
+    r.lap++;
+    r.lastLap = lapTime;
+    const counts = !r.flewThisLap;
+    const best = counts && (r.bestLap === null || lapTime < r.bestLap);
+    if (best) r.bestLap = lapTime;
+    if (r.isPlayer) {
+      const clean = r.wallHitsThisLap === 0;
+      if (clean) this.cleanLaps++;
+      r.car.nitro = Math.min(100, r.car.nitro + 25);
+      this.cb.onEvent({ type: 'lap', lap: r.lap, total: this.params.laps, lapTime, best });
+      audio.play(best && r.lap > 1 ? 'best-lap' : 'lap');
+      if (this.params.laps > 1 && r.lap === this.params.laps - 1) this.cb.onEvent({ type: 'message', text: S.race.finalLap, tone: 'warn' });
+      // sector bests + ghost
+      if (best) {
+        this.bestSectorTimes = [...this.curSectorTimes];
+        if (r.rec) {
+          this.ghostRec = r.rec.slice(0, r.recN * 4);
+          this.ghostN = r.recN;
+          this.ghostLapTime = lapTime;
+          if (!this.ghost) this.spawnGhost();
         }
-        this.curSectorTimes = [];
-        r.recN = 0;
       }
-      r.lapStart = this.raceTime;
-      r.wallHitsThisLap = 0;
-    } else {
-      r.lap = Math.max(1, r.lap);
-      r.lapStart = this.raceTime;
+      this.curSectorTimes = [];
+      r.recN = 0;
     }
-    if (r.lap > this.params.laps && !r.finished) {
+    r.lapStart = this.raceTime;
+    r.wallHitsThisLap = 0;
+    r.flewThisLap = false;
+    if (r.lap >= this.params.laps) {
       r.finished = true;
       r.finishTime = this.raceTime;
       if (r.isPlayer) {
