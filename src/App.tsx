@@ -77,7 +77,7 @@ export default function App() {
         </div>
       )}
       {screen === 'menu' && playerOpen && <MusicWidget docked />}
-      {(screen === 'results' || (inGame && paused)) && <MusicWidget mini />}
+      {screen === 'results' && <MusicWidget mini />}
       <PerfOverlay />
     </>
   );
