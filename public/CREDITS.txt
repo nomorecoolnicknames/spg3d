@@ -13,7 +13,7 @@ CarConcept / ToyCar (Khronos glTF-Sample-Assets):
 
 HDRI-окружения (отражения и освещение): Poly Haven, лицензия CC0
   https://polyhaven.com — shanghai_bund, spruit_sunrise, kloppenheim_02,
-  neuer_zollhof, studio_small_09 (уменьшены scripts/env-maps.sh)
+  neuer_zollhof, studio_small_09, potsdamer_platz (уменьшены scripts/env-maps.sh)
 
 Персонаж Xbot (арена босса): three.js examples (Mixamo), MIT
   https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf
