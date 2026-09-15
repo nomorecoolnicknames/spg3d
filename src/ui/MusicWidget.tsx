@@ -10,8 +10,11 @@ function fmt(t: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-/** Winamp 2.81 — the house player. Restored from settings on mount, collapsible. */
-export function MusicWidget({ mini = false, docked = false }: { mini?: boolean; docked?: boolean }) {
+/** the saved track and play state are restored once per session, not by every widget that mounts */
+let restored = false;
+
+/** Winamp 2.81 — the house player. Restored from settings once, collapsible; `inline` sits inside a panel (pause). */
+export function MusicWidget({ mini = false, docked = false, inline = false }: { mini?: boolean; docked?: boolean; inline?: boolean }) {
   const settings = useStore((s) => s.save.settings);
   const [st, setSt] = useState<MusicState>(audio.music.state);
   const [collapsed, setCollapsed] = useState(mini);
@@ -20,7 +23,10 @@ export function MusicWidget({ mini = false, docked = false }: { mini?: boolean; 
     audio.music.setDsp(settings.dsp);
   }, [settings.dsp]);
   useEffect(() => {
-    // restore track + play state once audio is unlocked
+    // restore track + play state once per session: a widget that mounts later (results, pause, menu) must not
+    // jump back to the saved track while the playlist has moved on during a race
+    if (restored) return;
+    restored = true;
     if (settings.musicPlaying) audio.music.play(settings.musicTrack);
     else audio.music.pause();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -32,7 +38,7 @@ export function MusicWidget({ mini = false, docked = false }: { mini?: boolean; 
   const tr = st.track;
   const title = tr.title ? `${st.index + 1}. ${tr.artist} — ${tr.title}` : '—';
   return (
-    <div className={`wa ${st.playing ? '' : 'paused'} ${collapsed ? 'mini' : ''} ${docked ? 'docked' : ''}`}>
+    <div className={`wa ${st.playing ? '' : 'paused'} ${collapsed ? 'mini' : ''} ${docked ? 'docked' : ''} ${inline ? 'inline' : ''}`}>
       <div className="tb">
         <b>{S.player.title}</b>
         <button onClick={() => setCollapsed(!collapsed)} aria-label="toggle">{collapsed ? '▴' : '▾'}</button>
