@@ -17,6 +17,7 @@ page.on('pageerror', (e) => logs.push(e.message));
 page.on('console', (m) => m.type() === 'error' && logs.push(m.text()));
 await page.goto(`http://localhost:${port}/?screen=boss&auto=1&q=${quality}&maxdt=0.2`, { timeout: 120000 });
 await page.waitForFunction(() => window.__spg?.ready && window.__spg.snapshot()?.hud?.kind === 'boss', null, { timeout: 420000 });
+if (process.env.PHASE) await page.evaluate((ph) => window.__spg.knobs.setPhase?.(Number(ph)), process.env.PHASE);
 const t0 = Date.now();
 for (const sec of list.split(',').map(Number)) {
   const wait = t0 + sec * 1000 - Date.now();

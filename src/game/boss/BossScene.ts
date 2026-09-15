@@ -65,6 +65,8 @@ export class BossScene implements SceneController {
   private rocketMat = new THREE.MeshStandardMaterial({ color: '#d8d8dc', roughness: 0.4, metalness: 0.6 });
   private bossRocketMat = new THREE.MeshStandardMaterial({ color: '#2a2a2e', roughness: 0.5, metalness: 0.7, emissive: '#ff2020', emissiveIntensity: 1.5 });
   private minions: Minion[] = [];
+  /** killed zombies playing their death clip before they are removed */
+  private corpses: { h: Humanoid; t: number }[] = [];
   private pickups: Pickup[] = [];
   private pickupGeo = new THREE.BoxGeometry(0.5, 0.16, 0.16);
   private pickupMat = new THREE.MeshBasicMaterial({ color: '#33ff77', toneMapped: false });
@@ -779,14 +781,30 @@ export class BossScene implements SceneController {
         m.attackT = 0.8;
         this.damagePlayer(6);
       }
+      m.h.play(d < 2.2 ? 'attack' : 'walk');
+    }
+    for (let i = this.corpses.length - 1; i >= 0; i--) {
+      const c = this.corpses[i];
+      c.t -= dt;
+      c.h.update(dt);
+      if (c.t <= 0) {
+        this.scene.remove(c.h.root);
+        c.h.dispose();
+        this.corpses.splice(i, 1);
+      }
     }
   }
 
   private killMinion(m: Minion, loot: boolean): void {
     if (m.dead) return;
     m.dead = true;
-    this.scene.remove(m.h.root);
-    m.h.dispose();
+    if (loot && this.corpses.length < 8) {
+      m.h.play('death', 0.08);
+      this.corpses.push({ h: m.h, t: 1.4 });
+    } else {
+      this.scene.remove(m.h.root);
+      m.h.dispose();
+    }
     if (loot) {
       audio.play('zombie-dead', { gain: 0.6 });
       for (let i = 0; i < 16; i++) this.fire.emit({ x: m.pos.x, y: 1, z: m.pos.z, spread: 0.6, speed: 5, life: 0.6, size0: 0.6, size1: 0.1, color: 0x66ff66 });
@@ -930,6 +948,7 @@ export class BossScene implements SceneController {
     audio.duckMusic(1, 0.5);
     for (const r of this.rockets) this.scene.remove(r.mesh);
     for (const m of this.minions) m.h.dispose();
+    for (const c of this.corpses) c.h.dispose();
     this.fighter.dispose();
     this.mech.dispose();
     this.arena.dispose();

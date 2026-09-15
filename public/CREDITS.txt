@@ -30,3 +30,6 @@ HDRI-окружения (отражения и освещение): Poly Haven, 
   «Saint Petersburg Ligovsky Avenue 50 …» (2025-03) — Commons, CC BY 4.0.
 Герб города Щёлково — официальный символ, общественное достояние (ст. 1259 ГК РФ).
 Шрифт букв стелы — DejaVu Sans Bold (Bitstream Vera License), глифы переведены в геометрию.
+
+Зомби (финальный бой): «Zombie» — Quaternius, лицензия CC0 (https://quaternius.com, poly.pizza/m/VlXjG0N8Eg)
+Дедпул — фанатская Funko-модель из первой версии игры (warhoax/DeadPool-Blender-3D), разрезана на части в Blender

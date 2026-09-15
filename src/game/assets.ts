@@ -18,6 +18,8 @@ import gt40Hd from '@/assets/cars/ford_gt40-hd.glb';
 import bolideHd from '@/assets/cars/bugatti_bolide_2024-hd.glb';
 import xbotUrl from '@/assets/Xbot.glb';
 import xbotLodUrl from '@/assets/Xbot-lod.glb';
+import deadpoolUrl from '@/assets/deadpool.glb';
+import zombieUrl from '@/assets/zombie.glb';
 import madkidFaceUrl from '@/assets/madk1d_face_big.jpg';
 import landmarksUrl from '@/assets/landmarks/landmarks.glb';
 import envNeon from '@/assets/env/neon.hdr?url';
@@ -49,6 +51,9 @@ const MODEL_URLS: Record<string, string> = {
   Xbot: xbotUrl,
   // boss minions: 4k-triangle skin, clips come from Xbot (scripts/simplify-xbot.mjs)
   'Xbot-lod': xbotLodUrl,
+  // the boss-fight hero (scripts/blender/deadpool.py) and the minions (Quaternius «Zombie», CC0)
+  deadpool: deadpoolUrl,
+  zombie: zombieUrl,
 };
 const HD_URLS: Record<string, string> = {
   BMW_2018: bmw2018Hd,
