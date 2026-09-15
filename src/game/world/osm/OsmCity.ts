@@ -521,6 +521,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
   // ── buildings
   let buildingCount = 0;
   const walls: YardWall[] = [];
+  let premiumAt: P2 | null = null;
   /**
    * Around an arena the footprints are cut by the fight circle (plus a 2.5 m margin): a warehouse that crosses
    * the yard keeps both ends, and its cut walls follow the rim. Holes (a circle inside a courtyard) are dropped.
@@ -575,6 +576,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
       cz /= ring.length;
       if (landmark === 'premium') {
         premiumTower(gb(cx, cz), cx, cz);
+        premiumAt = { x: cx, z: cz };
         buildingCount++;
         continue;
       }
@@ -746,6 +748,120 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
       const sm = track.samples[r.i];
       const side = Math.sign(r.lat) || 1;
       busStop(gb, sm.pos.x + sm.left.x * side * (HALF + 3.6), sm.pos.z + sm.left.z * side * (HALF + 3.6), furnitureY(r.i), Math.atan2(-sm.left.x * side, -sm.left.z * side));
+    }
+  }
+
+  // ── zebra crossings where footways cross the route and at signalised junctions
+  if (track) {
+    const at: number[] = [];
+    const consider = (x: number, z: number, reach: number, shift: number) => {
+      const r = near(x, z, 2);
+      if (r.i < 0 || r.d > reach) return;
+      const s = (((r.s + shift) % track.length) + track.length) % track.length;
+      if (s < 25 || s > track.length - 25 || at.some((o) => Math.abs(o - s) < 30)) return;
+      const sm = track.samples[Math.floor(s / track.spacing) % track.count];
+      if (sm.pos.y > 0.3) return;
+      at.push(s);
+    };
+    for (let k = 0; k + 1 < world.signals.length; k += 2) consider(world.signals[k] / 10, world.signals[k + 1] / 10, HALF + 6, -7);
+    for (const [kind, , , flat] of world.roads) {
+      if (kind < 5) continue;
+      const line = decode(flat);
+      for (let i = 0; i + 1 < line.length; i++) {
+        const a = line[i], c = line[i + 1];
+        const l = Math.hypot(c.x - a.x, c.z - a.z);
+        for (let t = 0; t <= l; t += 1.5) {
+          const x = a.x + ((c.x - a.x) * t) / (l || 1), z = a.z + ((c.z - a.z) * t) / (l || 1);
+          if (near(x, z, 1).d < 1.2) consider(x, z, 1.2, 0);
+        }
+      }
+    }
+    if (at.length) {
+      const pos: number[] = [];
+      for (const s of at) {
+        const sm = track.samples[Math.floor(s / track.spacing) % track.count];
+        const y = sm.pos.y + 0.012;
+        for (let lat = -HALF + 0.7; lat < HALF - 0.6; lat += 1.1) {
+          const q = [
+            [lat, -2],
+            [lat + 0.55, -2],
+            [lat + 0.55, 2],
+            [lat, 2],
+          ].map(([u, w]) => [sm.pos.x + sm.left.x * u + sm.tan.x * w, y, sm.pos.z + sm.left.z * u + sm.tan.z * w]);
+          for (const k of [0, 2, 1, 0, 3, 2]) pos.push(...q[k]);
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.computeVertexNormals();
+      // double-sided: the paint is lit the same whichever way the stripe quads wind
+      const m = new THREE.MeshStandardMaterial({ color: '#dcdcd6', roughness: 0.6, metalness: 0, polygonOffset: true, polygonOffsetFactor: -3, side: THREE.DoubleSide });
+      const mesh = new THREE.Mesh(g, m);
+      mesh.name = 'osm:zebras';
+      mesh.receiveShadow = !night && !!quality.shadows;
+      group.add(mesh);
+      disposables.push(g, m);
+    }
+  }
+
+  // ── the fountains in the Klyazma in front of the Premium hotel: jets of spray animated in the vertex shader
+  let fountainTime: { value: number } | null = null;
+  if (premiumAt && world.water.length) {
+    const rings = world.water.flatMap(([, , polys]) => polys.map((poly) => poly.map(decode)));
+    const wet = (x: number, z: number) => rings.some((r) => inside({ x, z }, r[0]) && !r.slice(1).some((hole) => inside({ x, z }, hole)));
+    const f = { x: 0.69, z: 0.72 };
+    let d0 = -1, d1 = -1;
+    for (let d = 20; d < 260; d += 2) {
+      const w = wet(premiumAt.x + f.x * d, premiumAt.z + f.z * d);
+      if (w && d0 < 0) d0 = d;
+      if (!w && d0 >= 0) {
+        d1 = d;
+        break;
+      }
+    }
+    if (d0 >= 0 && d1 > d0) {
+      const mid = (d0 + d1) / 2;
+      const jets = [-9, 9].map((o) => ({ x: premiumAt!.x + f.x * mid + f.z * o, z: premiumAt!.z + f.z * mid - f.x * o }));
+      const per = quality.level === 'low' ? 260 : 700;
+      const pos: number[] = [], seed: number[] = [], vel: number[] = [];
+      for (const j of jets) {
+        for (let k = 0; k < per; k++) {
+          pos.push(j.x, waterY, j.z);
+          seed.push(rnd());
+          const a = rnd() * Math.PI * 2, spread = rnd() * 1.3;
+          vel.push(Math.cos(a) * spread, 11 + rnd() * 3.5, Math.sin(a) * spread);
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute('aSeed', new THREE.Float32BufferAttribute(seed, 1));
+      g.setAttribute('aVel', new THREE.Float32BufferAttribute(vel, 3));
+      fountainTime = { value: 0 };
+      const m = new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        uniforms: { time: fountainTime, tint: { value: new THREE.Color(night ? '#9fb4d8' : '#f4f8ff') } },
+        vertexShader: /* glsl */ `
+          attribute float aSeed; attribute vec3 aVel; uniform float time; varying float vA;
+          void main() {
+            float T = 2.9;
+            float t = fract(time / T + aSeed) * T;
+            vec3 p = position + vec3(aVel.x * t, aVel.y * t - 4.9 * t * t, aVel.z * t);
+            p.y = max(p.y, position.y);
+            vA = smoothstep(0.0, 0.15, t) * (1.0 - smoothstep(2.2, 2.9, t));
+            vec4 mv = modelViewMatrix * vec4(p, 1.0);
+            gl_PointSize = clamp((0.35 + t * 0.25) * 420.0 / -mv.z, 1.0, 48.0);
+            gl_Position = projectionMatrix * mv;
+          }`,
+        fragmentShader: /* glsl */ `
+          uniform vec3 tint; varying float vA;
+          void main() { float d = length(gl_PointCoord - 0.5); gl_FragColor = vec4(tint, smoothstep(0.5, 0.1, d) * vA * 0.32); }`,
+      });
+      const pts = new THREE.Points(g, m);
+      pts.name = 'osm:fountains';
+      pts.frustumCulled = false;
+      group.add(pts);
+      disposables.push(g, m);
     }
   }
 
@@ -980,6 +1096,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     update(t: number) {
       uniforms.time.value = t;
       waterTex?.offset.set(t * 0.012, t * 0.007);
+      if (fountainTime) fountainTime.value = t;
     },
     dispose() {
       for (const d of disposables) d.dispose();
