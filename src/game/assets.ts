@@ -20,7 +20,6 @@ import xbotUrl from '@/assets/Xbot.glb';
 import xbotLodUrl from '@/assets/Xbot-lod.glb';
 import deadpoolUrl from '@/assets/deadpool.glb';
 import zombieUrl from '@/assets/zombie.glb';
-import madkidFaceUrl from '@/assets/madk1d_face_big.jpg';
 import landmarksUrl from '@/assets/landmarks/landmarks.glb';
 import envNeon from '@/assets/env/neon.hdr?url';
 import envCanyon from '@/assets/env/canyon.hdr?url';
@@ -146,18 +145,6 @@ export function loadAllAssets(): Promise<void> {
         );
       }),
   );
-  const tex = new Promise<void>((resolve) => {
-    new THREE.TextureLoader().load(
-      madkidFaceUrl,
-      (t) => {
-        t.colorSpace = THREE.SRGBColorSpace;
-        textures.set('madkidFace', t);
-        resolve();
-      },
-      undefined,
-      () => resolve(),
-    );
-  });
   // tiling surface textures (scripts/materials.sh): data textures, repeat-wrapped, mipmapped
   const surfaces = Object.entries({ asphaltAlbedo: asphaltAlbedoUrl, asphaltNormal: asphaltNormalUrl, asphaltRough: asphaltRoughUrl, puddles: puddlesUrl, rockAlbedo: rockAlbedoUrl, rockNormal: rockNormalUrl }).map(
     ([key, url]) =>
@@ -195,7 +182,7 @@ export function loadAllAssets(): Promise<void> {
         );
       }),
   );
-  loadingPromise = Promise.all([...tasks, tex, ...envs, ...surfaces]).then(() => setProgress(1));
+  loadingPromise = Promise.all([...tasks, ...envs, ...surfaces]).then(() => setProgress(1));
   return loadingPromise;
 }
 

@@ -1,10 +1,9 @@
-import madkidFace from '@/assets/madk1d_face_big.jpg';
-
 export type PortraitId = 'sqwore' | 'glwzbll' | 'prince' | 'madkid';
 
 /**
  * Stylized SVG busts in one consistent style: dark hooded/capped silhouettes with a neon rim
- * light in the rival's accent, on a hexagonal plate. МЭДКИД uses the real bull-terrier logo.
+ * light in the rival's accent, on a hexagonal plate. МЭДКИД is drawn as he looks on stage: platinum bob
+ * with bangs, pale face, septum ring, black oversized sweater and a grey scarf.
  */
 export function Portrait({ id, size = 120, className = 'portrait' }: { id: PortraitId; size?: number; className?: string }) {
   const accent = id === 'sqwore' ? '#9b5de5' : id === 'glwzbll' ? '#3a86ff' : id === 'prince' ? '#e71d36' : '#f5c542';
@@ -31,10 +30,7 @@ export function Portrait({ id, size = 120, className = 'portrait' }: { id: Portr
       <polygon points="60,4 110,32 110,88 60,116 10,88 10,32" fill={`url(#${gid}-bg)`} stroke={accent} strokeOpacity="0.55" strokeWidth="1.5" />
       <g clipPath={`url(#${gid}-clip)`}>
         {id === 'madkid' ? (
-          <>
-            <image href={madkidFace} x="10" y="14" width="100" height="100" preserveAspectRatio="xMidYMid slice" />
-            <rect x="10" y="4" width="100" height="112" fill={`url(#${gid}-rim)`} opacity="0.35" />
-          </>
+          <MadkidBust accent={accent} gid={gid} />
         ) : (
           <Bust id={id} accent={accent} gid={gid} />
         )}
@@ -104,6 +100,63 @@ function Bust({ id, accent, gid }: { id: PortraitId; accent: string; gid: string
       )}
       {/* chin shadow */}
       <path d="M46 62 C 50 72, 70 72, 74 62" fill="none" stroke="#0b0c10" strokeOpacity="0.5" strokeWidth="2" />
+    </g>
+  );
+}
+
+function MadkidBust({ accent, gid }: { accent: string; gid: string }) {
+  const hair = '#e8dec3';
+  const hairShade = '#cbbd98';
+  const skin = '#ecd8cb';
+  return (
+    <g>
+      <radialGradient id={`${gid}-glow`} cx="0.72" cy="0.3" r="0.65">
+        <stop offset="0" stopColor={accent} stopOpacity="0.4" />
+        <stop offset="1" stopColor={accent} stopOpacity="0" />
+      </radialGradient>
+      <rect x="10" y="4" width="100" height="112" fill={`url(#${gid}-glow)`} />
+      {/* black oversized sweater */}
+      <path d="M2 120 C 6 94, 28 84, 60 85 C 92 84, 114 94, 118 120 Z" fill="#141418" />
+      <path d="M60 85 C 92 84, 114 94, 118 120 L 104 120 C 100 100, 84 91, 60 92 Z" fill={accent} opacity="0.16" />
+      {/* neck */}
+      <path d="M52 68 L 68 68 L 69 86 L 51 86 Z" fill="#d6c0b3" />
+      {/* hair mass behind the face */}
+      <path d="M33 52 C 31 28, 45 17, 60 17 C 76 17, 89 28, 87 52 L 90 78 C 80 83, 40 83, 30 78 Z" fill={hairShade} />
+      {/* face */}
+      <path d="M44 42 C 44 34, 76 34, 76 42 L 76 58 C 75 69, 66 77, 60 78 C 54 77, 45 69, 44 58 Z" fill={skin} />
+      {/* sleepy eyes */}
+      <path d="M47.5 55 Q 53 51 58 55 Q 53 57.5 47.5 55 Z" fill="#f3eeea" />
+      <path d="M62 55 Q 67 51 72.5 55 Q 67 57.5 62 55 Z" fill="#f3eeea" />
+      <circle cx="53" cy="55.6" r="1.7" fill="#4d5c68" />
+      <circle cx="67" cy="55.6" r="1.7" fill="#4d5c68" />
+      <path d="M47 55.3 Q 53 50.5 58.5 55.3" fill="none" stroke="#2a2126" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M61.5 55.3 Q 67 50.5 73 55.3" fill="none" stroke="#2a2126" strokeWidth="1.6" strokeLinecap="round" />
+      {/* nose and septum ring */}
+      <path d="M61 57 Q 62.5 62 61.2 64.6" fill="none" stroke="#a9807a" strokeWidth="0.9" />
+      <path d="M58.4 65.6 A 1.7 1.7 0 0 0 61.6 65.6" fill="none" stroke="#e4e8ef" strokeWidth="1" />
+      {/* lips */}
+      <path d="M55 70 Q 57.5 68.6 60 69.4 Q 62.5 68.6 65 70 Q 60 71 55 70 Z" fill="#c29290" />
+      <path d="M55.6 70.3 Q 60 73.6 64.4 70.3 Q 60 71.2 55.6 70.3 Z" fill="#d3a3a1" />
+      {/* bangs with a jagged edge and the side curtains of the bob */}
+      <path d="M39 50 C 38 30, 49 21, 60 21 C 72 21, 82 30, 81 50 L 78 53 L 75.5 47 L 72 52.5 L 68.5 46.5 L 65 51.5 L 61 46 L 57.5 51.5 L 54 46.5 L 50 52 L 46.5 47 L 43 53 Z" fill={hair} />
+      <path d="M39 46 C 37 56, 38 68, 36 80 L 30 78 C 31 64, 32 52, 36 42 Z" fill={hair} />
+      <path d="M39 46 L 44 50 C 44 60, 43 70, 42 80 L 36 80 C 38 68, 37 56, 39 46 Z" fill={hair} />
+      <path d="M81 46 C 83 56, 82 68, 84 80 L 90 78 C 89 64, 88 52, 84 42 Z" fill={hair} />
+      <path d="M81 46 L 76 50 C 76 60, 77 70, 78 80 L 84 80 C 82 68, 83 56, 81 46 Z" fill={hair} />
+      <path d="M48 26 C 45 34, 44 42, 45 48 M 60 22 L 59 46 M 71 26 C 74 34, 76 42, 75 48 M 41 56 L 39 76 M 79 56 L 81 76" fill="none" stroke={hairShade} strokeWidth="0.8" />
+      {/* grey scarf: wrap and the long end on his left */}
+      <path d="M41 84 C 47 77, 73 77, 79 84 C 76 92, 44 92, 41 84 Z" fill="#7b8491" />
+      <path d="M70 87 C 75 96, 77 108, 75 120 L 88 120 C 90 106, 86 94, 80 84 Z" fill="#6c7581" />
+      <g fill="#aeb6c1" opacity="0.75">
+        <circle cx="50" cy="84" r="1" />
+        <circle cx="60" cy="86" r="1" />
+        <circle cx="70" cy="84" r="1" />
+        <circle cx="79" cy="96" r="1" />
+        <circle cx="82" cy="106" r="1" />
+        <circle cx="80" cy="116" r="1" />
+      </g>
+      {/* rim light */}
+      <path d="M84 42 C 88 52, 89 64, 90 78" fill="none" stroke={accent} strokeOpacity="0.55" strokeWidth="1.4" />
     </g>
   );
 }

@@ -11,7 +11,7 @@ import { Humanoid } from './Fighter';
 import { LightPool, ParticlePool, Ring, Shaker } from './fx';
 import { input } from '../input/Input';
 import { audio } from '../audio';
-import { getEnvMap, getTexture } from '../assets';
+import { getEnvMap } from '../assets';
 import { S } from '@/data/strings';
 
 const PHYS_DT = 1 / 120;
@@ -142,7 +142,7 @@ export class BossScene implements SceneController {
     // ?yard=0 builds the old fictional plaza (A/B for QA)
     const yard = new URLSearchParams(location.search).get('yard') !== '0';
     this.arena = buildArena(this.scene, { shadows: q.shadows, low: q.level === 'low' }, yard ? getMapWorld('ligovsky') : undefined);
-    this.mech = new BossMech(getTexture('madkidFace'), q.shadows, q.level === 'low');
+    this.mech = new BossMech(q.shadows, q.level === 'low');
     this.mech.root.position.copy(this.mechPos);
     this.scene.add(this.mech.root);
     this.fighter = new Humanoid('fighter', q.shadows);
@@ -209,6 +209,10 @@ export class BossScene implements SceneController {
     };
     k.godMode = (on: unknown) => {
       this.god = !!on;
+    };
+    // QA close-ups: bossView(angle rad, distance m, camera height, look-at height); bossView() → game camera
+    k.bossView = (ang?: unknown, r?: unknown, y?: unknown, lookY?: unknown) => {
+      this.debugView = ang === undefined ? null : [Number(ang), Number(r ?? 30), Number(y ?? 10), Number(lookY ?? 10)];
     };
     this.sendHUD();
     vp.warmup(this.scene, this.camera);
@@ -333,10 +337,10 @@ export class BossScene implements SceneController {
       p.mesh.rotation.y += dt * 2;
       p.mesh.position.y = 0.6 + Math.sin(this.t * 3 + p.t) * 0.12;
     }
-    // cigar smoke
-    if (Math.random() < dt * 12) {
-      const cp = this.mech.worldPos(this.mech.anchors.cigar, this.tmp);
-      this.smoke.emit({ x: cp.x, y: cp.y, z: cp.z, vy: 1.2, spread: 0.2, speed: 0.6, life: 2.2, size0: 0.3, size1: 1.6, color: 0x8a8a90, fade: 0.35, drag: 0.5 });
+    // breath steam in the cold yard
+    if (Math.random() < dt * 4) {
+      const mp = this.mech.worldPos(this.mech.anchors.mouth, this.tmp);
+      this.smoke.emit({ x: mp.x, y: mp.y, z: mp.z, vy: 0.5, spread: 0.15, speed: 0.9, life: 1.6, size0: 0.25, size1: 1.4, color: 0xc4c8d0, fade: 0.2, drag: 0.8 });
     }
     if (this.post) this.post.grade.bloom = (BOSS_ENV.grade?.bloom ?? DEFAULT_GRADE.bloom) + (this.laserState === 'fire' ? 0.25 : 0);
     this.hudTick(dt);
@@ -365,6 +369,21 @@ export class BossScene implements SceneController {
     this.camera.fov = 50;
     this.camera.updateProjectionMatrix();
     this.reticle.visible = false;
+    this.applyDebugView();
+  }
+
+  private debugView: [number, number, number, number] | null = null;
+
+  private applyDebugView(): void {
+    const v = this.debugView;
+    if (!v) return;
+    const m = this.mech.root.position;
+    const yaw = this.mech.root.rotation.y + v[0];
+    this.camera.position.set(m.x + Math.sin(yaw) * v[1], v[2], m.z + Math.cos(yaw) * v[1]);
+    this.camera.lookAt(m.x, v[3], m.z);
+    this.camera.fov = 40;
+    this.camera.updateProjectionMatrix();
+    this.reticle.visible = false;
   }
 
   private updateCamera(dt: number): void {
@@ -390,6 +409,7 @@ export class BossScene implements SceneController {
     this.reticle.visible = true;
     const d = aim.distanceTo(this.camera.position);
     this.reticle.scale.setScalar(0.03 * d);
+    this.applyDebugView();
   }
 
   /** where the rocket goes: ray from the camera pivot along the view, hitting mech, ground or 60 m */
@@ -970,7 +990,7 @@ export class BossScene implements SceneController {
     this.post?.dispose();
     this.pmrem?.dispose();
     const k = window.__spg.knobs;
-    for (const n of ['setBossHP', 'setPhase', 'skipIntro', 'killMinions', 'godMode']) delete k[n];
+    for (const n of ['setBossHP', 'setPhase', 'skipIntro', 'killMinions', 'godMode', 'bossView']) delete k[n];
     this.scene.clear();
   }
 }
