@@ -22,7 +22,8 @@ export const MAPS = {
       { near: [-36, 297], free: true },
       { near: [-30, 180], on: 'Советская улица' },
       { near: [-150, 45], on: 'улица Шмидта' },
-      { near: [-262, 16], on: 'улица Шмидта' },
+      // a free point: the nearest Shmidta node is 77 m west and the straight leg from it crossed a 15-storey block
+      { near: [-262, 16], free: true },
       // footbridge by the hotel (way 377226856), then along the north bank south of the tower
       { near: [-272, -126], free: true },
       { near: [-262, -160], free: true },

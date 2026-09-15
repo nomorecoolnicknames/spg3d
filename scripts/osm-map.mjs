@@ -546,6 +546,42 @@ if (water.length) {
   }
 }
 
+/** the race corridor as a polygon: every route segment widened to CLEAR on both sides and lengthened to cover
+ *  the joints. Coordinates snap to 5 cm — polygon-clipping loses segments on near-degenerate float overlaps */
+const corridor = (() => {
+  const q5 = (v) => Math.round(v * 20) / 20;
+  const quads = [];
+  const n = route.length;
+  for (let i = 0; i < n; i++) {
+    const a = route[i], b = route[(i + 1) % n];
+    const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1;
+    const nx = (-dz / l) * CLEAR, nz = (dx / l) * CLEAR;
+    const ex = (dx / l) * CLEAR * 0.45, ez = (dz / l) * CLEAR * 0.45;
+    const q = [[a[0] + nx - ex, a[1] + nz - ez], [b[0] + nx + ex, b[1] + nz + ez], [b[0] - nx + ex, b[1] - nz + ez], [a[0] - nx - ex, a[1] - nz - ez]].map((p) => [q5(p[0]), q5(p[1])]);
+    if (ringArea(q) < 0) q.reverse();
+    quads.push([[...q, q[0]]]);
+  }
+  // union in batches: long single sweeps over hundreds of overlapping quads are where the library fails;
+  // a failing batch is retried on a coarser snap (the corridor only has to be right to ~20 cm)
+  const snap = (mp, k) => mp.map((poly) => poly.map((r) => r.map((p) => [Math.round(p[0] * k) / k, Math.round(p[1] * k) / k])));
+  const unite = (a, b) => {
+    for (const k of [20, 10, 5, 2]) {
+      try {
+        return b ? pc.union(snap(a, k), snap(b, k)) : pc.union(...a.map((poly) => snap([poly], k)));
+      } catch {
+        log(`corridor union retry at ${100 / k} cm snap`);
+      }
+    }
+    throw new Error('corridor union failed');
+  };
+  let acc = [];
+  for (let i = 0; i < quads.length; i += 40) {
+    const batch = unite(quads.slice(i, i + 40).map((q) => q[0]).map((r) => [r]));
+    acc = acc.length ? unite(acc, batch) : batch;
+  }
+  return acc;
+})();
+
 // ───────────────────────────── buildings ─────────────────────────────
 
 const STYLE_DEFAULT_LEVELS = {
@@ -632,35 +668,40 @@ for (const b of [...outlines.filter((o) => !hasParts(o.poly[0])), ...parts]) {
   const c = centroid(ring);
   if (!inMask(c[0], c[1]) && h < TALL) continue;
   if (Math.abs(ringArea(ring)) < 12 && h < 20) continue;
-  // keep the race corridor clear: vertices inside it slide out perpendicular to the route
-  const nc = nearestRoute(c[0], c[1]);
-  if (nc.d < CLEAR) {
-    dropped++;
-    continue;
-  }
-  let moved = false;
-  ring = ring.map((p) => {
-    const r = nearestRoute(p[0], p[1]);
-    if (r.d >= CLEAR) return p;
-    moved = true;
-    const dx = p[0] - r.foot[0], dz = p[1] - r.foot[1], dl = Math.hypot(dx, dz) || 1;
-    return [r.foot[0] + (dx / dl) * CLEAR, r.foot[1] + (dz / dl) * CLEAR];
-  });
-  if (moved) {
-    const a0 = Math.abs(ringArea(b.poly[0])), a1 = Math.abs(ringArea(ring));
-    if (a1 < a0 * 0.35 || a1 < 12) {
-      dropped++;
-      continue;
-    }
-    pushed++;
-  }
-  // counter-clockwise in x/z (positive area) so wall normals point outward consistently
-  if (ringArea(ring) < 0) ring = [...ring].reverse();
-  const holes = moved ? [] : b.poly.slice(1).map((hr) => (ringArea(hr) > 0 ? [...hr].reverse() : hr));
+  // keep the race corridor clear: the footprint minus the corridor polygon. Moving only the vertices left
+  // walls between two vertices on opposite sides of the road standing across it (arches, L-blocks)
   const colour = t['building:colour'] ?? t['colour'] ?? '';
-  buildings.push([dm(h), dm(minH), kindOf(t), colour, nameIdx(t.name), levels ?? -1, lm.style ?? '', e.id, flat(ring), ...holes.map(flat)]);
+  let reach = 0;
+  for (const p of ring) reach = Math.max(reach, dist(p, c));
+  let pieces = [[ring, ...b.poly.slice(1)]];
+  if (nearestRoute(c[0], c[1], Math.ceil((reach + CLEAR) / RH) + 1).d < reach + CLEAR + 2) {
+    let cut;
+    try {
+      cut = pc.difference([[...ring, ring[0]]], corridor);
+    } catch {
+      const r5 = ring.map((p) => [Math.round(p[0] * 20) / 20, Math.round(p[1] * 20) / 20]);
+      cut = pc.difference([[...r5, r5[0]]], corridor);
+    }
+    const a0 = Math.abs(ringArea(ring));
+    const kept = cut.map((poly) => poly.map(openRing)).filter((poly) => Math.abs(ringArea(poly[0])) >= Math.max(12, a0 * 0.08));
+    if (kept.length === 1 && Math.abs(Math.abs(ringArea(kept[0][0])) - a0) < 0.5) pieces = [[kept[0][0], ...b.poly.slice(1)]];
+    else {
+      if (!kept.length) {
+        dropped++;
+        continue;
+      }
+      pushed++;
+      pieces = kept;
+    }
+  }
+  for (const piece of pieces) {
+    // counter-clockwise in x/z (positive area) so wall normals point outward consistently
+    const outer = ringArea(piece[0]) < 0 ? [...piece[0]].reverse() : piece[0];
+    const holes = piece.slice(1).map((hr) => (ringArea(hr) > 0 ? [...hr].reverse() : hr));
+    buildings.push([dm(h), dm(minH), kindOf(t), colour, nameIdx(t.name), levels ?? -1, lm.style ?? '', e.id, flat(outer), ...holes.map(flat)]);
+  }
 }
-log(`buildings: ${buildings.length} (${parts.length} parts), ${pushed} pushed out of the corridor, ${dropped} dropped`);
+log(`buildings: ${buildings.length} (${parts.length} parts), ${pushed} cut by the corridor, ${dropped} dropped`);
 
 // ───────────────────────────── streets, areas, rails, points ─────────────────────────────
 
@@ -775,6 +816,28 @@ const signs = (cfg.signs ?? []).map((sg) => {
   if (ringArea(ring) < 0) ring = [...ring].reverse();
   return [sg.text, sg.color ?? '#ffffff', dm(Math.min(h, sg.maxY ?? 40)), flat(ring)];
 });
+
+// verification: no wall of any building may reach into the race road (edges sampled every metre)
+{
+  let bad = 0;
+  for (const bl of buildings) {
+    const f = bl[8];
+    const k = f.length / 2;
+    for (let i = 0; i < k && bad < 20; i++) {
+      const x0 = f[2 * i] / 10, z0 = f[2 * i + 1] / 10, x1 = f[(2 * (i + 1)) % f.length] / 10, z1 = f[(2 * (i + 1) + 1) % f.length] / 10;
+      const steps = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0)));
+      let hit = false;
+      for (let j = 0; j <= steps && !hit; j++) hit = nearestRoute(x0 + ((x1 - x0) * j) / steps, z0 + ((z1 - z0) * j) / steps).d < HALF + PAVEMENT - 0.5;
+      if (hit) {
+        bad++;
+        log(`ERROR: building ${bl[7]} reaches into the race road near ${Math.round(x0)},${Math.round(z0)}`);
+        break;
+      }
+    }
+  }
+  if (bad) process.exit(3);
+  log('check: no building reaches into the race road');
+}
 
 const outDir = new URL('../src/data/maps/', import.meta.url);
 mkdirSync(outDir, { recursive: true });
