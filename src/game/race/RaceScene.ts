@@ -204,7 +204,8 @@ export class RaceScene implements SceneController {
       this.lampField = new LampField(lamps);
       if (this.lampField.halos) this.scene.add(this.lampField.halos);
     }
-    if (env.rain || env.snow) {
+    // ?weather=0: no rain/snow particles (QA frame comparisons)
+    if ((env.rain || env.snow) && new URLSearchParams(location.search).get('weather') !== '0') {
       this.weather = createWeather(env.rain ? 'rain' : 'snow', q.level === 'low' ? 350 : 1600);
       this.scene.add(this.weather.group);
     }

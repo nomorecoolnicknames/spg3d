@@ -251,7 +251,9 @@ varying vec4 vLamp;
 varying float vLampUp;
 varying float vSeed;
 varying vec3 vTint;
-float cityHash(vec2 p) { return fract(sin(dot(p, vec2(41.37, 289.91))) * 43758.5453); }
+// sine-free hash (Hoskins): fract(sin(big)·43758) turned the interpolation error of vTile / aSeed into
+// per-pixel noise inside lit windows, which crawled as the camera moved
+float cityHash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 vec4 cityEmis;`,
       )
       .replace(
@@ -276,9 +278,10 @@ vec4 cityEmis;`,
 	{
 		// aSeed = random in [0,1) (+10 on office curtain walls: whole floors light together, dimmer)
 		float office = step(9.5, vSeed);
-		float sd = fract(vSeed);
-		vec2 wid = floor(vTile) + vec2(sd * 131.0, sd * 71.0);
-		wid.x = mix(wid.x, sd * 131.0, office);
+		// the seed is constant per quad but interpolates with rounding error: snap it before hashing
+		float sd = floor(fract(vSeed) * 4096.0 + 0.5) / 4096.0;
+		vec2 wid = floor(vTile) + floor(vec2(sd * 131.0, sd * 71.0) + 0.5);
+		wid.x = mix(wid.x, floor(sd * 131.0 + 0.5), office);
 		float h = cityHash(wid);
 		float lit = step(h, litRatio * mix(1.0, 0.7, office));
 		vec3 warm = mix(vec3(1.0, 0.72, 0.42), vec3(1.0, 0.86, 0.62), cityHash(wid + 7.1));

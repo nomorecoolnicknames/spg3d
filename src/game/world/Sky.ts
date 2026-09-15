@@ -116,11 +116,13 @@ export function createSky(env: TrackEnv, radius = 2400): SkyRig {
       uniforms: { time: uniforms.time },
       vertexShader: /* glsl */ `
         attribute float size; varying float vA; uniform float time;
-        void main(){ vA = 0.55 + 0.45 * sin(time * 1.7 + position.x * 0.01 + position.z * 0.013);
-          vec4 mv = modelViewMatrix * vec4(position,1.0); gl_PointSize = size * 1.4; gl_Position = projectionMatrix * mv; }`,
+        // points under ~2.5 px pop in and out as the camera moves (they read as flicker): keep them at least
+        // 2.5 px wide with a soft edge, dim the small ones instead, and let them breathe slowly
+        void main(){ vA = (0.8 + 0.2 * sin(time * 0.6 + position.x * 0.01 + position.z * 0.013)) * min(1.0, size * 0.45);
+          vec4 mv = modelViewMatrix * vec4(position,1.0); gl_PointSize = max(2.5, size * 1.4); gl_Position = projectionMatrix * mv; }`,
       fragmentShader: /* glsl */ `
-        varying float vA; void main(){ vec2 c = gl_PointCoord - 0.5; float d = length(c); if (d > 0.5) discard;
-          gl_FragColor = vec4(0.82, 0.88, 1.0, (1.0 - d * 2.0) * vA); }`,
+        varying float vA; void main(){ float d = length(gl_PointCoord - 0.5);
+          gl_FragColor = vec4(0.82, 0.88, 1.0, smoothstep(0.5, 0.0, d) * vA); }`,
     });
     stars = new THREE.Points(geo, mat);
     stars.frustumCulled = false;
