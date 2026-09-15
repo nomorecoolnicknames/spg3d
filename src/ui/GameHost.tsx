@@ -22,6 +22,8 @@ export function GameHost() {
   const screen = useStore((s) => s.screen);
   const sessionKey = useStore((s) => s.sessionKey);
   const garageCar = useStore((s) => s.garageCar);
+  // the paint of the car on the showcase: picking a swatch must repaint it right away
+  const showcasePaint = useStore((s) => s.save.colors[s.screen === 'garage' ? s.garageCar : s.save.selectedCar]);
   const paused = useStore((s) => s.paused);
   const settings = useStore((s) => s.save.settings);
   const showcaseRef = useRef<ShowcaseScene | null>(null);
@@ -118,6 +120,14 @@ export function GameHost() {
       showcaseRef.current.show(carId, color ?? '', screen === 'garage' ? 'garage' : 'menu');
     }
   }, [screen, sessionKey, garageCar]);
+
+  useEffect(() => {
+    // repaint only: the effect above would rebuild a race scene if it re-ran on a paint change
+    if (!SHOWCASE_SCREENS.has(screen) || !showcaseRef.current) return;
+    const carId = screen === 'garage' ? garageCar : getState().save.selectedCar;
+    showcaseRef.current.show(carId, showcasePaint ?? '', screen === 'garage' ? 'garage' : 'menu');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showcasePaint]);
 
   useEffect(() => {
     viewport.getController()?.setPaused?.(paused);
