@@ -21,6 +21,9 @@ export interface RoadMaterialOptions {
 
 let marksTex: THREE.CanvasTexture | null = null;
 
+/** clock for the rain ripples in the puddles (RaceScene advances it) */
+export const roadTime = { value: 0 };
+
 /** R = paint mask, G = paint wear. 256×1024 across one road width, tiles along v (one repeat ≈ road width). */
 function markingsTexture(): THREE.CanvasTexture {
   if (marksTex) return marksTex;
@@ -70,9 +73,10 @@ export function createRoadMaterial(env: TrackEnv, opts: RoadMaterialOptions): TH
     wetness: { value: opts.wetness },
   };
   const useNormal = !opts.low && !!normal;
-  mat.defines = { ...(mat.defines ?? {}), USE_UV: '', ...(useNormal ? { ROAD_NORMAL: '' } : {}), ...(opts.lamps ? { ROAD_LAMPS: '' } : {}) };
+  const rain = env.rain && opts.wetness > 0;
+  mat.defines = { ...(mat.defines ?? {}), USE_UV: '', ...(useNormal ? { ROAD_NORMAL: '' } : {}), ...(opts.lamps ? { ROAD_LAMPS: '' } : {}), ...(rain ? { ROAD_RAIN: '' } : {}) };
   mat.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, uniforms, lampUniforms);
+    Object.assign(sh.uniforms, uniforms, lampUniforms, { spgRoadTime: roadTime });
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec2 vRoadW;\nvarying vec3 vRoadP;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n\tvRoadP = (modelMatrix * vec4(transformed, 1.0)).xyz;\n\tvRoadW = vRoadP.xz;');
@@ -88,9 +92,31 @@ uniform sampler2D tAlbedo, tRough, tPuddle, tMarks;
 uniform sampler2D tNormal;
 #endif
 uniform vec3 roadTint, lineColor;
-uniform float wetness;
+uniform float wetness, spgRoadTime;
 float roadPuddle;
-float roadPaint;`,
+float roadPaint;
+float roadRough;
+vec2 roadRipple = vec2(0.0);
+#ifdef ROAD_RAIN
+float rHash(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+// raindrops hitting the puddles: in each ~0.5 m cell a ring grows and fades at its own rate; returns the slope
+vec2 rainRipples(vec2 w) {
+	vec2 g = vec2(0.0);
+	for (int k = 0; k < 2; k++) {
+		vec2 p = w * 2.1 + float(k) * vec2(0.5, 0.37);
+		vec2 cell = floor(p);
+		vec2 f = fract(p);
+		float r = rHash(cell + float(k) * 11.0);
+		float life = fract(spgRoadTime * (0.8 + 0.7 * r) + r * 5.3);
+		vec2 c = vec2(0.25) + 0.5 * vec2(rHash(cell + 3.1), rHash(cell + 7.7));
+		vec2 d = f - c;
+		float dist = length(d);
+		float ring = exp(-pow((dist - life * 0.42) * 30.0, 2.0)) * (1.0 - life) * (1.0 - life);
+		g += d / (dist + 1e-3) * ring;
+	}
+	return g;
+}
+#endif`,
       )
       .replace(
         '#include <map_fragment>',
@@ -106,7 +132,8 @@ float roadPaint;`,
       )
       .replace(
         '#include <roughnessmap_fragment>',
-        `float roughnessFactor = 0.62 + 0.3 * texture2D(tRough, wuv).r;
+        `roadRough = texture2D(tRough, wuv).r;
+	float roughnessFactor = 0.62 + 0.3 * roadRough;
 	roughnessFactor = mix(roughnessFactor, 0.5, roadPaint);
 	roughnessFactor *= 1.0 - 0.3 * wetness;
 	roughnessFactor = mix(roughnessFactor, 0.14, roadPuddle);`,
@@ -121,6 +148,13 @@ float roadPaint;`,
 		float k = (1.0 - roadPuddle) * 0.8;
 		vec3 nW = normalize(vec3(tn.x * k, 1.0, -tn.y * k));
 		normal = normalize((viewMatrix * vec4(nW, 0.0)).xyz);
+	}
+#endif
+#ifdef ROAD_RAIN
+	{
+		roadRipple = rainRipples(vRoadW) * roadPuddle;
+		vec3 nR = normalize(vec3(roadRipple.x * 0.8, 1.0, -roadRipple.y * 0.8));
+		normal = normalize(mix(normal, (viewMatrix * vec4(nR, 0.0)).xyz, roadPuddle));
 	}
 #endif`,
       )
@@ -138,7 +172,8 @@ float roadPaint;`,
 		// left a black road with only lamp streaks — the brown sheet was mostly env specular at grazing angles)
 		reflectedLight.indirectSpecular *= 0.12;
 		vec3 V = normalize(cameraPosition - vRoadP);
-		vec3 R = reflect(-V, vec3(0.0, 1.0, 0.0));
+		// (raindrop rings in the puddles shake the lamp streaks too)
+		vec3 R = reflect(-V, normalize(vec3(roadRipple.x * 0.8, 1.0, -roadRipple.y * 0.8)));
 		vec3 side = normalize(cross(vec3(0.0, 1.0, 0.0), vec3(R.x, 0.0, R.z) + vec3(1e-4, 0.0, 0.0)));
 		float wet = mix(0.1, 1.0, max(wetness * 0.6, roadPuddle));
 		float fres = 0.04 + 0.96 * pow(1.0 - clamp(V.y, 0.0, 1.0), 5.0);
@@ -149,7 +184,9 @@ float roadPaint;`,
 			vec3 L = Lw / dist;
 			float dh = dot(L - R, side);
 			float dv = L.y - R.y;
-			float lobe = exp(-dh * dh / 0.0012 - dv * dv / 0.08);
+			// a clean streak only in puddles; on wet asphalt the reflection spreads wider and breaks up on the grain
+			float lobeW = mix(0.005, 0.0012, roadPuddle), lobeL = mix(0.035, 0.08, roadPuddle);
+			float lobe = exp(-dh * dh / lobeW - dv * dv / lobeL) * mix(0.25 + 0.75 * smoothstep(0.35, 0.65, 1.0 - roadRough), 1.0, roadPuddle) * mix(0.45, 1.0, roadPuddle);
 			float near = 1.0 / (1.0 + dist * dist * 0.0009);
 			float pool = 1.0 - smoothstep(0.0, spgLampPos[i].w * 0.5, length(Lw.xz));
 			reflectedLight.directSpecular += spgLampCol[i] * lobe * wet * (0.3 + fres) * near * 1.6;
@@ -159,6 +196,6 @@ float roadPaint;`,
 #endif`,
       );
   };
-  mat.customProgramCacheKey = () => `spg-road${useNormal ? '-n' : ''}${opts.lamps ? '-l' : ''}`;
+  mat.customProgramCacheKey = () => `spg-road${useNormal ? '-n' : ''}${opts.lamps ? '-l' : ''}${rain ? '-r' : ''}`;
   return mat;
 }

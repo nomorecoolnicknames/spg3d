@@ -14,6 +14,7 @@ import { getEnvMap, type EnvName } from '../assets';
 import { buildCity } from '../world/city/City';
 import { buildOsmCity } from '../world/osm/OsmCity';
 import { LampField } from '../render/LampField';
+import { roadTime } from '../world/RoadMaterial';
 import { CarGlows } from '../render/CarGlows';
 import { buildCanyonFeatures } from '../world/features/Canyon';
 import { buildAlpineFeatures } from '../world/features/Alpine';
@@ -481,6 +482,7 @@ export class RaceScene implements SceneController {
     this.sun.position.set(pp.x, pp.y, pp.z).addScaledVector(this.tmp.set(...this.track.spec.env.sunDir).normalize(), 220);
     this.sun.target.position.set(pp.x, pp.y, pp.z);
     this.sky.update(this.elapsed);
+    roadTime.value = this.elapsed;
     if (this.lampField) {
       // the lamps that matter are the ones just ahead of the camera
       const cam = this.cam.camera;
@@ -750,14 +752,15 @@ export class RaceScene implements SceneController {
           this.smoke.emit(p, v, 0.45 + cc.slip * 0.4, 1.0 + Math.random() * 0.6);
         }
       }
-      if (rr.isPlayer) {
-        if (slipping || (cc.wheelspin > 0.3 && cc.speed > 2)) {
-          const bl = this.tmp.set(cc.x - cc.forwardX * cc.wheelbase * 0.5 + cc.leftX * cc.width * 0.45, cc.y, cc.z - cc.forwardZ * cc.wheelbase * 0.5 + cc.leftZ * cc.width * 0.45);
-          const br = this.tmp2.set(cc.x - cc.forwardX * cc.wheelbase * 0.5 - cc.leftX * cc.width * 0.45, cc.y, cc.z - cc.forwardZ * cc.wheelbase * 0.5 - cc.leftZ * cc.width * 0.45);
-          this.skids.add(bl, br, Math.min(1, cc.slip + cc.wheelspin));
-        } else this.skids.add(null, null);
-      }
+      // every car leaves marks when it slides or spins its wheels
+      const key = this.racers.indexOf(rr);
+      if (slipping || (cc.wheelspin > 0.3 && cc.speed > 2)) {
+        const bl = this.tmp.set(cc.x - cc.forwardX * cc.wheelbase * 0.5 + cc.leftX * cc.width * 0.42, cc.y, cc.z - cc.forwardZ * cc.wheelbase * 0.5 + cc.leftZ * cc.width * 0.42);
+        const br = this.tmp2.set(cc.x - cc.forwardX * cc.wheelbase * 0.5 - cc.leftX * cc.width * 0.42, cc.y, cc.z - cc.forwardZ * cc.wheelbase * 0.5 - cc.leftZ * cc.width * 0.42);
+        this.skids.add(bl, br, Math.min(1, cc.slip + cc.wheelspin), key);
+      } else this.skids.add(null, null, 0, key);
     }
+    this.skids.tick(dt);
   }
 
   private flyStep(r: Racer, dt: number): void {

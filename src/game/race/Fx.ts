@@ -122,84 +122,121 @@ export class Sparks {
   }
 }
 
-/** Skid marks as a ring buffer of quads in one geometry (per wheel pair). */
+/**
+ * Tyre marks: one continuous strip per wheel (each quad starts on the previous quad's end edge, so bends have
+ * no wedges or doubled alpha), a soft rubber profile across the tyre, block tread and grain along it, darker
+ * where the slip was harder, fading out over ~40 s. Ring buffer of quads in one geometry; `key` separates cars.
+ */
 export class SkidMarks {
   readonly mesh: THREE.Mesh;
   private geo: THREE.BufferGeometry;
   private pos: Float32Array;
-  private alpha: Float32Array;
+  private data: Float32Array; // across (0|1), along (m), strength, birth time
   private head = 0;
-  private last: { l: THREE.Vector3; r: THREE.Vector3 } | null = null;
-  private mat: THREE.ShaderMaterial;
-  constructor(private max = 600) {
+  private strips = new Map<number, { p: THREE.Vector3; e0: THREE.Vector3; e1: THREE.Vector3; along: number; s: number }[]>();
+  private time = 0;
+  private uniforms = { time: { value: 0 }, color: { value: new THREE.Color('#09090b') } };
+  private readonly half = 0.13;
+  constructor(private max = 1400) {
     this.pos = new Float32Array(max * 4 * 3);
-    this.alpha = new Float32Array(max * 4);
+    this.data = new Float32Array(max * 4 * 4);
     this.geo = new THREE.BufferGeometry();
     this.geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
-    this.geo.setAttribute('alpha', new THREE.BufferAttribute(this.alpha, 1));
+    this.geo.setAttribute('mark', new THREE.BufferAttribute(this.data, 4));
     const idx: number[] = [];
     for (let i = 0; i < max; i++) {
       const a = i * 4;
       idx.push(a, a + 1, a + 2, a, a + 2, a + 3);
     }
     this.geo.setIndex(idx);
-    this.mat = new THREE.ShaderMaterial({
+    const mat = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
       polygonOffset: true,
       polygonOffsetFactor: -2,
-      uniforms: { color: { value: new THREE.Color('#0a0a0c') } },
-      vertexShader: 'attribute float alpha; varying float vA; void main(){ vA = alpha; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: 'uniform vec3 color; varying float vA; void main(){ gl_FragColor = vec4(color, vA * 0.55); }',
+      uniforms: this.uniforms,
+      vertexShader: /* glsl */ `
+        attribute vec4 mark; varying vec4 vM;
+        void main(){ vM = mark; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: /* glsl */ `
+        uniform vec3 color; uniform float time; varying vec4 vM;
+        float h(vec2 p){ vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+        void main(){
+          float u = vM.x, v = vM.y;
+          float profile = smoothstep(0.0, 0.22, u) * smoothstep(1.0, 0.78, u);
+          float tread = 0.72 + 0.28 * step(0.45, fract(v * 5.0 + step(0.5, u) * 0.5)) * step(0.12, abs(u - 0.5));
+          float grain = 0.8 + 0.2 * h(floor(vec2(u * 18.0, v * 40.0)));
+          float age = clamp(1.0 - (time - vM.w) / 40.0, 0.0, 1.0);
+          gl_FragColor = vec4(color, profile * tread * grain * age * (0.25 + 0.5 * vM.z));
+        }`,
     });
-    this.mesh = new THREE.Mesh(this.geo, this.mat);
+    this.mat = mat;
+    this.mesh = new THREE.Mesh(this.geo, mat);
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 2;
   }
-  /** add a segment between the current rear-wheel positions; call with null to break the strip */
-  add(l: THREE.Vector3 | null, r: THREE.Vector3 | null, strength = 1): void {
+  private mat: THREE.ShaderMaterial;
+  /** advance the fade clock (seconds) */
+  tick(dt: number): void {
+    this.time += dt;
+    this.uniforms.time.value = this.time;
+  }
+  /** add the current rear-wheel positions of car `key`; call with null to end its strips */
+  add(l: THREE.Vector3 | null, r: THREE.Vector3 | null, strength = 1, key = 0): void {
     if (!l || !r) {
-      this.last = null;
+      this.strips.delete(key);
       return;
     }
-    if (!this.last) {
-      this.last = { l: l.clone(), r: r.clone() };
+    const prev = this.strips.get(key);
+    const wheels = [l, r];
+    if (!prev) {
+      this.strips.set(key, wheels.map((p) => ({ p: p.clone(), e0: new THREE.Vector3(), e1: new THREE.Vector3(), along: 0, s: -1 })));
       return;
     }
-    if (this.last.l.distanceToSquared(l) < 0.16) return;
-    const i = this.head;
-    this.head = (this.head + 1) % this.max;
-    const p = this.pos, o = i * 12;
-    const w = 0.13;
-    const put = (k: number, v: THREE.Vector3, side: THREE.Vector3) => {
-      p[o + k * 3] = v.x + side.x;
-      p[o + k * 3 + 1] = v.y + 0.02;
-      p[o + k * 3 + 2] = v.z + side.z;
-    };
-    const dir = new THREE.Vector3().subVectors(l, this.last.l).normalize();
-    const side = new THREE.Vector3(dir.z, 0, -dir.x).multiplyScalar(w);
-    put(0, this.last.l, side);
-    put(1, this.last.l, side.clone().negate());
-    put(2, l, side.clone().negate());
-    put(3, l, side);
-    for (let k = 0; k < 4; k++) this.alpha[i * 4 + k] = strength;
-    const j = this.head;
-    this.head = (this.head + 1) % this.max;
-    const o2 = j * 12;
-    const put2 = (k: number, v: THREE.Vector3, sd: THREE.Vector3) => {
-      p[o2 + k * 3] = v.x + sd.x;
-      p[o2 + k * 3 + 1] = v.y + 0.02;
-      p[o2 + k * 3 + 2] = v.z + sd.z;
-    };
-    put2(0, this.last.r, side);
-    put2(1, this.last.r, side.clone().negate());
-    put2(2, r, side.clone().negate());
-    put2(3, r, side);
-    for (let k = 0; k < 4; k++) this.alpha[j * 4 + k] = strength;
-    this.last.l.copy(l);
-    this.last.r.copy(r);
-    (this.geo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
-    (this.geo.attributes.alpha as THREE.BufferAttribute).needsUpdate = true;
+    if (prev[0].p.distanceToSquared(l) < 0.12) return;
+    let dirty = false;
+    wheels.forEach((p, k) => {
+      const w = prev[k];
+      const dir = new THREE.Vector3().subVectors(p, w.p);
+      const len = dir.length();
+      if (len > 3) {
+        // a jump (respawn, teleport): restart this strip
+        w.p.copy(p);
+        w.s = -1;
+        return;
+      }
+      dir.divideScalar(len || 1);
+      const side = new THREE.Vector3(dir.z, 0, -dir.x).multiplyScalar(this.half);
+      const n0 = p.clone().add(side), n1 = p.clone().sub(side);
+      if (w.s < 0) {
+        w.e0.copy(w.p).add(side);
+        w.e1.copy(w.p).sub(side);
+        w.s = strength;
+      }
+      const i = this.head;
+      this.head = (this.head + 1) % this.max;
+      const o = i * 12, d = i * 16;
+      const put = (c: number, v: THREE.Vector3, across: number, along: number, st: number) => {
+        this.pos[o + c * 3] = v.x;
+        this.pos[o + c * 3 + 1] = v.y + 0.02;
+        this.pos[o + c * 3 + 2] = v.z;
+        this.data.set([across, along, st, this.time], d + c * 4);
+      };
+      put(0, w.e0, 0, w.along, w.s);
+      put(1, w.e1, 1, w.along, w.s);
+      put(2, n1, 1, w.along + len, strength);
+      put(3, n0, 0, w.along + len, strength);
+      w.e0.copy(n0);
+      w.e1.copy(n1);
+      w.p.copy(p);
+      w.along += len;
+      w.s = strength;
+      dirty = true;
+    });
+    if (dirty) {
+      (this.geo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+      (this.geo.attributes.mark as THREE.BufferAttribute).needsUpdate = true;
+    }
   }
   dispose(): void {
     this.geo.dispose();
