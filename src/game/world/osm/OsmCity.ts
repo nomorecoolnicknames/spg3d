@@ -149,6 +149,34 @@ function facadeFor(style: OsmStyle, kind: number, h: number, footprint: number, 
   return { ...f, main: pick(['brickWin', 'brickBalcony', 'redWin'] as const), cap: 'brickTop', capH: 0.8, floor: 3, bay: 3.2 };
 }
 
+/** tiling ripple normals for rivers: a few crossing sine waves (integer frequencies, so the tile repeats cleanly) */
+function waterNormals(): THREE.DataTexture {
+  const S = 128;
+  const h = (x: number, y: number) => {
+    const u = (x / S) * Math.PI * 2, v = (y / S) * Math.PI * 2;
+    return Math.sin(u * 3 + v * 2) * 0.5 + Math.sin(u * -5 + v * 7 + 1.3) * 0.3 + Math.sin(u * 11 - v * 4 + 2.1) * 0.15 + Math.sin(u * 2 + v * 13 + 0.4) * 0.12;
+  };
+  const data = new Uint8Array(S * S * 4);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const dx = h(x + 1, y) - h(x - 1, y), dy = h(x, y + 1) - h(x, y - 1);
+      const n = new THREE.Vector3(-dx * 2, -dy * 2, 1).normalize();
+      const i = (y * S + x) * 4;
+      data[i] = (n.x * 0.5 + 0.5) * 255;
+      data[i + 1] = (n.y * 0.5 + 0.5) * 255;
+      data[i + 2] = (n.z * 0.5 + 0.5) * 255;
+      data[i + 3] = 255;
+    }
+  }
+  const t = new THREE.DataTexture(data, S, S);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.magFilter = THREE.LinearFilter;
+  t.minFilter = THREE.LinearMipmapLinearFilter;
+  t.generateMipmaps = true;
+  t.needsUpdate = true;
+  return t;
+}
+
 export interface OsmCityOptions {
   /** boss courtyard: keep this circle clear (buildings slide out of it) and build only `reach` metres around it */
   arena?: { x: number; z: number; r: number; reach: number };
@@ -168,6 +196,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
   const inArena = (x: number, z: number, margin = 0) => !!arena && Math.hypot(x - arena.x, z - arena.z) < arena.r + margin;
   const LAMP_OFF = HALF + 3.3;
   const waterY = WATER_Y[style];
+  let waterTex: THREE.Texture | null = null;
   const group = new THREE.Group();
   group.name = `osm:${world.id}`;
   const disposables: { dispose(): void }[] = [];
@@ -271,11 +300,17 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.setIndex(idx);
     g.computeVertexNormals();
-    const m = new THREE.MeshStandardMaterial({ color: style === 'shch' ? '#0a1612' : '#07131c', roughness: 0.05, metalness: 0, envMapIntensity: 1.2 });
+    // world-space UVs (13 m per tile) for the ripple normal map, which drifts with the current in update()
+    const uv: number[] = [];
+    for (let i = 0; i < pos.length; i += 3) uv.push(pos[i] / 13, pos[i + 2] / 13);
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    const ripples = waterNormals();
+    const m = new THREE.MeshStandardMaterial({ color: style === 'shch' ? (night ? '#0a1612' : '#1b3431') : '#07131c', roughness: night ? 0.05 : 0.12, metalness: 0, envMapIntensity: 1.2, normalMap: ripples, normalScale: new THREE.Vector2(0.18, 0.18) });
     const water = new THREE.Mesh(g, m);
     water.name = 'osm:water';
     group.add(water);
-    disposables.push(g, m);
+    disposables.push(g, m, ripples);
+    waterTex = ripples;
   }
 
   // ── parks, squares, railway land
@@ -538,6 +573,11 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
       }
       cx /= ring.length;
       cz /= ring.length;
+      if (landmark === 'premium') {
+        premiumTower(gb(cx, cz), cx, cz);
+        buildingCount++;
+        continue;
+      }
       const fp = Math.abs(area(ring));
       const fa = facadeFor(style, kind, h, fp, colour, landmark);
       // the Ligovsky 50 yard is all dark-red brick warehouses
@@ -592,29 +632,77 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
       b.tint = [1, 1, 1];
       const { pts, tris } = triangulate(ring);
       b.flatPoly(pts, tris, h, fa.roof, 6);
-      if (landmark) landmarkDetails(landmark, ring, cx, cz, h, b);
+      if (landmark) landmarkDetails(landmark, cx, cz, h);
       buildingCount++;
     }
   }
 
-  function landmarkDetails(kind: string, ring: P2[], cx: number, cz: number, h: number, b: GeoBuilder): void {
-    if (kind === 'premium') {
-      // the round glass crown of the hotel tower: a wider drum, a dark ring on top, an aviation light
-      const r = Math.sqrt(Math.abs(area(ring)) / Math.PI);
-      const seg = 20;
-      for (let k = 0; k < seg; k++) {
-        const a0 = (k / seg) * Math.PI * 2, a1 = ((k + 1) / seg) * Math.PI * 2;
-        const R = r * 1.12;
-        const p0 = v(cx + Math.cos(a0) * R, h - 1, cz + Math.sin(a0) * R), p1 = v(cx + Math.cos(a1) * R, h - 1, cz + Math.sin(a1) * R);
-        const out = v(Math.cos((a0 + a1) / 2), 0, Math.sin((a0 + a1) / 2));
-        b.quadFacing(out, p0, p1, v(p1.x, h + 5, p1.z), v(p0.x, h + 5, p0.z), 'glassBlue', [1, 2], 10.5);
-        b.quadFacing(out, v(p0.x, h + 5, p0.z), v(p1.x, h + 5, p1.z), v(p1.x, h + 7.5, p1.z), v(p0.x, h + 7.5, p0.z), 'metalVent', [1, 0.5]);
+  /**
+   * Apart-hotel «Premium» (Talsinskaya 9/2) after the Commons photo from the Klyazma: a glass podium, a slab of
+   * orange brick with small windows, a bulging blue glass bay up the front and a glass strip on its left corner,
+   * a grey upper block and a round glass crown under a ring canopy. OSM only has the 19 m circle of the crown.
+   * The front faces the river (north-east of the footprint).
+   */
+  function premiumTower(b: GeoBuilder, cx: number, cz: number): void {
+    const f = { x: 0.69, z: 0.72 };
+    const r = { x: f.z, z: -f.x };
+    const P = (u: number, w: number): P2 => ({ x: cx + r.x * u + f.x * w, z: cz + r.z * u + f.z * w });
+    const orange = tintOf('#e39a62');
+    // one wall from local (u0, w0) to (u1, w1); the outside is on the right of that direction (as on CCW footprints)
+    const face = (u0: number, w0: number, u1: number, w1: number, y0: number, y1: number, cell: CellName, bay: number, floor: number, seed = 0) => {
+      const p = P(u0, w0), q = P(u1, w1);
+      const len = Math.hypot(q.x - p.x, q.z - p.z);
+      if (len < 0.05) return;
+      const dir = v((q.z - p.z) / len, 0, -(q.x - p.x) / len);
+      b.quadFacing(dir, v(p.x, y0, p.z), v(q.x, y0, q.z), v(q.x, y1, q.z), v(p.x, y1, p.z), cell, [Math.max(1, Math.round(len / bay)), Math.max(1, Math.round((y1 - y0) / floor))], seed);
+    };
+    const roof = (pts: P2[], y: number, cell: CellName) => {
+      const ring = area(pts) < 0 ? [...pts].reverse() : pts;
+      const t = triangulate(ring);
+      b.flatPoly(t.pts, t.tris, y, cell, 6);
+    };
+    const slab = (u0: number, u1: number, w0: number, w1: number, y0: number, y1: number, cell: CellName, bay: number, floor: number, top: CellName | null) => {
+      // counter-clockwise in (u, w) (the map u → r, w → f keeps orientation), so every wall faces out
+      const c: [number, number][] = [[u0, w0], [u1, w0], [u1, w1], [u0, w1]];
+      for (let i = 0; i < 4; i++) face(c[i][0], c[i][1], c[(i + 1) % 4][0], c[(i + 1) % 4][1], y0, y1, cell, bay, floor, i * 0.1);
+      if (top) roof(c.map(([u, w]) => P(u, w)), y1, top);
+    };
+    const arc = (cu: number, cw: number, ru: number, rw: number, a0: number, a1: number, seg: number, y0: number, y1: number, cell: CellName, floor: number) => {
+      const pts: [number, number][] = [];
+      for (let k = 0; k <= seg; k++) {
+        const a = a0 + ((a1 - a0) * k) / seg;
+        pts.push([cu + Math.sin(a) * ru, cw + Math.cos(a) * rw]);
       }
-      const pts: P2[] = [];
-      for (let k = 0; k < seg; k++) pts.push({ x: cx + Math.cos((k / seg) * Math.PI * 2) * r * 1.12, z: cz + Math.sin((k / seg) * Math.PI * 2) * r * 1.12 });
-      b.flatPoly(pts, Array.from({ length: seg - 2 }, (_, k) => [0, k + 1, k + 2]), h + 7.5, 'roofBitumen', 6);
-      lamps.push({ x: cx, y: h + 9, z: cz, color: '#ff2020', range: 14, intensity: 0.6 });
-    }
+      for (let k = 0; k < seg; k++) face(pts[k][0], pts[k][1], pts[k + 1][0], pts[k + 1][1], y0, y1, cell, 2.2, floor, k * 0.07);
+      return pts;
+    };
+    // podium: glass shop fronts under an orange brick storey
+    b.tint = [1, 1, 1];
+    slab(-21, 21, -15, 13, GROUND_Y, 5.5, 'glassLobby', 4, 5.5, null);
+    b.tint = orange;
+    slab(-21, 21, -15, 13, 5.5, 11, 'plWin', 3.2, 2.8, 'roofGravel');
+    // the brick slab
+    b.tint = [1, 1, 1];
+    slab(-11, 11, -8, 8, 11, 74, 'brickSmallWin', 3.1, 3.1, 'roofBitumen');
+    // the blue glass bay bulging out of the right half of the front and round its corner, a glass strip on the left
+    const bay = arc(6.5, 4, 5.2, 5.6, Math.PI / 2, -Math.PI / 2, 10, 11, 80, 'glassBlue', 3.1);
+    roof(bay.map(([u, w]) => P(u, w)), 80, 'roofBitumen');
+    face(-9.4, 8.15, -11.15, 8.15, 11, 74, 'glassBlue', 1.8, 3.1);
+    face(-11.15, 8.15, -11.15, 5.5, 11, 74, 'glassBlue', 1.8, 3.1);
+    // grey upper block with a glass band, the round glass crown and its ring canopy
+    slab(-8.5, 8.5, -7, 7, 74, 79, 'concrete', 4, 5, null);
+    slab(-8.5, 8.5, -7, 7, 79, 84, 'glassBlue', 2, 2.5, null);
+    slab(-8.5, 8.5, -7, 7, 84, 86.5, 'concrete', 4, 2.5, 'roofBitumen');
+    const crown = arc(0, 0, 8, 8, Math.PI * 2, 0, 20, 86.5, 91, 'glassBlue', 2.2);
+    roof(crown.slice(0, -1).map(([u, w]) => P(u, w)), 91, 'roofBitumen');
+    arc(0, 0, 11.5, 11.5, Math.PI * 2, 0, 24, 91.6, 92.4, 'metalVent', 0.8);
+    const ring: P2[] = [];
+    for (let k = 0; k < 24; k++) ring.push(P(Math.sin((k / 24) * Math.PI * 2) * 11.5, Math.cos((k / 24) * Math.PI * 2) * 11.5));
+    roof(ring, 92.4, 'metalVent');
+    lamps.push({ x: cx, y: 94, z: cz, color: '#ff2020', range: 14, intensity: 0.6 });
+  }
+
+  function landmarkDetails(kind: string, cx: number, cz: number, h: number): void {
     if (kind === 'chapel') {
       const g = new THREE.SphereGeometry(2.6, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2);
       g.scale(1, 1.5, 1);
@@ -891,6 +979,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     stats: { sectors: sectors.size, buildings: buildingCount, triangles, lamps: lamps.length },
     update(t: number) {
       uniforms.time.value = t;
+      waterTex?.offset.set(t * 0.012, t * 0.007);
     },
     dispose() {
       for (const d of disposables) d.dispose();

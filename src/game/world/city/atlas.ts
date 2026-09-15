@@ -30,7 +30,7 @@ export type CellName =
   | 'pavement' | 'courtyard' | 'grass' | 'ballast' | 'granite' | 'water' | 'tunnelWall' | 'tunnelCeil'
   // roadside and alpine kit (canyon, pass)
   | 'shopRoadCafe' | 'shopFuel' | 'fuelFascia' | 'woodWall' | 'woodWin' | 'roofRed' | 'roofSnow' | 'galleryWall'
-  | 'trussRed' | 'signPass' | 'fuelPump' | 'liftChair'
+  | 'trussRed' | 'signPass' | 'fuelPump' | 'brickSmallWin'
   // neutral plaster for tinted real buildings (world/osm)
   | 'plWin' | 'plWinPed' | 'plRustic' | 'plCornice';
 
@@ -44,7 +44,7 @@ const ORDER: CellName[] = [
   'roofBitumen', 'roofGravel', 'kioskWall', 'adStop', 'adRival1', 'adRival2', 'metalVent', 'concrete',
   'pavement', 'courtyard', 'grass', 'ballast', 'granite', 'water', 'tunnelWall', 'tunnelCeil',
   'shopRoadCafe', 'shopFuel', 'fuelFascia', 'woodWall', 'woodWin', 'roofRed', 'roofSnow', 'galleryWall',
-  'trussRed', 'signPass', 'fuelPump', 'liftChair', 'plWin', 'plWinPed', 'plRustic', 'plCornice',
+  'trussRed', 'signPass', 'fuelPump', 'brickSmallWin', 'plWin', 'plWinPed', 'plRustic', 'plCornice',
 ];
 const ROWS = Math.ceil(ORDER.length / COLS);
 
@@ -710,7 +710,8 @@ function paintCell(name: CellName, p: Paint): void {
     case 'plWinPed': return plaster(p, '#d9d4ca', 'ped');
     case 'plRustic': return plaster(p, '#cfc9be', 'rustic');
     case 'plCornice': return plaster(p, '#d9d4ca', 'cornice');
-    case 'liftChair': wall(p, '#303640', 10); p.a.fillStyle = '#c9a227'; p.a.fillRect(0, 150, p.w, 60); return;
+    // terracotta facing brick with one small square window per bay (the Premium hotel in Shchyolkovo)
+    case 'brickSmallWin': brick(p, '#cf8a55', '#b98a66'); return window_(p, 96, 84, 64, 76, '#e8e2d6', 1);
     default: return ground(p, name);
   }
 }

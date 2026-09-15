@@ -148,7 +148,7 @@ export function buildAlpineFeatures(track: TrackData, terrainHeight: (x: number,
       const top = Math.max(ground + 13, s.pos.y + 14);
       if (Math.abs(o) > edge + 4) {
         kit.box(x, z, ground - 0.5, 1.1, 1.1, top - ground + 0.5, Math.atan2(dir.x, dir.z), all('metalVent', [0.3, 4]));
-        kit.box(x, z, top, 4.2, 0.6, 0.6, Math.atan2(dir.x, dir.z) + Math.PI / 2, all('liftChair', [1, 0.2]));
+        kit.box(x, z, top, 4.2, 0.6, 0.6, Math.atan2(dir.x, dir.z) + Math.PI / 2, all('metalVent', [1, 0.2]));
       }
       tops.push(new THREE.Vector3(x, top + 0.3, z));
     }
