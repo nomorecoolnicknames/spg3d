@@ -83,8 +83,8 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean; lo
 
   // ---- barriers ----
   const barrierOff = halfW + track.runoff + 0.6;
-  // city by day: a see-through town railing on a plinth; otherwise concrete blocks with hazard stripes
-  const railing = spec.theme === 'city' && !env.headlights;
+  // city streets: a see-through town railing on a plinth (no neon); otherwise concrete blocks with hazard stripes
+  const railing = spec.theme === 'city';
   const barrierTex = railing ? railingTexture() : barrierTexture(env.barrierColor, spec.theme === 'city' ? '#ffd400' : '#e8e8e8', '#111');
   barrierTex.repeat.set(1, 1);
   disposables.push(barrierTex);
@@ -98,16 +98,8 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean; lo
     group.add(m);
     disposables.push(g);
   }
-  // neon strip on top of the barriers (city at night) or reflector posts (others)
-  if (spec.theme === 'city') {
-    for (const side of env.headlights ? ([-1, 1] as const) : []) {
-      const g = wall(track, side * barrierOff, 0.08, side < 0, 0, 1.05);
-      const mat = new THREE.MeshBasicMaterial({ color: side > 0 ? env.neonA : env.neonB, side: THREE.DoubleSide, toneMapped: false });
-      const m = new THREE.Mesh(g, mat);
-      group.add(m);
-      disposables.push(g, mat);
-    }
-  } else {
+  // reflector posts outside the city
+  if (spec.theme !== 'city') {
     const postGeo = new THREE.BoxGeometry(0.12, 1.3, 0.12);
     const reflGeo = new THREE.BoxGeometry(0.14, 0.14, 0.05);
     const posts: THREE.BufferGeometry[] = [];

@@ -81,31 +81,6 @@ function lampCentres(mesh: THREE.Mesh, toCar: THREE.Matrix4): { head: THREE.Vect
 }
 
 let flameTex: THREE.Texture | null = null;
-let beamTex: THREE.Texture | null = null;
-
-function headlightBeamTexture(): THREE.Texture {
-  if (beamTex) return beamTex;
-  const c = document.createElement('canvas');
-  c.width = 128;
-  c.height = 256;
-  const ctx = c.getContext('2d')!;
-  // cone widening away from the car (texture v=1 at the bumper)
-  const g = ctx.createRadialGradient(64, 250, 4, 64, 150, 150);
-  g.addColorStop(0, 'rgba(255,248,230,0.95)');
-  g.addColorStop(0.45, 'rgba(255,240,210,0.45)');
-  g.addColorStop(1, 'rgba(255,240,210,0)');
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.moveTo(52, 256);
-  ctx.lineTo(76, 256);
-  ctx.lineTo(128, 0);
-  ctx.lineTo(0, 0);
-  ctx.closePath();
-  ctx.fill();
-  beamTex = new THREE.CanvasTexture(c);
-  beamTex.colorSpace = THREE.SRGBColorSpace;
-  return beamTex;
-}
 
 interface BodyUniforms {
   spgPaint: { value: THREE.Color };
@@ -289,19 +264,6 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
   }
   let nitroOn = false;
 
-  // headlight beam on the road (player at night) — replaces two per-pixel SpotLights
-  let beam: THREE.Mesh | null = null;
-  if (opts.player && opts.night) {
-    const geo = new THREE.PlaneGeometry(7, 22);
-    geo.rotateX(-Math.PI / 2);
-    const mat = new THREE.MeshBasicMaterial({ map: headlightBeamTexture(), color: '#ffe2b8', transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
-    beam = new THREE.Mesh(geo, mat);
-    beam.position.set(0, 0.06, spec.length / 2 + 10.5);
-    beam.renderOrder = 3;
-    root.add(beam);
-    disposables.push(geo, mat);
-  }
-
   // neon underglow: a soft additive rectangle on the road under the car
   if (opts.underglow) {
     const w = 2.6, l = spec.length + 1.2;
@@ -345,7 +307,6 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
     },
     setHeadlights(on) {
       uniforms.spgHead.value = on ? 2.2 : 0.15;
-      if (beam) beam.visible = on;
     },
     setNitro(on, t) {
       if (on !== nitroOn) {
@@ -398,6 +359,5 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
   for (const m of bodies) m.visible = m.userData.lod === currentLod;
   for (const m of glasses) m.visible = m.userData.lod === currentLod;
   vis.setWheels(0, 0);
-  if (beam) beam.visible = opts.night;
   return vis;
 }

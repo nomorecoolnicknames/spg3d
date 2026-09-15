@@ -14,7 +14,7 @@ import { getEnvMap, type EnvName } from '../assets';
 import { buildCity } from '../world/city/City';
 import { buildOsmCity } from '../world/osm/OsmCity';
 import { LampField } from '../render/LampField';
-import { roadTime } from '../world/RoadMaterial';
+import { roadHeadlights, roadTime } from '../world/RoadMaterial';
 import { CarGlows } from '../render/CarGlows';
 import { buildCanyonFeatures } from '../world/features/Canyon';
 import { buildAlpineFeatures } from '../world/features/Alpine';
@@ -257,7 +257,6 @@ export class RaceScene implements SceneController {
         physical: q.level === 'high',
         opaqueGlass: q.level === 'low',
         lod: isPlayer ? (q.level === 'high' ? 0 : 1) : 2,
-        underglow: isPlayer && env.headlights ? env.neonA : undefined,
       });
       this.scene.add(vis.root, ...vis.extras);
       const r: Racer = {
@@ -483,6 +482,12 @@ export class RaceScene implements SceneController {
     this.sun.target.position.set(pp.x, pp.y, pp.z);
     this.sky.update(this.elapsed);
     roadTime.value = this.elapsed;
+    {
+      // the player's low beams light the road ahead at night (road shader)
+      const pc = this.player.car;
+      roadHeadlights.pos.value.set(pc.x + pc.forwardX * pc.length * 0.45, pc.y + 0.7, pc.z + pc.forwardZ * pc.length * 0.45, this.track.spec.env.headlights ? 1 : 0);
+      roadHeadlights.dir.value.set(pc.forwardX, 0, pc.forwardZ);
+    }
     if (this.lampField) {
       // the lamps that matter are the ones just ahead of the camera
       const cam = this.cam.camera;

@@ -203,7 +203,7 @@ export function createCityMaterial(night: boolean): { material: THREE.MeshStanda
   const atlas = cityAtlas();
   const uniforms: CityMaterialUniforms = {
     litRatio: { value: night ? 0.3 : 0 },
-    windowGain: { value: night ? 1.1 : 0 },
+    windowGain: { value: night ? 0.9 : 0 },
     signGain: { value: night ? 1.2 : 0.3 },
     lampGain: { value: night ? 0.6 : 0 },
     lampColor: { value: new THREE.Color('#ffc58a') },

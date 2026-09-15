@@ -23,6 +23,8 @@ let marksTex: THREE.CanvasTexture | null = null;
 
 /** clock for the rain ripples in the puddles (RaceScene advances it) */
 export const roadTime = { value: 0 };
+/** the player's low beams on the road at night: lamp position (w = on) and the car's forward direction */
+export const roadHeadlights = { pos: { value: new THREE.Vector4() }, dir: { value: new THREE.Vector3(0, 0, 1) } };
 
 /** R = paint mask, G = paint wear. 256×1024 across one road width, tiles along v (one repeat ≈ road width). */
 function markingsTexture(): THREE.CanvasTexture {
@@ -76,7 +78,7 @@ export function createRoadMaterial(env: TrackEnv, opts: RoadMaterialOptions): TH
   const rain = env.rain && opts.wetness > 0;
   mat.defines = { ...(mat.defines ?? {}), USE_UV: '', ...(useNormal ? { ROAD_NORMAL: '' } : {}), ...(opts.lamps ? { ROAD_LAMPS: '' } : {}), ...(rain ? { ROAD_RAIN: '' } : {}) };
   mat.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, uniforms, lampUniforms, { spgRoadTime: roadTime });
+    Object.assign(sh.uniforms, uniforms, lampUniforms, { spgRoadTime: roadTime, spgHeadPos: roadHeadlights.pos, spgHeadDir: roadHeadlights.dir });
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec2 vRoadW;\nvarying vec3 vRoadP;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n\tvRoadP = (modelMatrix * vec4(transformed, 1.0)).xyz;\n\tvRoadW = vRoadP.xz;');
@@ -93,6 +95,8 @@ uniform sampler2D tNormal;
 #endif
 uniform vec3 roadTint, lineColor;
 uniform float wetness, spgRoadTime;
+uniform vec4 spgHeadPos;
+uniform vec3 spgHeadDir;
 float roadPuddle;
 float roadPaint;
 float roadRough;
@@ -152,8 +156,9 @@ vec2 rainRipples(vec2 w) {
 #endif
 #ifdef ROAD_RAIN
 	{
-		roadRipple = rainRipples(vRoadW) * roadPuddle;
-		vec3 nR = normalize(vec3(roadRipple.x * 0.8, 1.0, -roadRipple.y * 0.8));
+		// rings smaller than a pixel alias into grain: they fade out between 6 and 22 m from the camera
+		roadRipple = rainRipples(vRoadW) * roadPuddle * (1.0 - smoothstep(6.0, 22.0, length(cameraPosition - vRoadP)));
+		vec3 nR = normalize(vec3(roadRipple.x * 0.5, 1.0, -roadRipple.y * 0.5));
 		normal = normalize(mix(normal, (viewMatrix * vec4(nR, 0.0)).xyz, roadPuddle));
 	}
 #endif`,
@@ -190,7 +195,17 @@ vec2 rainRipples(vec2 w) {
 			float near = 1.0 / (1.0 + dist * dist * 0.0009);
 			float pool = 1.0 - smoothstep(0.0, spgLampPos[i].w * 0.5, length(Lw.xz));
 			reflectedLight.directSpecular += spgLampCol[i] * lobe * wet * (0.3 + fres) * near * 1.6;
-			reflectedLight.directDiffuse += diffuseColor.rgb * spgLampCol[i] * pool * pool * max(L.y, 0.0) * 0.35;
+			reflectedLight.directDiffuse += diffuseColor.rgb * spgLampCol[i] * pool * pool * max(L.y, 0.0) * 0.8;
+		}
+		// the player's low beams: a warm cone on the asphalt from a few metres to ~45 m ahead
+		if (spgHeadPos.w > 0.0) {
+			vec3 toP = vRoadP - spgHeadPos.xyz;
+			float along = dot(toP.xz, spgHeadDir.xz);
+			float lat = length(toP.xz - spgHeadDir.xz * along);
+			float cone = exp(-lat * lat / (0.035 * along * along + 1.2));
+			float reach = smoothstep(1.5, 7.0, along) * (1.0 - smoothstep(22.0, 48.0, along));
+			reflectedLight.directDiffuse += diffuseColor.rgb * vec3(1.0, 0.93, 0.8) * cone * reach * spgHeadPos.w * 2.2;
+			reflectedLight.directSpecular += vec3(1.0, 0.93, 0.8) * cone * reach * spgHeadPos.w * wet * 0.35 * (1.0 - roadRough * 0.6);
 		}
 	}
 #endif`,
