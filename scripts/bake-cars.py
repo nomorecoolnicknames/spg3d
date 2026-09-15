@@ -25,13 +25,16 @@ NAME = SPEC['model']
 LODS = SPEC.get('lods', [60000, 40000, 12000, 3000])
 AO_SAMPLES = int(SPEC.get('aoSamples', 24))
 PAINT = [p.lower() for p in SPEC.get('paint', [])]
+LAMPS = SPEC.get('lamps') or {}
+LAMP_HEAD = [p.lower() for p in LAMPS.get('head', [])]
+LAMP_TAIL = [p.lower() for p in LAMPS.get('tail', [])]
 LENGTH = float(SPEC['length'])
 os.makedirs(OUT_DIR, exist_ok=True)
 T0 = time.time()
 
 WHEEL_RE = re.compile(r'^spgwheel_(\d+)')
 BRAKE_RE = re.compile(r'red_glass|glassred|lightglass_red|light_red|brake|tail|rearlight|lightglassnormal_outerred', re.I)
-HEAD_RE = re.compile(r'lightglassnormal_clear|light_clear|headlight|lightd|lightemissive|^lighta|lighta_material', re.I)
+HEAD_RE = re.compile(r'lightglassnormal_clear|light_clear|headlight|lightd|lightemissive|^lighta|lighta_material|lightbucket|^emis$', re.I)
 GLASS_RE = re.compile(r'glass|window|windscreen|windshield', re.I)
 
 
@@ -54,9 +57,15 @@ def classify(mat):
     m = WHEEL_RE.match(raw)
     if m:
         return 'wheel', int(m.group(1))
-    if BRAKE_RE.search(nm):
+    if LAMP_HEAD or LAMP_TAIL:
+        # explicit lamps for this car: they keep their role (and only light up in their own third)
+        if any(p in nm for p in LAMP_HEAD):
+            return 'head!', 0
+        if any(p in nm for p in LAMP_TAIL):
+            return 'rear!', 0
+    elif BRAKE_RE.search(nm):
         return 'rear', 0
-    if HEAD_RE.search(nm):
+    elif HEAD_RE.search(nm):
         return 'head', 0
     if any(p in nm for p in PAINT):
         return 'paint', 0
@@ -115,6 +124,8 @@ log('normalised: scale', round(scale, 4))
 
 # ───────────────────────────────────────────── classify materials, masks, wheel groups
 slot_class = [classify(m) for m in car.data.materials]
+for m, (c, _) in zip(car.data.materials, slot_class):
+    log('  material', m.name if m else '-', '→', c)
 counts = {}
 for c, _ in slot_class:
     counts[c] = counts.get(c, 0) + 1
@@ -170,8 +181,30 @@ for n in sorted(set(wheel_name.values())):
     groups[n] = body.vertex_groups.new(name=n)
 mask = body.data.color_attributes.new(name='mask', type='FLOAT_COLOR', domain='CORNER')
 wheel_of_vert = {}
+# lamps by position: many models share one lamp material front and back (Bolide «LightA»), so a head-lamp
+# face in the rear third is a tail lamp and a red lens in the front third is an indicator, not a brake light
+# (car space here: front = −Y, see the wheel naming above)
+ys = np.empty(len(body.data.vertices) * 3, np.float32)
+body.data.vertices.foreach_get('co', ys)
+ys = ys.reshape(-1, 3)[:, 1]
+y_front, y_rear = ys.min() + (ys.max() - ys.min()) * 0.33, ys.min() + (ys.max() - ys.min()) * 0.67
+lamp_faces = {'head': 0, 'rear': 0, 'moved': 0}
 for poly in body.data.polygons:
     c, idx = slot_class[poly.material_index]
+    if c in ('head!', 'rear!'):
+        cy = poly.center[1]
+        role = c[:-1]
+        c = role if (cy < y_front if role == 'head' else cy > y_rear) else 'rest'
+        if c != 'rest':
+            lamp_faces[role] += 1
+    elif c in ('head', 'rear'):
+        cy = poly.center[1]
+        new_c = 'head' if cy < y_front else 'rear' if cy > y_rear else None
+        if new_c != c:
+            lamp_faces['moved'] += 1
+        c = new_c or 'rest'
+        if new_c:
+            lamp_faces[new_c] += 1
     col = (1.0 if c == 'paint' else 0.0, 1.0 if c == 'head' else 0.0, 1.0 if c == 'rear' else 0.0, 1.0)
     for li in poly.loop_indices:
         mask.data[li].color = col
@@ -188,6 +221,7 @@ for vi, n in wheel_of_vert.items():
 for n, vs in by_wheel.items():
     groups[n].add(vs, 1.0, 'REPLACE')
 body.data.color_attributes.active_color = mask
+log('lamp faces', lamp_faces)
 log('body tris', len(body.data.polygons), 'glass tris', len(glass.data.polygons))
 
 # ───────────────────────────────────────────── ambient occlusion → vertex colours

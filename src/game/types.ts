@@ -44,6 +44,8 @@ export interface CarSpec {
   colors: string[];
   /** material name fragments that receive body paint (case-insensitive) */
   paintMaterials: string[];
+  /** bake override: material name fragments that are the head / tail lamps (otherwise guessed from names) */
+  lampMaterials?: { head: string[]; tail: string[] };
   /** target length in meters for auto-fit */
   length: number;
   /** extra rotation around Y so that +Z is forward */

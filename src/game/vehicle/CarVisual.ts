@@ -48,6 +48,36 @@ export interface CarVisual {
   extras: THREE.Object3D[];
   tick(speedKmh: number): void;
   dispose(): void;
+  /** lamp centres in car space from the baked lamp masks (left, right); null when the model has none */
+  lamps: { head: THREE.Vector3[] | null; tail: THREE.Vector3[] | null };
+}
+
+const lampCache = new WeakMap<THREE.BufferGeometry, { head: THREE.Vector3[] | null; tail: THREE.Vector3[] | null }>();
+
+/** centre of the head-lamp (mask G) and tail-lamp (mask B) vertices on each side of the car, in car space */
+function lampCentres(mesh: THREE.Mesh, toCar: THREE.Matrix4): { head: THREE.Vector3[] | null; tail: THREE.Vector3[] | null } {
+  const g = mesh.geometry;
+  const hit = lampCache.get(g);
+  if (hit) return hit;
+  const pos = g.getAttribute('position'), col = g.getAttribute('color');
+  const res: { head: THREE.Vector3[] | null; tail: THREE.Vector3[] | null } = { head: null, tail: null };
+  if (pos && col) {
+    const sums = [0, 1].map(() => [0, 1].map(() => ({ v: new THREE.Vector3(), n: 0 })));
+    const p = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      const head = col.getY(i) > 0.5, tail = col.getZ(i) > 0.5;
+      if (!head && !tail) continue;
+      p.fromBufferAttribute(pos, i).applyMatrix4(toCar);
+      const slot = sums[head ? 0 : 1][p.x > 0 ? 0 : 1];
+      slot.v.add(p);
+      slot.n++;
+    }
+    const pair = (k: number) => (sums[k][0].n > 4 && sums[k][1].n > 4 ? sums[k].map((sl) => sl.v.divideScalar(sl.n)) : null);
+    res.head = pair(0);
+    res.tail = pair(1);
+  }
+  lampCache.set(g, res);
+  return res;
 }
 
 let flameTex: THREE.Texture | null = null;
@@ -102,7 +132,8 @@ function patchBodyMaterial(mat: THREE.MeshStandardMaterial, u: BodyUniforms, phy
       )
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n\troughnessFactor = mix(roughnessFactor, 0.3, vSpgMask.r);')
       .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n\tmetalnessFactor = mix(metalnessFactor, 0.45, vSpgMask.r);')
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n\ttotalEmissiveRadiance += diffuseColor.rgb * (vSpgMask.g * spgHead + vSpgMask.b * spgBrake);')
+      // lamps glow with their own colour: lenses are dark in the source textures, so diffuse × mask never lit up
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n\ttotalEmissiveRadiance += vSpgMask.g * spgHead * (vec3(1.0, 0.93, 0.8) * 0.38 + diffuseColor.rgb * 0.3) + vSpgMask.b * spgBrake * (vec3(1.0, 0.07, 0.05) * 0.42 + diffuseColor.rgb * 0.25);')
       .replace(
         '#include <lights_fragment_end>',
         `#include <lights_fragment_end>
@@ -162,6 +193,7 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
       setLod: () => {},
       setGhost: () => {},
       extras: [],
+      lamps: { head: null, tail: null },
       tick: () => {},
       dispose: () => {
         geo.dispose();
@@ -283,6 +315,16 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
     disposables.push(geo, mat);
   }
 
+  // lamp centres from the lowest LOD body (same lamps on every LOD)
+  let lamps: CarVisual['lamps'] = { head: null, tail: null };
+  {
+    const lodBody = [...bodies].sort((a, b) => (b.userData.lod as number) - (a.userData.lod as number))[0];
+    if (lodBody) {
+      const toCar = new THREE.Matrix4().copy(root.matrixWorld).invert().multiply(lodBody.matrixWorld);
+      lamps = lampCentres(lodBody, toCar);
+    }
+  }
+
   const qSpin = new THREE.Quaternion();
   const qSteer = new THREE.Quaternion();
   const qCar = new THREE.Quaternion();
@@ -345,6 +387,7 @@ export function createCarVisual(spec: CarSpec, color: string, opts: CarVisualOpt
       for (const m of bodies) m.castShadow = false;
     },
     extras: [],
+    lamps,
     tick() {},
     dispose() {
       for (const d of disposables) d.dispose();

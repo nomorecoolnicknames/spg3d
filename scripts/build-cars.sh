@@ -10,7 +10,7 @@ mkdir -p "$WORK/mid" "$WORK/rig" src/assets/cars
 node scripts/optimize-glb.mjs --intermediate "$WORK/mid" | grep -E "wheel nodes|MB ->"
 cat > "$WORK/specs.ts" <<'TS'
 import { CARS } from '../../../home/n8n/gamers/spg3d/src/data/cars';
-console.log(JSON.stringify(CARS.map((c) => ({ model: c.model, paint: c.paintMaterials, length: c.length }))));
+console.log(JSON.stringify(CARS.map((c) => ({ model: c.model, paint: c.paintMaterials, lamps: c.lampMaterials, length: c.length }))));
 TS
 npx esbuild "$WORK/specs.ts" --bundle --platform=node --format=esm --log-level=warning --alias:@=./src --outfile="$WORK/specs.mjs"
 node "$WORK/specs.mjs" > "$WORK/specs.json"

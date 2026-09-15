@@ -805,7 +805,7 @@ export class RaceScene implements SceneController {
     r.vis.setNitro(c.nitroActive, this.elapsed);
     if (r.vis.extras.length || this.glows) root.updateMatrixWorld();
     if (r.vis.extras.length) r.vis.tick(Math.abs(c.vx) * 3.6);
-    if (this.glows) this.glows.set(this.racers.indexOf(r), root, r.spec.length, r.input.brake > 0.1 || (r.finished && c.vx > 1));
+    if (this.glows) this.glows.set(this.racers.indexOf(r), root, r.spec.length, r.input.brake > 0.1 || (r.finished && c.vx > 1), r.vis.lamps);
     void dt;
   }
 

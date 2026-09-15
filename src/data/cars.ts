@@ -116,8 +116,10 @@ export const CARS: CarSpec[] = [
     nitro: 1.25,
     price: 60000,
     unlockWins: 3,
-    colors: ['#1a1a1f', '#d9183c', '#2e86de', '#f2f2f2', '#8e44ad', '#ff9f1c'],
+    colors: ['#23c43a', '#1a1a1f', '#2e86de', '#d9183c', '#f2f2f2', '#ff9f1c'],
     paintMaterials: ['paint_material', 'coloured_material'],
+    // «LightA» covers half the nose: only the emissive strips are lamps
+    lampMaterials: { head: ['lightemissivea'], tail: ['lighta_material'] },
     length: 4.76,
   },
 ];

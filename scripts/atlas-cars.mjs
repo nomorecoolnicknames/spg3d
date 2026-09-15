@@ -80,11 +80,18 @@ async function meanColor(tex) {
 // Converted FBX materials are BLEND with alpha copied from luminance, or invisible overlays
 // (white RGB, alpha≈0). Decide from the texels: mostly under the cutoff → hidden, almost none → opaque.
 async function alphaClass(tex, factorA) {
-  const { data } = await sharp(Buffer.from(tex.getImage())).ensureAlpha().extractChannel(3).raw().toBuffer({ resolveWithObject: true });
+  const { data } = await sharp(Buffer.from(tex.getImage())).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const thr = 127.5 / Math.max(factorA, 1e-3);
-  let below = 0;
-  for (let i = 0; i < data.length; i++) if (data[i] < thr) below++;
-  const f = below / data.length;
+  let below = 0, lumDiff = 0;
+  const n = data.length / 4;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < thr) below++;
+    lumDiff += Math.abs(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2] - data[i + 3]);
+  }
+  // alpha that is just a copy of the luminance is an FBX conversion artefact, not transparency: black trim
+  // (grilles, vents, the GT40 nose) vanished as 'hidden' or turned into see-through 'cutout'
+  if (lumDiff / n < 8 && factorA > 0.9) return 'opaque';
+  const f = below / n;
   return f >= 0.97 ? 'hidden' : f <= 0.01 ? 'opaque' : 'cutout';
 }
 // Most sources carry metallicFactor 1 by default; only keep real metal (named, or bright untextured trim).
@@ -294,7 +301,7 @@ await doc.transform(
   prune(),
   dedup(),
   textureCompress({ encoder: sharp, targetFormat: 'webp', quality: 90 }),
-  meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
+  meshopt({ encoder: MeshoptEncoder, level: 'high' }),
 );
 await io.write(OUT, doc);
 

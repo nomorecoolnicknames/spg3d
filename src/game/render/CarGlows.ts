@@ -56,15 +56,18 @@ export class CarGlows {
     this.points.name = 'car-glows';
   }
 
-  /** i = car slot; brake raises the tail lights */
-  set(i: number, root: THREE.Object3D, length: number, brake: boolean): void {
+  /** i = car slot; brake raises the tail lights; lamps = centres from the baked masks when the model has them */
+  set(i: number, root: THREE.Object3D, length: number, brake: boolean, lamps?: { head: THREE.Vector3[] | null; tail: THREE.Vector3[] | null }): void {
     const half = length / 2;
     const local: [number, number, number][] = [
-      [0.62, 0.72, half - 0.15],
-      [-0.62, 0.72, half - 0.15],
-      [0.66, 0.86, -half + 0.08],
-      [-0.66, 0.86, -half + 0.08],
+      [0.62, 0.65, half - 0.3],
+      [-0.62, 0.65, half - 0.3],
+      [0.66, 0.8, -half + 0.12],
+      [-0.66, 0.8, -half + 0.12],
     ];
+    // sit the sprite just in front of the lens so the body does not hide it
+    if (lamps?.head) for (let k = 0; k < 2; k++) local[k] = [lamps.head[k].x, lamps.head[k].y, lamps.head[k].z + 0.12];
+    if (lamps?.tail) for (let k = 0; k < 2; k++) local[k + 2] = [lamps.tail[k].x, lamps.tail[k].y, lamps.tail[k].z - 0.12];
     for (let k = 0; k < 4; k++) {
       this.tmp.set(...local[k]).applyMatrix4(root.matrixWorld);
       const o = (i * 4 + k) * 3;
