@@ -107,31 +107,110 @@ function wall(p: Paint, color: string, grain = 22): void {
 }
 
 /** window: frame, glass, emissive window mask */
+/** air-conditioner box, the thing you actually see on every Russian block */
+function acUnit(p: Paint, x: number, y: number, w = 34, h = 22): void {
+  const { a } = p;
+  a.fillStyle = 'rgba(0,0,0,0.3)';
+  a.fillRect(x + 2, y + 3, w, h);
+  a.fillStyle = '#d7d9d4';
+  a.fillRect(x, y, w, h);
+  a.fillStyle = '#b9bcb7';
+  a.fillRect(x + 3, y + 4, w - 6, h - 8);
+  a.strokeStyle = 'rgba(0,0,0,0.35)';
+  a.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    a.beginPath();
+    a.moveTo(x + 3, y + 4 + ((h - 8) * i) / 4);
+    a.lineTo(x + w - 3, y + 4 + ((h - 8) * i) / 4);
+    a.stroke();
+  }
+  a.fillStyle = 'rgba(0,0,0,0.5)';
+  a.fillRect(x + w * 0.45, y + h, 2, 26); // the drain hose down the wall
+}
+
+/** grime washed down from a sill or a slab */
+function streakUnder(p: Paint, x: number, y: number, w: number, len: number, alpha = 0.18): void {
+  const { a } = p;
+  const g = a.createLinearGradient(0, y, 0, y + len);
+  g.addColorStop(0, `rgba(30,28,24,${alpha})`);
+  g.addColorStop(1, 'rgba(30,28,24,0)');
+  a.fillStyle = g;
+  a.fillRect(x, y, w, len);
+}
+
+/**
+ * A window: reveal with lit and shadowed edges, frame (white plastic or older wood), glass with a sky
+ * gradient, a transom bar, and the things that make a real block: curtains or blinds in some flats, an open
+ * vent in a few, an air-conditioner beside some of them, dirt washed down from the sill.
+ */
 function window_(p: Paint, x: number, y: number, w: number, h: number, frame = '#d9d6cf', bars = 2): void {
   const { a, e } = p;
-  a.fillStyle = 'rgba(0,0,0,0.35)'; // reveal shadow
-  a.fillRect(x - 3, y - 3, w + 6, h + 8);
-  a.fillStyle = frame;
+  // reveal: dark on the right and below, a touch of light on the left and above
+  a.fillStyle = 'rgba(0,0,0,0.38)';
+  a.fillRect(x - 4, y - 4, w + 8, h + 9);
+  a.fillStyle = 'rgba(255,255,255,0.12)';
+  a.fillRect(x - 4, y - 4, w + 8, 3);
+  a.fillRect(x - 4, y - 4, 3, h + 6);
+  const plastic = rnd() < 0.72;
+  const frameCol = plastic ? frame : '#8a6f4e';
+  a.fillStyle = frameCol;
   a.fillRect(x, y, w, h);
   const gx = x + 5, gy = y + 5, gw = w - 10, gh = h - 10;
-  const g = a.createLinearGradient(gx, gy, gx + gw, gy + gh);
-  g.addColorStop(0, '#2c3440');
-  g.addColorStop(0.55, '#141920');
-  g.addColorStop(1, '#232a33');
+  // glass: sky reflection top, dark room below
+  const g = a.createLinearGradient(gx, gy, gx + gw * 0.4, gy + gh);
+  g.addColorStop(0, '#5e7182');
+  g.addColorStop(0.45, '#28313c');
+  g.addColorStop(1, '#161b22');
   a.fillStyle = g;
   a.fillRect(gx, gy, gw, gh);
   e.fillStyle = '#ff0000';
   e.fillRect(gx, gy, gw, gh);
-  a.fillStyle = frame;
+  // blinds or curtains in about half of the flats
+  const r = rnd();
+  if (r < 0.28) {
+    a.fillStyle = 'rgba(232,228,214,0.75)';
+    const bh = gh * (0.25 + rnd() * 0.45);
+    a.fillRect(gx, gy, gw, bh);
+    a.strokeStyle = 'rgba(0,0,0,0.18)';
+    a.lineWidth = 1;
+    for (let yy = gy + 4; yy < gy + bh; yy += 6) {
+      a.beginPath();
+      a.moveTo(gx, yy);
+      a.lineTo(gx + gw, yy);
+      a.stroke();
+    }
+  } else if (r < 0.62) {
+    const side = rnd() < 0.5 ? 0 : 1;
+    const cw = gw * (0.18 + rnd() * 0.3);
+    a.fillStyle = ['rgba(226,214,198,0.8)', 'rgba(196,208,214,0.8)', 'rgba(214,190,190,0.8)'][Math.floor(rnd() * 3)];
+    a.fillRect(side ? gx + gw - cw : gx, gy, cw, gh);
+    e.fillStyle = 'rgba(255,0,0,0.5)';
+    e.fillRect(side ? gx + gw - cw : gx, gy, cw, gh);
+  }
+  // frame bars and the transom
+  a.fillStyle = frameCol;
   for (let i = 1; i < bars; i++) a.fillRect(gx + (gw * i) / bars - 2, gy, 4, gh);
   a.fillRect(gx, gy + gh * 0.32, gw, 4);
-  // curtains on some panes, visible when lit
-  if (rnd() < 0.6) {
-    e.fillStyle = 'rgba(255,0,0,0.55)';
-    e.fillRect(gx, gy, gw * (0.2 + rnd() * 0.25), gh);
+  // an open vent pane here and there
+  if (rnd() < 0.16) {
+    a.save();
+    a.translate(gx + gw * 0.5, gy + gh * 0.16);
+    a.rotate(-0.22);
+    a.fillStyle = 'rgba(120,140,155,0.85)';
+    a.fillRect(-gw * 0.24, -gh * 0.14, gw * 0.48, gh * 0.28);
+    a.strokeStyle = frameCol;
+    a.lineWidth = 3;
+    a.strokeRect(-gw * 0.24, -gh * 0.14, gw * 0.48, gh * 0.28);
+    a.restore();
   }
-  a.fillStyle = 'rgba(255,255,255,0.12)'; // sill
-  a.fillRect(x - 4, y + h, w + 8, 5);
+  // sill and the dirt it washes down
+  a.fillStyle = 'rgba(255,255,255,0.16)';
+  a.fillRect(x - 5, y + h, w + 10, 5);
+  a.fillStyle = 'rgba(0,0,0,0.25)';
+  a.fillRect(x - 5, y + h + 5, w + 10, 2);
+  streakUnder(p, x - 2, y + h + 6, w + 4, 40, 0.2);
+  // an air-conditioner on some flats
+  if (rnd() < 0.22) acUnit(p, x + w + 6 < p.w - 40 ? x + w + 6 : Math.max(6, x - 42), y + h * 0.25);
 }
 
 function sign(p: Paint, text: string, bg: string, fg: string, y: number, h: number): void {

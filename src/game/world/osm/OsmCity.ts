@@ -5,7 +5,7 @@ import type { TrackData } from '../TrackData';
 import type { Lamp } from '../../render/LampField';
 import { GeoBuilder, createCityMaterial, type LampSpace } from '../city/kit';
 import type { CellName } from '../city/atlas';
-import { busStop, parkedCars, trafficLight, trees } from '../city/street';
+import { parkedCars, trafficLight, trees } from '../city/street';
 import { BUILDING_KIND as K, type Flat, type OsmStyle, type OsmWorld } from './types';
 import { getGLTF } from '../../assets';
 
@@ -518,6 +518,124 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     }
   }
 
+  /**
+   * Details on the walls that face the race route: balconies floor by floor and entrances with a canopy.
+   * All of it is boxes in the same GeoBuilder, so it merges into the sector mesh and costs triangles, not
+   * draw calls. Only near the route and above the phone tier.
+   */
+  const facadeDetails = (b: GeoBuilder, p: P2, q: P2, dir: V, len: number, h: number, groundTop: number, floor: number, kind: number, seed: number) => {
+    const tx = (q.x - p.x) / len, tz = (q.z - p.z) / len;
+    const rot = Math.atan2(-tz, tx);
+    const side = Math.sign(dir.x * Math.sin(rot) + dir.z * Math.cos(rot)) || 1;
+    const at = (u: number, out: number) => ({ x: p.x + tx * u + dir.x * out, z: p.z + tz * u + dir.z * out });
+    const metal = { cell: 'metalVent' as CellName, tile: [0.4, 0.4] as [number, number] };
+    const conc = { cell: 'concrete' as CellName, tile: [0.4, 0.4] as [number, number] };
+    const glass = { cell: 'glassSpandrel' as CellName, tile: [0.5, 0.5] as [number, number] };
+    const all = (f: { cell: CellName; tile: [number, number] }) => ({ front: f, back: f, left: f, right: f, top: f });
+    const rnd2 = (k: number) => {
+      const x = Math.sin(seed * 12.9898 + k * 78.233) * 43758.5453;
+      return x - Math.floor(x);
+    };
+    // balconies on housing, every other bay, from the first floor up
+    const floors = Math.max(0, Math.floor((h - groundTop) / floor) - 1);
+    if (kind !== K.industrial && kind !== K.small && h >= 12 && floors >= 2) {
+      const bays = Math.max(1, Math.round(len / 3.4));
+      for (let f = 1; f <= floors; f++) {
+        for (let k = 1; k < bays; k += 3) {
+          if (rnd2(f * 13 + k) < 0.25) continue;
+          const u = ((k + 0.5) / bays) * len;
+          if (u < 1.6 || u > len - 1.6) continue;
+          const y = groundTop + f * floor;
+          const c = at(u, side * 0.62);
+          b.box(c.x, c.z, y, 2.7, 1.2, 0.14, rot, all(conc));
+          const glazed = rnd2(f * 7 + k + 1) < 0.45;
+          const rail = at(u, side * 1.16);
+          b.box(rail.x, rail.z, y + 0.14, 2.7, 0.1, glazed ? 1.4 : 1.0, rot, all(glazed ? glass : metal));
+          for (const sx of [-1.3, 1.3]) {
+            const sp = at(u + sx, side * 0.62);
+            b.box(sp.x, sp.z, y + 0.14, 0.1, 1.2, glazed ? 1.4 : 1.0, rot, all(glazed ? glass : metal));
+          }
+        }
+      }
+    }
+    // roof kit: a parapet along the top and a stair head with vents, so the skyline is not a flat cut
+    if (h > 9) {
+      b.box(p.x + tx * (len / 2) + dir.x * 0.12, p.z + tz * (len / 2) + dir.z * 0.12, h, len, 0.34, 0.55, rot, all(conc));
+      if (len > 14 && rnd2(3) < 0.7) {
+        const u = len * (0.3 + rnd2(5) * 0.4);
+        const c = at(u, -side * (1.6 + rnd2(6) * 1.5));
+        b.box(c.x, c.z, h, 3.2, 2.6, 2.1, rot, all(conc));
+        b.box(c.x, c.z, h + 2.1, 3.4, 2.8, 0.14, rot, all(metal));
+        const vent = at(u + 2.6, -side * 2.2);
+        b.box(vent.x, vent.z, h, 0.7, 0.7, 1.1, rot, all(metal));
+      }
+    }
+    // entrances: a canopy on two posts every ~26 m, with a step
+    if (kind !== K.industrial && h >= 9) {
+      const n = Math.floor(len / 26);
+      for (let k = 0; k < n; k++) {
+        const u = ((k + 0.5) / n) * len + (rnd2(k) - 0.5) * 4;
+        if (u < 2.4 || u > len - 2.4) continue;
+        const c = at(u, side * 0.75);
+        b.box(c.x, c.z, 2.6, 3.0, 1.5, 0.16, rot, all(conc));
+        for (const sx of [-1.3, 1.3]) {
+          const sp = at(u + sx, side * 1.35);
+          b.box(sp.x, sp.z, GROUND_Y, 0.14, 0.14, 2.6 - GROUND_Y, rot, all(metal));
+        }
+        const st = at(u, side * 0.6);
+        b.box(st.x, st.z, GROUND_Y, 2.2, 1.2, 0.25 - GROUND_Y, rot, all(conc));
+      }
+    }
+  };
+  const detailWalls = !!track && quality.level !== 'low';
+
+  /**
+   * A pitched metal roof for the low, boxy buildings (houses, shops, garages): the footprint is fitted with a
+   * rectangle along its longest edge, and if the fit is good the flat roof is replaced by two slopes and two
+   * gables. Half the town is low-rise, and a skyline of flat cuts is what made it read as boxes.
+   */
+  const pitchedRoof = (b: GeoBuilder, ring: P2[], h: number, seed: number): boolean => {
+    let bestLen = 0, dx = 1, dz = 0;
+    for (let i = 0; i < ring.length; i++) {
+      const p = ring[i], q = ring[(i + 1) % ring.length];
+      const l = Math.hypot(q.x - p.x, q.z - p.z);
+      if (l > bestLen) {
+        bestLen = l;
+        dx = (q.x - p.x) / l;
+        dz = (q.z - p.z) / l;
+      }
+    }
+    let u0 = Infinity, u1 = -Infinity, w0 = Infinity, w1 = -Infinity;
+    for (const p of ring) {
+      const u = p.x * dx + p.z * dz, w = -p.x * dz + p.z * dx;
+      u0 = Math.min(u0, u);
+      u1 = Math.max(u1, u);
+      w0 = Math.min(w0, w);
+      w1 = Math.max(w1, w);
+    }
+    const rectArea = (u1 - u0) * (w1 - w0);
+    if (rectArea < 20 || Math.abs(area(ring)) / rectArea < 0.86) return false;
+    const P = (u: number, w: number, y: number): V => v(u * dx - w * dz, y, u * dz + w * dx);
+    const span = w1 - w0;
+    const ridgeH = h + Math.min(2.6, span * 0.26);
+    const wm = (w0 + w1) / 2;
+    const over = 0.35;
+    const cell: CellName = seed % 1 < 0.45 ? 'roofRed' : 'metalVent';
+    const tile: [number, number] = [(u1 - u0) / 3, span / 3];
+    for (const sgn of [-1, 1] as const) {
+      const wEdge = sgn < 0 ? w0 - over : w1 + over;
+      const nrm = v(-sgn * -dz * 0.6, 0.8, -sgn * dx * 0.6);
+      b.quadFacing(nrm, P(u0 - over, wEdge, h), P(u1 + over, wEdge, h), P(u1 + over, wm, ridgeH), P(u0 - over, wm, ridgeH), cell, tile, seed);
+    }
+    // gables and the eaves band
+    for (const end of [u0, u1] as const) {
+      const o = end === u0 ? -over : over;
+      const nrm = v(dx * (end === u0 ? -1 : 1), 0, dz * (end === u0 ? -1 : 1));
+      b.quadFacing(nrm, P(end + o, w0, h), P(end + o, w1, h), P(end + o, wm, ridgeH), P(end + o, wm, ridgeH), 'plCornice', [span / 3, 1], seed);
+    }
+    return true;
+  };
+
   // ── buildings
   let buildingCount = 0;
   const walls: YardWall[] = [];
@@ -630,10 +748,18 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
         const floors = Math.max(1, Math.round((capBottom - groundTop) / fa.floor));
         band(groundTop, capBottom, fa.main, floors);
         if (capBottom < h) band(capBottom, h, fa.cap!, 1);
+        // details on the walls that face the route — they carry the look at eye level
+        if (detailWalls && len > 7 && nearC.d < 95 && nearC.i >= 0) {
+          const rp = track!.samples[nearC.i].pos;
+          if (dir.x * (rp.x - p.x) + dir.z * (rp.z - p.z) > 0) facadeDetails(b, p, q, dir, len, h, groundTop, fa.floor, kind, eseed);
+        }
       }
       b.tint = [1, 1, 1];
-      const { pts, tris } = triangulate(ring);
-      b.flatPoly(pts, tris, h, fa.roof, 6);
+      const pitched = detailWalls && h <= 12 && fp < 900 && kind !== K.industrial && nearC.d < 160 && pitchedRoof(b, ring, h, bseed);
+      if (!pitched) {
+        const { pts, tris } = triangulate(ring);
+        b.flatPoly(pts, tris, h, fa.roof, 6);
+      }
       if (landmark) landmarkDetails(landmark, cx, cz, h);
       buildingCount++;
     }
@@ -741,14 +867,50 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
         trafficLight(gb, px, pz, furnitureY(r.i), Math.atan2(-sm.left.x * side, -sm.left.z * side));
       }
     }
+    // bus stops and kiosks: the Blender models (src/assets/street.glb), one instanced mesh per part
+    const stopSpots: { x: number; y: number; z: number; rot: number }[] = [];
+    const kioskSpots: { x: number; y: number; z: number; rot: number }[] = [];
     for (let k = 0; k + 1 < world.stops.length; k += 2) {
       const x = world.stops[k] / 10, z = world.stops[k + 1] / 10;
       const r = near(x, z, 2);
       if (r.i < 0 || Math.abs(((r.s % LAMP_SPACING) + LAMP_SPACING) % LAMP_SPACING - LAMP_SPACING / 2) < 5) continue;
       const sm = track.samples[r.i];
       const side = Math.sign(r.lat) || 1;
-      busStop(gb, sm.pos.x + sm.left.x * side * (HALF + 3.6), sm.pos.z + sm.left.z * side * (HALF + 3.6), furnitureY(r.i), Math.atan2(-sm.left.x * side, -sm.left.z * side));
+      const rot = Math.atan2(-sm.left.x * side, -sm.left.z * side);
+      stopSpots.push({ x: sm.pos.x + sm.left.x * side * (HALF + 3.9), y: furnitureY(r.i), z: sm.pos.z + sm.left.z * side * (HALF + 3.9), rot });
+      if (stopSpots.length % 2 === 0) {
+        const off = 9;
+        kioskSpots.push({ x: sm.pos.x + sm.left.x * side * (HALF + 4.1) + sm.tan.x * off, y: furnitureY(r.i), z: sm.pos.z + sm.left.z * side * (HALF + 4.1) + sm.tan.z * off, rot });
+      }
     }
+    const streetLib = getGLTF('street');
+    const placeModel = (rootName: string, spots: { x: number; y: number; z: number; rot: number }[]) => {
+      const root = streetLib?.scene.getObjectByName(rootName);
+      if (!root || !spots.length) return;
+      root.updateWorldMatrix(true, true);
+      const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+      const m4 = new THREE.Matrix4();
+      const local = new THREE.Matrix4();
+      const q = new THREE.Quaternion();
+      const up = new THREE.Vector3(0, 1, 0);
+      root.traverse((o) => {
+        if (!(o instanceof THREE.Mesh)) return;
+        local.multiplyMatrices(inv, o.matrixWorld);
+        const inst = new THREE.InstancedMesh(o.geometry, o.material as THREE.Material, spots.length);
+        spots.forEach((sp, i) => {
+          q.setFromAxisAngle(up, sp.rot);
+          m4.compose(new THREE.Vector3(sp.x, sp.y, sp.z), q, new THREE.Vector3(1, 1, 1)).multiply(local);
+          inst.setMatrixAt(i, m4);
+        });
+        inst.name = `osm:street:${rootName}`;
+        inst.castShadow = !night && !!quality.shadows;
+        inst.receiveShadow = inst.castShadow;
+        inst.computeBoundingSphere();
+        group.add(inst);
+      });
+    };
+    placeModel('bus_stop', stopSpots);
+    placeModel('kiosk', kioskSpots);
   }
 
   // ── zebra crossings where footways cross the route and at signalised junctions
