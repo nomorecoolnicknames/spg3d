@@ -4,6 +4,8 @@ import type { CarPhysics } from '../vehicle/CarPhysics';
 /**
  * Chase / hood / TV / heli cameras with spring lag, speed FOV kick and impact shake.
  */
+const UP = new THREE.Vector3(0, 1, 0);
+
 export class RaceCamera {
   readonly camera: THREE.PerspectiveCamera;
   mode = 0;
@@ -26,8 +28,21 @@ export class RaceCamera {
     this.update(car, 0.1, 0);
   }
 
+  /** smoothed chase direction: the camera follows where the car is going, not where its nose points */
+  private chase = new THREE.Vector3(0, 0, 1);
+
   update(car: CarPhysics, dt: number, t: number): void {
     const f = this.tmpF.set(car.forwardX, 0, car.forwardZ);
+    {
+      // blend the heading with the velocity direction, then ease the camera onto it: in a slide the car goes
+      // sideways in front of the camera instead of dragging it round, and the corner opens up before the nose
+      const vX = car.forwardX * car.vx + car.leftX * car.vy, vZ = car.forwardZ * car.vx + car.leftZ * car.vy;
+      const sp2 = Math.hypot(vX, vZ);
+      const want = this.tmpL.copy(f);
+      if (sp2 > 5 && car.vx > 0) want.set(vX / sp2, 0, vZ / sp2).lerp(f, 0.35).normalize();
+      if (!this.initialized) this.chase.copy(want);
+      else this.chase.lerp(want, 1 - Math.exp(-dt * 5.5)).normalize();
+    }
     const speed = Math.max(0, car.vx);
     const ratio = Math.min(1, speed / Math.max(30, car.topSpeed));
     const base = new THREE.Vector3(car.x, car.y, car.z);
@@ -62,13 +77,13 @@ export class RaceCamera {
         break;
       }
       default: {
-        // chase: pull back with speed, lag on lateral velocity
+        // chase: pull back with speed, lag on lateral velocity, and look into the corner
         const dist = 6.8 + speed * 0.06 + (car.nitroActive ? 0.8 : 0);
         const height = 2.4 + speed * 0.012;
-        // slide the camera to the outside of a drift
-        const lateral = this.tmpL.set(car.leftX, 0, car.leftZ).multiplyScalar(-car.vy * 0.06);
-        target = base.clone().addScaledVector(f, -dist).add(new THREE.Vector3(0, height, 0)).add(lateral);
-        look = base.clone().addScaledVector(f, 6).add(new THREE.Vector3(0, 1.1, 0));
+        const lead = Math.max(-0.4, Math.min(0.4, car.yawRate * 0.35 + car.beta * 0.5));
+        const lookDir = this.tmpT.set(this.chase.x, 0, this.chase.z).applyAxisAngle(UP, lead);
+        target = base.clone().addScaledVector(this.chase, -dist).add(new THREE.Vector3(0, height, 0));
+        look = base.clone().addScaledVector(lookDir, 6).add(new THREE.Vector3(0, 1.1, 0));
         fovT = 58 + (this.fovKick ? ratio * 16 + (car.nitroActive ? 9 : 0) : 0);
         k = 6.5;
         kl = 10;

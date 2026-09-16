@@ -164,7 +164,8 @@ export class Input {
     }
     // smooth keyboard steering: fast return to center, slower ramp to full lock
     const analog = Math.abs(t.stickX) > 0.08 || (pad && Math.abs(pad.axes[0] ?? 0) > 0.1);
-    if (analog) this.steerS = steerTarget;
+    // a little expo on a stick: precise around the centre, full lock still available at the stop
+    if (analog) this.steerS = Math.sign(steerTarget) * Math.pow(Math.abs(steerTarget), 1.35);
     else {
       const rate = steerTarget === 0 ? 9 : 5.5;
       this.steerS += (steerTarget - this.steerS) * Math.min(1, rate * dt);
