@@ -5,7 +5,7 @@
 export const S = {
   title: 'СУПЕР ПИЗДАНУТЫЕ ГОНКИ 3Д',
   tagline: 'Уличные гонки под саундбас и дабстеп 2012',
-  version: 'v2.4',
+  version: 'v2.5',
   boot: {
     loading: 'Загрузка',
     tips: [
