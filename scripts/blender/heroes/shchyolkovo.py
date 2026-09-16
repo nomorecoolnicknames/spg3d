@@ -32,6 +32,17 @@ What the buildings are (OSM tags, Wikimedia Commons photographs, developer descr
   51975813   services centre «Эрион», 1st Sovetsky lane 7: three storeys of brick over shop windows.
   5675518    Proletarsky 9 k1 (2002, 10 storeys, brick): red brick with cream loggia bays and stepped gables.
   156871327  the round «Premium» apart-hotel pavilion, Talsinskaya 9/2 (OSM has only its 19 m circle).
+Wave 2 (the next buildings by facade length along the route × height):
+  53356631   1st Sovetsky 5 and 1958049  1st Sovetsky 3 (1930, 4 storeys): silk-mill workers' houses of red brick with
+             yellow brick pilasters and belt courses, hipped iron roofs (as 1st Sovetsky 19 on Commons).
+  59625754   1st Sovetsky 4 (1965, 5 storeys, large panels) · 40760773  1st Sovetsky 6 (1971, 5 storeys, silicate brick).
+  131974558  1st Sovetsky 7A: a two-storey brick shop (look not confirmed).
+  1958050    the town museum, Sovetskaya 54: white rounded corner with shop glazing, yellow wing, green roof.
+  653362077  Lenina square 5, the commercial range (parts 653362077, 653362075 of 653362080): sand brick with red bands,
+             a middle block on columns over a passage, green pharmacy and optics light boxes (Commons «panoramio (54)»).
+  63161145   Lenina square 7 (2008): sand brick over a red brick ground storey (Commons «panoramio (81)»).
+  45557012   Lenina square 5, the nine-storey office tower (Commons «panoramio (49)»).
+  93524634   Shmidta 5A and 156871484  Talsinskaya 9A: low brick buildings (looks not confirmed).
 """
 import json
 import math
@@ -87,6 +98,7 @@ MATERIALS = {
     'dark':  ('#1d1f22', 0.0, 0.95),
     'sign':  ('#f0ece2', 0.0, 0.5),
     'gold':  ('#e8b64c', 1.0, 0.28),
+    'glass2': ('#26303a', 0.0, 0.1),
 }
 MAT_NAMES = list(MATERIALS)
 MAT = {}
@@ -569,6 +581,50 @@ def route_dir(frame):
         if best is None or d < best[0]:
             best = (d, b[0] - a[0], b[1] - a[1])
     return Vector((best[1], -best[2])).normalized()
+
+
+def to_route(frame, x, y):
+    """vector (Blender X, Y) from a local point to the nearest route centreline point"""
+    pts = json.load(open(os.path.join(REPO, 'src/data/maps', MAP + '.route.json')))['points']
+    best = None
+    for p in pts:
+        v = Vector((p[0] - frame[0] - x, -(p[1] - frame[1]) - y))
+        if best is None or v.length < best.length:
+            best = v
+    return best
+
+
+def faces_route(frame, e, reach=45.0):
+    """True when the wall looks towards the race route within `reach` metres"""
+    x, y, _ = e.at(e.L / 2, 0)
+    v = to_route(frame, x, y)
+    return v.length < reach and v.normalized().dot(e.n) > 0.35
+
+
+def hip_roof(g, ring, z, rise, inset, mat='roof', col=None, overhang=0.35, tol=0.8):
+    """a hipped roof: eaves pushed out by `overhang`, slopes up to the ring pulled in by `inset`, a flat top"""
+    r = ccw(simplify(ring, tol, 1.5))
+    outer, inner = offset(r, overhang), offset(r, -inset)
+    n = len(r)
+    for i in range(n):
+        a, b = outer[i], outer[(i + 1) % n]
+        ia, ib = inner[i], inner[(i + 1) % n]
+        g.face([(a[0], a[1], z), (b[0], b[1], z), (ib[0], ib[1], z + rise), (ia[0], ia[1], z + rise)], mat, col)
+        wa, wb = r[i], r[(i + 1) % n]
+        g.face([(wa[0], wa[1], z), (wb[0], wb[1], z), (b[0], b[1], z), (a[0], a[1], z)][::-1], mat, col)
+    cap(g, inner, z + rise, mat, col)
+
+
+def short_run(es, max_len):
+    """indices of the longest run of consecutive edges shorter than max_len (a curved corner)"""
+    best, run = [], []
+    for i in range(2 * len(es)):
+        k = i % len(es)
+        if es[k].L < max_len and len(run) < len(es):
+            run.append(k)
+        else:
+            best, run = max(best, run, key=len), []
+    return max(best, run, key=len)
 
 
 def door(g, e, t, z0, w, h, mat='dark', col=None, canopy=True, depth=1.2):
@@ -1258,6 +1314,363 @@ def proletarsky_9k1(g, frame):
                        bay_every=3, min_bay_edge=7.0, shops=False)
 
 
+# ───────────────────────── wave 2: 1st Sovetsky lane ─────────────────────────
+
+def house_1930(g, ring, n=4, fh=3.2, wall='#a14f38', dec='#caa465', roof_col='#5e6a66'):
+    """a 1930 workers' house of the silk mill (as 1st Sovetsky 19 on Commons): red brick with yellow brick
+    pilasters, belt courses and sills, a white-painted plinth line, a hipped iron roof with chimneys"""
+    z0 = 0.7
+    top = z0 + n * fh
+    rows = floors(z0, n, fh, 1.0, 2.75)
+    for e in edges(ring):
+        e.box(g, 0, e.L, 0, z0, -0.06, 0, 'wall2', '#7a5646', ends=False)
+        if e.L < 2.2:
+            e.front(g, 0, e.L, z0, top, 0, 'wall', wall)
+            continue
+        cols = bays(e.L, 3.0, 0.9, width=1.25)
+        openings(g, e, z0, top, cols, rows, 'wall', wall, depth=0.3, frame='frame', fcol='pvc', sill='wall', scol=dec)
+        # yellow brick pilasters between every second pair of windows and at the corners
+        step = (e.L - 1.8) / max(1, len(cols))
+        for k in range(0, len(cols) + 1, 2):
+            t = min(max(0.9 + step * k, 0.35), e.L - 0.35)
+            e.box(g, t - 0.35, t + 0.35, z0, top - 0.6, -0.1, 0, 'wall', dec, top=False)
+    for k in range(1, n):
+        band(g, ring, z0 + k * fh - 0.3, z0 + k * fh - 0.05, 0.12, 'wall', dec)
+    band(g, ring, top - 0.6, top, 0.35, 'wall', dec)
+    ang, u0, u1, v0, v1 = oriented(ring)
+    rise = min(3.0, (v1 - v0) * 0.28)
+    hip_roof(g, ring, top, rise, (v1 - v0) / 2 - 0.6, 'roof', roof_col)
+    ca, sa = math.cos(ang), math.sin(ang)
+    vm = (v0 + v1) / 2
+    for k in range(max(2, int((u1 - u0) / 12))):
+        u = u0 + (u1 - u0) * (k + 0.5) / max(2, int((u1 - u0) / 12))
+        box(g, u * ca - vm * sa, u * sa + vm * ca, 0.9, 0.7, top + rise - 0.3, top + rise + 1.3, 'wall', wall, ang=ang)
+    return top + rise + 1.3
+
+
+@hero(53356631, name='Жилой дом, 1-й Советский пер., 5')
+def sovetsky_5(g, frame):
+    return house_1930(g, local_ring(53356631, frame, tol=0.6))
+
+
+@hero(1958049, name='Жилой дом, 1-й Советский пер., 3')
+def sovetsky_3(g, frame):
+    return house_1930(g, local_ring(1958049, frame, tol=0.6), wall='#9a4a35')
+
+
+@hero(59625754, name='Жилой дом, 1-й Советский пер., 4')
+def sovetsky_4(g, frame):
+    """a 1965 five-storey large-panel block: pale panels with dark joints, balconies to the lane, porches behind"""
+    ring = local_ring(59625754, frame, tol=0.5)
+    z0, fh, n = 0.9, 2.8, 5
+    top = z0 + n * fh
+    rows = floors(z0, n, fh, 0.85, 2.3)
+    for e in edges(ring):
+        e.box(g, 0, e.L, 0, z0, -0.08, 0, 'wall2', '#8e8a82', ends=False)
+        if e.L < 4:
+            e.front(g, 0, e.L, z0, top, 0, 'wall', 'silicate')
+            continue
+        cols = bays(e.L, 3.2, 0.4, width=1.45)
+        openings(g, e, z0, top, cols, rows, 'wall', '#cdc9bf', depth=0.15, frame='frame', fcol='pvc')
+        step = (e.L - 0.8) / max(1, len(cols))
+        for k in range(1, len(cols)):
+            e.front(g, 0.4 + step * k - 0.03, 0.4 + step * k + 0.03, z0, top, -0.01, 'dark', '#6e6b66')
+        for k in range(1, n):
+            e.front(g, 0, e.L, z0 + k * fh - 0.03, z0 + k * fh + 0.03, -0.01, 'dark', '#6e6b66')
+        if e.L > 20 and faces_route(frame, e, 60):
+            for i, (t0, t1) in enumerate(cols):
+                if i % 2:
+                    continue
+                for k in range(1, n):
+                    z = z0 + k * fh
+                    e.box(g, t0 - 0.5, t1 + 0.5, z - 0.12, z + 0.04, -1.0, 0, 'wall2', '#a7a298', bottom=True)
+                    e.box(g, t0 - 0.5, t1 + 0.5, z + 0.04, z + 1.0, -1.0, -0.94, 'metal', '#77776f', top=True)
+        elif e.L > 20:
+            nd = max(1, round(e.L / 15))
+            for k in range(nd):
+                door(g, e, e.L * (k + 0.5) / nd, 0.3, 1.4, 2.1, depth=1.0)
+    parapet(g, ring, top, 0.5, 0.3, 'wall', '#cdc9bf', coping='roof', ccol='roof', roof='roof', rcol='roof')
+    return top + 0.5
+
+
+@hero(40760773, name='Жилой дом, 1-й Советский пер., 6')
+def sovetsky_6(g, frame):
+    """a 1971 five-storey brick block: silicate brick long walls, red brick gable ends, balconies, porches"""
+    ring = local_ring(40760773, frame, tol=0.5)
+    z0, fh, n = 0.8, 2.85, 5
+    top = z0 + n * fh
+    rows = floors(z0, n, fh, 0.85, 2.3)
+    for e in edges(ring):
+        e.box(g, 0, e.L, 0, z0, -0.06, 0, 'wall2', '#8a8378', ends=False)
+        if e.L < 20:
+            e.front(g, 0, e.L, z0, top, 0, 'wall', '#9c5139')
+            continue
+        cols = bays(e.L, 3.3, 0.8, width=1.5)
+        openings(g, e, z0, top, cols, rows, 'wall', 'silicate', depth=0.22, frame='frame', fcol='pvc')
+        if faces_route(frame, e, 60):
+            for i, (t0, t1) in enumerate(cols):
+                if i % 3 != 1:
+                    continue
+                for k in range(1, n):
+                    z = z0 + k * fh
+                    e.box(g, t0 - 0.6, t1 + 0.6, z - 0.12, z + 0.02, -1.1, 0, 'wall2', '#9b968c', bottom=True)
+                    e.box(g, t0 - 0.6, t1 + 0.6, z + 0.02, z + 1.0, -1.1, -1.06, 'metal', 'metal', top=False)
+        else:
+            nd = max(1, round(e.L / 18))
+            for k in range(nd):
+                t = e.L * (k + 0.5) / nd
+                door(g, e, t, 0.3, 1.5, 2.1, depth=1.1)
+                e.front(g, t - 0.6, t + 0.6, z0 + 3.2, top - 1.0, 0.1, 'glass', 'glass')
+    band(g, ring, top - 0.25, top, 0.15, 'wall', 'silicate')
+    parapet(g, ring, top, 0.6, 0.35, 'wall', 'silicate', coping='roof', ccol='roof', roof='roof', rcol='roof')
+    return top + 0.6
+
+
+@hero(131974558, name='Магазин-ателье, 1-й Советский пер., 7А')
+def sovetsky_7a(g, frame):
+    """a two-storey brick shop with a hipped roof (look not confirmed by a photo)"""
+    ring = local_ring(131974558, frame, tol=0.3)
+    G, top = 3.6, 6.8
+    for e in edges(ring):
+        if e.L < 2.5:
+            e.front(g, 0, e.L, 0, top, 0, 'wall', '#a8674c')
+            continue
+        shop = faces_route(frame, e)
+        if shop:
+            openings(g, e, 0, G, bays(e.L, 3.6, 0.6, width=2.8), [(0.3, G - 0.6)], 'wall2', '#6f4a3b', depth=0.3,
+                     frame='frame', fcol='graphite', soffit=True)
+            e.box(g, 0.4, e.L - 0.4, G - 0.55, G - 0.1, -0.3, 0, 'sign', 'signblue', bottom=True)
+        else:
+            openings(g, e, 0, G, bays(e.L, 3.0, 0.8, width=1.3), [(0.9, 2.6)], 'wall', '#a8674c', depth=0.25, frame='frame', fcol='pvc')
+        openings(g, e, G, top, bays(e.L, 3.0, 0.8, width=1.3), [(G + 0.8, top - 0.6)], 'wall', '#a8674c', depth=0.25,
+                 frame='frame', fcol='pvc', sill='trim', scol='white')
+    band(g, ring, top - 0.4, top, 0.25, 'trim', 'white')
+    hip_roof(g, ring, top, 2.2, 3.5, 'roof', '#5b5f63', tol=0.6)
+    return top + 2.2
+
+
+# ───────────────────────── wave 2: Lenina square and Sovetskaya street ─────────────────────────
+
+@hero(1958050, name='Историко-художественный музей, Советская ул., 54')
+def sovetskaya_54(g, frame):
+    """the town museum, Sovetskaya 54 (opened 1999), by the stela roundabout (Commons «Въездной знак на фоне
+    Историко-краеведческого музея», «Краеведческий Щелково»): a white
+    corner rounded towards the roundabout with two storeys of shop glazing, a yellow wing with a balcony, a green
+    iron roof and a semicircular gable over the rounded corner"""
+    ring = local_ring(1958050, frame, tol=0.03)
+    es = edges(ring)
+    run = short_run(es, 2.0)
+    curve = set(run)
+    cpts = [es[i].at(0, 0)[:2] for i in run] + [es[run[-1]].at(es[run[-1]].L, 0)[:2]]
+    ccx, ccy, cr = circle_fit(cpts)
+    Z1, top = 7.2, 10.2
+
+    def white(e):
+        x, y, _ = e.at(e.L / 2, 0)
+        return (Vector((x, y)) - Vector((ccx, ccy))).length < cr + 2.5
+
+    for i, e in enumerate(es):
+        if e.L < 0.05:
+            continue
+        wall, col = ('wall', '#efeadf') if white(e) or i in curve else ('wall', '#e3c56c')
+        e.box(g, 0, e.L, 0, 0.5, -0.05, 0, 'wall2', '#cf9b93', ends=False)
+        if i in curve:
+            e.front(g, 0, e.L, 0.5, 3.4, 0.25, 'glass', 'glass')
+            e.front(g, 0, e.L, 3.4, 4.0, 0.0, 'glass2', None)
+            e.front(g, 0, e.L, 4.0, Z1 - 0.2, 0.25, 'glass', 'glass')
+            e.front(g, 0, e.L, Z1 - 0.2, top, 0, wall, col)
+            e.front(g, e.L / 2 - 0.35, e.L / 2 + 0.35, Z1 + 0.8, top - 0.9, -0.02, 'glass', 'glass')
+            continue
+        if e.L < 2.0:
+            e.front(g, 0, e.L, 0.5, top, 0, wall, col)
+            continue
+        cols = bays(e.L, 3.1, 0.5, width=2.5)
+        openings(g, e, 0.5, Z1, cols, [(0.6, 2.9), (3.5, Z1 - 0.9)], wall, col, depth=0.25, gcol='glass',
+                 spandrel=('glass2', None), frame='frame', fcol='pvc', mullions=1)
+        wcols = bays(e.L, 3.1, 0.5, width=1.4)
+        openings(g, e, Z1, top, wcols, [(Z1 + 0.8, top - 0.9)], wall, col, depth=0.22, frame='frame', fcol='pvc')
+    band(g, ring, Z1 - 0.3, Z1, 0.12, 'trim', 'white')
+    band(g, ring, top - 0.45, top, 0.35, 'trim', 'white')
+    hip_roof(g, ring, top, 1.8, 3.0, 'roof', '#4f7a63', overhang=0.4, tol=0.9)
+    # the semicircular gable over the rounded corner, with its arched window
+    mid = run[len(run) // 2]
+    em = es[mid]
+    tm = em.L / 2
+    R = 2.8
+    arc = [(tm + R * math.cos(math.pi * k / 10), top + R * math.sin(math.pi * k / 10)) for k in range(11)]
+    for dsg in (-0.4, 0.3):
+        pts = [em.at(t, z, dsg) for t, z in arc]
+        g.face(pts if dsg < 0 else pts[::-1], 'wall', '#efeadf')
+    for (t0, z0), (t1, z1) in zip(arc, arc[1:]):
+        g.face([em.at(t0, z0, -0.4), em.at(t1, z1, -0.4), em.at(t1, z1, 0.3), em.at(t0, z0, 0.3)][::-1], 'trim', 'white')
+    win = [(tm + 1.2 * math.cos(math.pi * k / 8), top + 0.4 + 1.2 * math.sin(math.pi * k / 8)) for k in range(9)]
+    g.face([em.at(t, z, -0.43) for t, z in win][::-1], 'glass', 'glass')
+    # balcony on the yellow wing's longest wall towards the square
+    ew = max((e for e in es if not white(e)), key=lambda e: e.L)
+    ew.box(g, ew.L * 0.3, ew.L * 0.7, Z1 - 0.15, Z1 + 0.05, -1.0, 0, 'trim', 'white', bottom=True)
+    ew.box(g, ew.L * 0.3, ew.L * 0.7, Z1 + 0.05, Z1 + 1.0, -1.0, -0.95, 'metal', 'metal', top=False)
+    return top + R
+
+
+@hero(653362077, [653362077, 653362075, 653362080], name='Торгово-офисное здание, пл. Ленина, 5')
+def lenina_5_shops(g, frame):
+    """the four-storey commercial range of Lenina square 5 (Commons «panoramio (54)»): sand-yellow brick with red
+    brick bands, shops with green light boxes, a middle block standing on columns over a passage"""
+    north = local_ring(653362077, frame, tol=0.4)
+    south = local_ring(653362075, frame, tol=0.4)
+    top_n = max(north, key=lambda p: p[1])
+    s_edge = sorted(north, key=lambda p: p[1])[:2]
+    n_edge = sorted(south, key=lambda p: -p[1])[:3]
+    # the middle block spans between the facing walls of the two parts
+    xs_s = [p[0] for p in s_edge]
+    xs_n = [p[0] for p in n_edge]
+    ys_s = sum(p[1] for p in s_edge) / 2
+    ys_n = sum(p[1] for p in n_edge) / 3
+    middle = ccw([(min(xs_n), ys_n), (max(xs_n), ys_n), (max(xs_s), ys_s), (min(xs_s), ys_s)])
+    del top_n
+    G, FH, n = 3.8, 3.1, 3
+    top = G + n * FH
+    rows = floors(G, n, FH, 0.9, 2.45)
+    wall, red = '#d4bd92', '#a25a44'
+    for part in (north, middle, south):
+        others = [r for r in (north, middle, south) if r is not part]
+        for e in edges(part):
+            x, y, _ = e.at(e.L / 2, 0)
+            if any(point_in(o, x + e.n.x * 0.8, y + e.n.y * 0.8) for o in others):
+                continue
+            if e.L < 1.5:
+                e.front(g, 0, e.L, 0, top, 0, 'wall', wall)
+                continue
+            cols = bays(e.L, 3.0, 0.7, width=1.7)
+            openings(g, e, G, top, cols, rows, 'wall', wall, depth=0.22, frame='frame', fcol='pvc')
+            for r0, r1 in rows:
+                e.box(g, 0, e.L, r1 + 0.1, r1 + 0.45, -0.04, 0, 'wall2', red, ends=False)
+            if part is middle:
+                # the passage: the ground storey set back behind square columns
+                e.flat(g, 0, e.L, G, 0, 3.0, False, 'wall', wall)
+                e.front(g, 0, e.L, 0, G, 3.0, 'dark', '#3a3530')
+                for t in [0.3 + (e.L - 0.6) * k / 3 for k in range(4)]:
+                    e.box(g, t - 0.3, t + 0.3, 0, G, -0.0, 0.6, 'wall2', red, top=False)
+                continue
+            if faces_route(frame, e, 60) or e.n.x > 0.7:
+                gc = bays(e.L, 3.8, 0.6, width=3.0)
+                openings(g, e, 0, G, gc, [(0.3, G - 0.8)], 'wall', wall, depth=0.3, frame='frame', fcol='graphite', soffit=True)
+                e.box(g, 0.5, e.L - 0.5, G - 0.75, G - 0.2, -0.3, 0, 'sign', '#2e8b4a', bottom=True)
+            else:
+                openings(g, e, 0, G, bays(e.L, 3.0, 0.7, width=1.5), [(0.9, 2.7)], 'wall', wall, depth=0.22, frame='frame', fcol='pvc')
+        band(g, part, top - 0.35, top, 0.2, 'wall2', red)
+        parapet(g, part, top, 0.7, 0.3, 'wall', wall, coping='roof', ccol='roof', roof='roof', rcol='gravel')
+    # the green shop boxes with their names on the wall facing the route (or east)
+    names = ['ОРТОПЕДИЯ', 'ОПТИКА', 'АПТЕКА']
+    eb = max(edges(north), key=lambda e: (e.n.x > 0.7) * e.L)
+    k0 = eb.L / 6
+    for k, word in enumerate(names):
+        wall_text(g, eb, word, k0 * (2 * k + 1), G - 0.7, 0.42, d=-0.33)
+    # a stepped brick attic over the middle block
+    for e in edges(middle):
+        x, y, _ = e.at(e.L / 2, 0)
+        if e.n.x > 0.7 and not any(point_in(o, x + e.n.x * 0.8, y + e.n.y * 0.8) for o in (north, south)):
+            e.box(g, e.L * 0.2, e.L * 0.8, top, top + 1.4, -0.05, 0.4, 'wall', wall, back=True)
+            e.box(g, e.L * 0.35, e.L * 0.65, top + 1.4, top + 2.4, -0.05, 0.4, 'wall', wall, back=True)
+    return top + 2.4
+
+
+@hero(63161145, name='Административное здание, пл. Ленина, 7')
+def lenina_7(g, frame):
+    """Lenina square 7 (built 2008, the district prosecutor's office per local directories; Commons «panoramio (81)»):
+    sand-yellow brick over a red brick ground storey, red brick corner pilasters, white cornice, a porch"""
+    ring = local_ring(63161145, frame, tol=0.5)
+    G, FH, n = 3.6, 3.1, 3
+    top = G + n * FH
+    rows = floors(G, n, FH, 0.9, 2.5)
+    es = edges(ring)
+    porch = max(es, key=lambda e: e.L * (1.5 if faces_route(frame, e) else 1.0))
+    for e in es:
+        if e.L < 1.6:
+            e.front(g, 0, e.L, 0, G, 0, 'wall2', '#9d5a46')
+            e.front(g, 0, e.L, G, top, 0, 'wall', '#dcc89e')
+            continue
+        cols = bays(e.L, 3.2, 1.0, width=1.5)
+        openings(g, e, G, top, cols, rows, 'wall', '#dcc89e', depth=0.24, frame='frame', fcol='pvc', sill='trim', scol='white')
+        gcols = bays(e.L, 3.2, 1.0, width=1.5)
+        if e is porch:
+            gcols = [c for c in gcols if abs((c[0] + c[1]) / 2 - e.L / 2) > 2.2]
+        openings(g, e, 0, G, gcols, [(0.9, 2.8)], 'wall2', '#9d5a46', depth=0.24, frame='frame', fcol='pvc')
+        if e.L > 6:
+            for t in (0.0, e.L - 0.7):
+                e.box(g, t, t + 0.7, G, top, -0.12, 0, 'wall2', '#9d5a46', top=False)
+    band(g, ring, G - 0.2, G, 0.1, 'trim', 'white')
+    band(g, ring, top - 0.45, top, 0.35, 'trim', 'white')
+    parapet(g, ring, top, 0.7, 0.3, 'wall', '#dcc89e', coping='metal', ccol='metal', roof='roof', rcol='gravel')
+    t = porch.L / 2
+    porch.box(g, t - 2.0, t + 2.0, 0, G + 0.6, -0.5, 0, 'wall2', '#9d5a46', top=True)
+    porch.front(g, t - 0.9, t + 0.9, 0.3, 2.6, -0.52, 'dark', '#2b2522')
+    porch.box(g, t - 2.4, t + 2.4, 2.9, 3.2, -1.6, -0.5, 'metal', 'metal', bottom=True)
+    porch.box(g, t - 2.4, t + 2.4, 0, 0.3, -2.2, -0.5, 'wall2', 'granite', top=True)
+    return top + 0.7
+
+
+@hero(45557012, name='Административное здание, пл. Ленина, 5')
+def lenina_5(g, frame):
+    """the nine-storey office tower of Lenina square 5 (Commons «panoramio (49)»): beige brick, vertical piers,
+    shops under a yellow sign band"""
+    ring = local_ring(45557012, frame, tol=0.3)
+    G, FH, NF = 4.0, 3.1, 8
+    top = G + NF * FH
+    for e in edges(ring):
+        cols = bays(e.L, 3.3, 1.2, width=2.2)
+        openings(g, e, G, top, cols, floors(G, NF, FH, 0.9, 2.5), 'wall', 'sand', depth=0.25, frame='frame', fcol='pvc')
+        step = (e.L - 2.4) / max(1, len(cols))
+        for k in range(len(cols) + 1):
+            t = 1.2 + step * k
+            e.box(g, t - 0.28, t + 0.28, G, top, -0.18, 0, 'wall', 'beige', top=False)
+        gc = bays(e.L, 4.4, 1.0, width=3.4)
+        openings(g, e, 0, G, gc, [(0.4, 3.0)], 'wall2', 'granite', depth=0.3, frame='frame', fcol='graphite', soffit=True)
+        e.box(g, 0.6, e.L - 0.6, 3.15, 3.75, -0.3, 0, 'sign', 'signyellow', bottom=True)
+    band(g, ring, G - 0.25, G, 0.3, 'wall2', 'granite')
+    band(g, ring, top - 0.3, top, 0.25, 'wall', 'beige')
+    parapet(g, ring, top, 0.8, 0.35, 'wall', 'sand', coping='roof', ccol='roof', roof='roof', rcol='gravel')
+    cxr = sum(p[0] for p in ring) / len(ring)
+    cyr = sum(p[1] for p in ring) / len(ring)
+    box(g, cxr, cyr, 9, 5, top, top + 3.0, 'wall', 'sand', ang=oriented(ring)[0])
+    return top + 3.0
+
+
+# ───────────────────────── wave 2: Shmidta street and the Talsinskaya embankment ─────────────────────────
+
+def small_block(g, frame, ring, wall, low, n=2, fh=3.2, roof_col='#5b5f63', rise=2.0, shops=False, flat=False):
+    """a two- or three-storey brick building with a hipped roof (looks not confirmed by photographs)"""
+    z0 = 0.6
+    top = z0 + n * fh
+    rows = floors(z0, n, fh, 0.9, 2.5)
+    for e in edges(ring):
+        e.box(g, 0, e.L, 0, z0, -0.06, 0, 'wall2', low, ends=False)
+        if e.L < 2.4:
+            e.front(g, 0, e.L, z0, top, 0, 'wall', wall)
+            continue
+        cols = bays(e.L, 3.1, 0.8, width=1.4)
+        openings(g, e, z0, top, cols, rows, 'wall', wall, depth=0.24, frame='frame', fcol='pvc', sill='trim', scol='white')
+        if shops and faces_route(frame, e) and e.L > 8:
+            door(g, e, e.L / 2, z0 - 0.3, 1.8, 2.3, depth=1.4)
+    band(g, ring, top - 0.4, top, 0.25, 'trim', 'white')
+    if flat:
+        parapet(g, ring, top, 0.7, 0.3, 'wall', wall, coping='roof', ccol='roof', roof='roof', rcol=roof_col)
+        return top + 0.7
+    ang, u0, u1, v0, v1 = oriented(ring)
+    hip_roof(g, ring, top, rise, (v1 - v0) / 2 - 1.0, 'roof', roof_col, tol=0.9)
+    return top + rise
+
+
+@hero(93524634, name='Здание на ул. Шмидта, 5А')
+def shmidta_5a(g, frame):
+    return small_block(g, frame, local_ring(93524634, frame, tol=0.6), 'silicate', '#8a8378', n=3, fh=3.0, shops=True, flat=True)
+
+
+@hero(156871484, name='Здание на Талсинской ул., 9А')
+def talsinskaya_9a(g, frame):
+    return small_block(g, frame, local_ring(156871484, frame, tol=0.6), '#e2cf98', '#9a8a6c', n=2, fh=3.3, roof_col='#6b5e55', rise=2.2)
+
+
 # ───────────────────────── build, export, manifest ─────────────────────────
 
 def build():
@@ -1378,7 +1791,7 @@ def preview(dir_):
         sc.collection.objects.link(oobj)
 
         vs = [obj.matrix_world @ Vector(v.co) for v in obj.data.vertices]
-        view = VIEWS.get(osm_id, {})
+        view = VIEWS.get(osm_id) or auto_view(osm_id, frame, vs)
         shots = []
         for k, spec in enumerate([view.get('whole', {}), view.get('close', {})]):
             path = os.path.join(dir_, f'_{MAP}-{osm_id}-{k}.png')
@@ -1392,11 +1805,22 @@ def preview(dir_):
         bpy.data.objects.remove(oobj, do_unlink=True)
 
 
+def auto_view(osm_id, frame, vs):
+    """a 3/4 view from the route side, and a close look at the wall nearest to the route"""
+    cx = (min(v.x for v in vs) + max(v.x for v in vs)) / 2
+    cy = (min(v.y for v in vs) + max(v.y for v in vs)) / 2
+    to = to_route(frame, cx, cy)
+    az = math.degrees(math.atan2(to.y, to.x))
+    near = min(vs, key=lambda v: (Vector((v.x, v.y)) - Vector((cx, cy)) - to).length)
+    zmax = max(v.z for v in vs)
+    return {'whole': {'az': az + 35, 'el': 16}, 'close': {'az': az - 20, 'el': 8, 'at': (near.x, near.y, min(6.0, zmax / 2), 26)}}
+
+
 def shoot(cam, vs, spec, path, whole):
-    """a 640×720 view: the whole building fitted into the frame, or a closer look at spec['at'] (x, y, z, size)"""
+    """a 480×540 view: the whole building fitted into the frame, or a closer look at spec['at'] (x, y, z, size)"""
     import bpy_extras
     sc = scene
-    sc.render.resolution_x, sc.render.resolution_y = 640, 720
+    sc.render.resolution_x, sc.render.resolution_y = 480, 540
     az = math.radians(spec.get('az', -135))
     el = math.radians(spec.get('el', 14))
     d = Vector((math.cos(el) * math.cos(az), math.cos(el) * math.sin(az), math.sin(el)))
@@ -1442,6 +1866,10 @@ def side_by_side(paths, out):
     img.save()
     for im in ims + [img]:
         bpy.data.images.remove(im)
+    # docs/KITS.md wants palette PNGs: Blender has no PIL, the system Python does
+    import subprocess
+    subprocess.run(['python3', '-c', 'import sys; from PIL import Image; im = Image.open(sys.argv[1]).convert("RGB"); '
+                    'im.quantize(256, method=Image.Quantize.MEDIANCUT).save(sys.argv[1], optimize=True)', out], check=True)
 
 
 # per hero: 'whole' = azimuth (degrees, 0 = camera east of the building, −90 = south) and elevation of the full
@@ -1459,6 +1887,7 @@ VIEWS = {
     47710002: {'whole': {'az': 15, 'el': 16}, 'close': {'az': 30, 'el': 8, 'at': (8, 20, 5, 18)}},
     51975813: {'whole': {'az': -100, 'el': 14}, 'close': {'az': -100, 'el': 8, 'at': (0, -10, 8, 16)}},
     5675518: {'whole': {'az': 10, 'el': 14}, 'close': {'az': 20, 'el': 8, 'at': (12, 0, 25, 20)}},
+    653362077: {'whole': {'az': 25, 'el': 14}, 'close': {'az': 5, 'el': 6, 'at': (10, -6, 4, 24)}},
 }
 
 if OPTS['preview']:
