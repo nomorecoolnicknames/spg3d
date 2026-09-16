@@ -92,6 +92,7 @@ export class BossScene implements SceneController {
    * Render interpolation (as in the race): the fight is simulated at 120 Hz and drawn between the last two steps,
    * so the fighter, the mech and the camera do not move in uneven jumps on a 60/90/120 Hz screen.
    */
+  private aimHold = 0;
   private pose = { valid: false, prev: [0, 0, 0, 0, 0, 0, 0, 0], sim: [0, 0, 0, 0, 0, 0, 0, 0] };
   private mechSpeed = 0;
   private volleyT = 2.5;
@@ -215,6 +216,10 @@ export class BossScene implements SceneController {
     k.godMode = (on: unknown) => {
       this.god = !!on;
     };
+    // QA: hurt the player (enough of it plays the death)
+    k.damagePlayer = (n: unknown) => {
+      this.damagePlayer(Number(n));
+    };
     // QA close-ups: bossView(angle rad, distance m, camera height, look-at height); bossView() → game camera
     k.bossView = (ang?: unknown, r?: unknown, y?: unknown, lookY?: unknown) => {
       this.debugView = ang === undefined ? null : [Number(ang), Number(r ?? 30), Number(y ?? 10), Number(lookY ?? 10)];
@@ -250,6 +255,8 @@ export class BossScene implements SceneController {
     this.playerYaw = Math.PI;
     this.camYaw = Math.PI;
     this.pose.valid = false;
+    this.aimHold = 0;
+    this.fighter.play('idle');
     this.bossHP = this.phase === 3 ? 33 : this.phase === 2 ? 66 : 100;
     for (const m of this.minions) this.killMinion(m, false);
     for (const r of this.rockets) this.scene.remove(r.mesh);
@@ -519,7 +526,9 @@ export class BossScene implements SceneController {
       while (d < -Math.PI) d += Math.PI * 2;
       this.playerYaw += d * Math.min(1, dt * 6);
     }
-    this.fighter.play(moving ? 'run' : 'idle');
+    // standing and shooting he brings the launcher up into both hands for a moment
+    this.aimHold = Math.max(0, this.aimHold - dt);
+    this.fighter.play(moving ? 'run' : this.aimHold > 0 ? 'attack' : 'idle');
     this.fighter.setTimeScale(moving ? (sprint ? 1.5 : 1.1) : 1);
     this.constrain(this.playerPos, 0.5);
     // ---- firing ----
@@ -531,6 +540,7 @@ export class BossScene implements SceneController {
       const dir = aim.sub(muzzle).normalize();
       this.spawnRocket(muzzle, dir.multiplyScalar(70), false);
       this.fighter.kickRecoil();
+      this.aimHold = 0.7;
       audio.play('rocket-launch');
       this.shaker.add(0.12);
       this.lights.flash(muzzle, '#ffb060', 40, 0.15, 12);
@@ -945,6 +955,7 @@ export class BossScene implements SceneController {
     }
     if (this.playerHP <= 0) {
       this.dead = true;
+      this.fighter.play('death');
       audio.play('player-dead');
       audio.loop('laser-beam', false);
       this.cb.onEvent({ type: 'player-dead' });
@@ -1043,7 +1054,7 @@ export class BossScene implements SceneController {
     this.post?.dispose();
     this.pmrem?.dispose();
     const k = window.__spg.knobs;
-    for (const n of ['setBossHP', 'setPhase', 'skipIntro', 'killMinions', 'godMode', 'bossView', 'bossCam', 'arenaDoor']) delete k[n];
+    for (const n of ['setBossHP', 'setPhase', 'skipIntro', 'killMinions', 'godMode', 'damagePlayer', 'bossView', 'bossCam', 'arenaDoor']) delete k[n];
     this.scene.clear();
   }
 }
