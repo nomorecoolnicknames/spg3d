@@ -24,3 +24,11 @@ Landmarks are modelled after photographs on Wikimedia Commons (not redistributed
   floodlights, ducts, canopy with posters)
 - Final boss look: «Madkid 2026.jpg» — JessePinkman, CC BY 4.0 (hair, face, sweater and scarf are modelled
   procedurally in `src/game/boss/BossMech.ts`; no pixels of the photo are used)
+
+## Characters
+
+- Boss-fight hero: «Deadpool MMD PORT FBX» (fan model) — Izann2842_o (https://sketchfab.com/Izann2842_o), CC BY 4.0
+  (http://creativecommons.org/licenses/by/4.0/),
+  https://sketchfab.com/3d-models/deadpool-mmd-port-fbx-11db756e1a694f3ca56cd57a994f7081. Changed: mesh decimated,
+  shotguns and sai removed, textures downscaled, humanoid bones renamed (`scripts/blender/deadpool_mmd.py`); the
+  animation is procedural (`src/game/boss/Fighter.ts`)

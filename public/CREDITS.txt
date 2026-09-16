@@ -35,4 +35,8 @@ HDRI-окружения (отражения и освещение): Poly Haven, 
 Шрифт букв стелы — DejaVu Sans Bold (Bitstream Vera License), глифы переведены в геометрию.
 
 Зомби (финальный бой): «Zombie» — Quaternius, лицензия CC0 (https://quaternius.com, poly.pizza/m/VlXjG0N8Eg)
-Дедпул — фанатская Funko-модель из первой версии игры (warhoax/DeadPool-Blender-3D), разрезана на части в Blender
+Дедпул (финальный бой): фанатская модель «Deadpool MMD PORT FBX» — Izann2842_o (https://sketchfab.com/Izann2842_o),
+  лицензия CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/),
+  https://sketchfab.com/3d-models/deadpool-mmd-port-fbx-11db756e1a694f3ca56cd57a994f7081
+  изменено: упрощена сетка, убраны дробовики и саи, уменьшены текстуры, переименованы кости
+  (scripts/blender/deadpool_mmd.py); анимация процедурная
