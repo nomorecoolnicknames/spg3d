@@ -53,6 +53,7 @@ MATERIALS = {
     'dark': ('#1d1b19', 0.0, 0.95),
     'sign': ('#ffffff', 0.0, 0.4),
     'gold': ('#f2c14e', 1.0, 0.25),
+    'glass2': ('#1f272e', 0.0, 0.1),
 }
 MAT_NAMES = list(MATERIALS)
 MAT = {}
@@ -130,14 +131,14 @@ def inside(pt, ring):
 class Footprint:
     """outer ring CCW and courtyard rings CW in Blender XY around the centroid of the outer-ring vertices"""
 
-    def __init__(self, osm_id, parts=()):
+    def __init__(self, osm_id, parts=(), tol=0.15):
         b = BUILDINGS[osm_id]
         self.id = osm_id
         self.h = b[0] / 10
         flat = b[8]
         self.cx = sum(flat[0::2]) / (len(flat) // 2) / 10
         self.cz = sum(flat[1::2]) / (len(flat) // 2) / 10
-        self.outer = straighten(clean_ring(self.ring(flat)))
+        self.outer = straighten(clean_ring(self.ring(flat)), tol)
         if area2(self.outer) < 0:
             self.outer.reverse()
         self.holes = []
@@ -623,12 +624,15 @@ def erker(g, e, s, w, z0, z1, depth, floor_h, win_w, rounded=True, cap='roof'):
 
 def tenement(g, fp, *, ground=4.6, floor=3.6, floors=5, bay=3.4, margin=1.3, win=1.35, win_h=2.2, ground_kind='arch',
              ground_w=2.0, hoods=None, surround=0.14, rust=True, attic=0.9, depth=0.28, skip=None, lesenes=0,
-             street=None, cornice_d=0.75, roof=(3.5, 1.8), court_windows=False, near=40.0, arch_floors=(), shops=None):
+             street=None, cornice_d=0.75, roof=(3.5, 1.8), court_windows=False, near=40.0, arch_floors=(), shops=None,
+             rust_floors=1, keep=(), surround_floors=99, away_flat=False):
     """a Petersburg tenement or classical block on the whole footprint: rusticated ground floor, windows in axes
     with surrounds and hoods, string course, full cornice, attic, pitched roof; returns the street walls and their
     window axes and the cornice height"""
     hoods = hoods or {}
     H = ground + floor * (floors - 1)
+    rust_to = ground + floor * (rust_floors - 1)
+    arched = arch_floors if callable(arch_floors) else (lambda e, s, k: k in arch_floors)
     is_street = street or (lambda e: not fp.party(e))
     walls = {}
     for e in fp.edges():
@@ -636,13 +640,14 @@ def tenement(g, fp, *, ground=4.6, floor=3.6, floors=5, bay=3.4, margin=1.3, win
             g.quad(e, 0, e.L, 0, H + max(attic, 0.45), 0, 'wall')
             continue
         dist, facing = fp.route_near(e)
-        flat = dist > near
+        # with away_flat, walls turned away from the route get flush windows even when they are near it
+        flat = (dist > near or (away_flat and facing < -0.3)) and e not in keep
         bare = flat and (facing < 0.2 or dist > near * 3)
         # walls the route never sees keep a sparser rhythm of plain glass
         centres = bays(e.L, bay * (1.25 if bare else 1.0), margin)
         walls[e] = centres
         g.box(e, 0, e.L, 0, 0.6, 0, 0.1, 'wall2')
-        gh, uh = [], []
+        gh, rh, uh = [], [], []
         for s in centres:
             if skip and skip(e, s, 0):
                 pass
@@ -665,11 +670,15 @@ def tenement(g, fp, *, ground=4.6, floor=3.6, floors=5, bay=3.4, margin=1.3, win
                 if bare:
                     g.quad(e, s - win / 2, s + win / 2, z0, z0 + win_h, 0.03, 'glass')
                     continue
-                window(g, e, s, z0, z0 + win_h + (win / 2 if k in arch_floors else 0), win, depth=depth,
-                       surround=surround if not flat or k <= 2 else None, hood=hoods.get(k), holes=uh, flush=flat,
-                       kind='arch' if k in arch_floors else 'rect')
+                arc = arched(e, s, k)
+                window(g, e, s, z0, z0 + win_h + (win / 2 if arc else 0), win, depth=depth,
+                       surround=surround if (not flat or k <= 2) and k <= surround_floors else None, hood=hoods.get(k),
+                       holes=rh if k < rust_floors else uh,
+                       flush=flat, kind='arch' if arc else 'rect')
         g.wall(e, 0, e.L, 0.6, ground, gh, mat='wall2' if rust else 'wall')
-        g.wall(e, 0, e.L, ground, H, uh)
+        if rust_floors > 1:
+            g.wall(e, 0, e.L, ground, rust_to, rh, mat='wall2')
+        g.wall(e, 0, e.L, rust_to, H, uh)
         if lesenes and len(centres) > 1:
             step = (e.L - 2 * margin) / len(centres)
             for k in range(0, len(centres) + 1, lesenes):
@@ -679,6 +688,8 @@ def tenement(g, fp, *, ground=4.6, floor=3.6, floors=5, bay=3.4, margin=1.3, win
     top = H + 0.45
     for chain, closed in chains(fp, fp.outer, is_street):
         g.band(chain, [(0, ground - 0.1), (0.2, ground), (0.2, ground + 0.3), (0, ground + 0.42)], 'trim', closed)
+        if rust_floors > 1:
+            g.band(chain, [(0, rust_to - 0.1), (0.22, rust_to), (0.22, rust_to + 0.35), (0, rust_to + 0.45)], 'trim', closed)
         g.band(chain, [(0, H - 0.55), (0.14, H - 0.45), (0.2, H - 0.15), (cornice_d, H + 0.2), (cornice_d, top), (0, top)], 'trim', closed)
         if attic > 0.45:
             g.band(chain, [(0, top), (0, H + attic), (0.08, H + attic), (0.08, H + attic + 0.12), (-0.35, H + attic + 0.12)], 'wall', closed)
@@ -695,12 +706,121 @@ def tenement(g, fp, *, ground=4.6, floor=3.6, floors=5, bay=3.4, margin=1.3, win
     return walls, H
 
 
+def balcony(g, e, s0, s1, z, depth=0.8, rail=1.0):
+    """a stone slab on the wall with a wrought-iron railing"""
+    g.box(e, s0, s1, z - 0.18, z, 0, depth, 'trim', bottom=True)
+    g.box(e, s0 + 0.05, s1 - 0.05, z, z + rail, depth - 0.07, depth, 'metal', top=False)
+
+
+def gable(g, e, sc, z, w, h, kind='curved', window=True, back=0.6):
+    """an attic gable standing on the cornice: 'curved' (Art Nouveau), 'triangle' (pediment), 'step'"""
+    if kind == 'curved':
+        pts = [(sc - w / 2, z), (sc + w / 2, z)] + [(sc + w / 2 * math.cos(math.pi * k / 6), z + h * 0.35 + h * 0.65 * math.sin(math.pi * k / 6)) for k in range(7)]
+    elif kind == 'triangle':
+        pts = [(sc - w / 2, z), (sc + w / 2, z), (sc, z + h)]
+    else:
+        pts = [(sc - w / 2, z), (sc + w / 2, z), (sc + w / 2, z + h * 0.5), (sc + w * 0.3, z + h * 0.5), (sc + w * 0.3, z + h),
+               (sc - w * 0.3, z + h), (sc - w * 0.3, z + h * 0.5), (sc - w / 2, z + h * 0.5)]
+    loops = [[Vector((a, b, 0)) for a, b in pts]]
+    for t in geometry.tessellate_polygon(loops):
+        g.poly([e.at(pts[i][0], 0.05, pts[i][1]) for i in t], 'wall', e.nvec())
+        g.poly([e.at(pts[i][0], -back, pts[i][1]) for i in t], 'wall', e.nvec(-1))
+    for a, b in zip(pts, pts[1:] + pts[:1]):
+        if abs(a[1] - z) < 1e-6 and abs(b[1] - z) < 1e-6:
+            continue
+        # the outline runs counter-clockwise in (s, z): its outward side is (dz, -ds)
+        g.poly([e.at(a[0], 0.12, a[1]), e.at(b[0], 0.12, b[1]), e.at(b[0], -back, b[1]), e.at(a[0], -back, a[1])], 'trim',
+               (e.u[0] * (b[1] - a[1]), e.u[1] * (b[1] - a[1]), -(b[0] - a[0])))
+    if window == 'half':
+        # a big half-round window standing on the cornice, with its glazing bars
+        r = min(w * 0.3, h * 0.55)
+        zb = z + 0.35
+        g.poly([e.at(sc + r * math.cos(math.pi * k / 8), 0.08, zb + r * math.sin(math.pi * k / 8)) for k in range(9)], 'glass', e.nvec())
+        for k in (-1, 0, 1):
+            g.quad(e, sc + k * r * 0.45 - 0.05, sc + k * r * 0.45 + 0.05, zb, zb + r * math.sqrt(max(0.0, 1 - (k * 0.45) ** 2)), 0.1, 'frame')
+    elif window:
+        r = min(w * 0.16, h * 0.3)
+        cz = z + h * 0.42
+        g.poly([e.at(sc + r * math.cos(2 * math.pi * k / 10), 0.08, cz + r * math.sin(2 * math.pi * k / 10)) for k in range(10)], 'glass', e.nvec())
+
+
+def corner_edge(e1, e2, cut):
+    """a virtual wall across the corner where e1 ends and e2 starts (for a bay or a turret on the corner)"""
+    a = e1.at(max(0.0, e1.L - cut), 0, 0)
+    b = e2.at(min(e2.L, cut), 0, 0)
+    return Edge((a[0], a[1]), (b[0], b[1]))
+
+
+def dome(g, x, y, z, r, drum, cap, spire=0.0, cap_mat='roof', segs=12, cap_col=None):
+    """drum with windows, cornice, dome and an optional spire (corner turrets of tenements)"""
+    g.lathe(x, y, [(r, z), (r, z + drum)], segs, 'wall', closed_top=False)
+    for k in range(0, segs, 2):
+        a = 2 * math.pi * (k + 0.5) / segs
+        e = Edge((x + math.cos(a - 0.2) * r * 1.01, y + math.sin(a - 0.2) * r * 1.01), (x + math.cos(a + 0.2) * r * 1.01, y + math.sin(a + 0.2) * r * 1.01))
+        g.quad(e, 0.05, e.L - 0.05, z + drum * 0.25, z + drum * 0.8, 0.02, 'glass')
+    g.lathe(x, y, [(r, z + drum), (r + 0.3, z + drum + 0.15), (r + 0.3, z + drum + 0.4), (r, z + drum + 0.4)], segs, 'trim', closed_top=False)
+    g.lathe(x, y, [(r, z + drum + 0.4), (r * 0.82, z + drum + 0.4 + cap * 0.5), (r * 0.45, z + drum + 0.4 + cap * 0.88), (0.15, z + drum + 0.4 + cap)], segs, cap_mat, col=cap_col)
+    if spire:
+        top = z + drum + 0.4 + cap
+        g.lathe(x, y, [(0.28, top - 0.1), (0.28, top + 0.5), (0.05, top + spire)], 6, 'gold')
+
+
+def fronts(fp, dist=30.0, facing=0.5, min_len=8.0):
+    """street walls that face the race route squarely and close by"""
+    out = []
+    for e in fp.edges():
+        if e.L < min_len or fp.party(e):
+            continue
+        d, f = fp.route_near(e)
+        if d < dist and f > facing:
+            out.append(e)
+    return out
+
+
+def ring_walk(fp, e, dist):
+    """the point `dist` metres along the outer ring after the end of wall e"""
+    es = fp.edges()
+    i = es.index(e)
+    left = dist
+    for k in range(1, len(es)):
+        n = es[(i + k) % len(es)]
+        if n.L >= left:
+            return n.at(left, 0, 0)[:2]
+        left -= n.L
+    return e.q
+
+
+def corner_tower(g, e1, e2, r, z0, z1, floor_h, win_w=1.2, segs=12):
+    """a rounded bay wrapped round the corner where wall e1 ends and e2 starts; returns its centre"""
+    bx, by = e1.n[0] + e2.n[0], e1.n[1] + e2.n[1]
+    bl = math.hypot(bx, by) or 1
+    bx, by = bx / bl, by / bl
+    cx, cy = e1.q[0] - bx * r * 0.78, e1.q[1] - by * r * 0.78
+    g.lathe(cx, cy, [(r, z0), (r, z1)], segs, 'wall', closed_top=False)
+    g.lathe(cx, cy, [(r - 0.3, z0 - 0.3), (r, z0)], segs, 'trim', closed_top=False)
+    g.lathe(cx, cy, [(r + 0.1, z1), (r + 0.1, z1 + 0.3), (0.3, z1 + 1.0)], segs, 'roof')
+    nf = max(1, int((z1 - z0) / floor_h + 0.2))
+    for k in range(segs):
+        a0, a1 = 2 * math.pi * k / segs, 2 * math.pi * (k + 1) / segs
+        am = (a0 + a1) / 2
+        if math.cos(am) * bx + math.sin(am) * by < 0.25:
+            continue
+        seg = Edge((cx + math.cos(a0) * r, cy + math.sin(a0) * r), (cx + math.cos(a1) * r, cy + math.sin(a1) * r))
+        ww = min(win_w, seg.L - 0.3)
+        for f in range(nf):
+            zb = z0 + f * floor_h + 0.9
+            g.quad(seg, seg.L / 2 - ww / 2, seg.L / 2 + ww / 2, zb, min(zb + floor_h * 0.6, z1 - 0.2), 0.03, 'glass')
+            g.quad(seg, seg.L / 2 - ww / 2 - 0.1, seg.L / 2 + ww / 2 + 0.1, zb - 0.14, zb, 0.07, 'trim')
+    return cx, cy
+
+
 HEROES = []
 
 
-def hero(osm_id, name, parts=()):
+def hero(osm_id, name, parts=(), tol=0.15):
+    """register a builder; `tol` straightens gently curved walls mapped as many short OSM segments"""
     def deco(fn):
-        HEROES.append((osm_id, name, tuple(parts), fn))
+        HEROES.append((osm_id, name, tuple(parts), fn, tol))
         return fn
     return deco
 
@@ -1414,14 +1534,271 @@ def vosstaniya_metro(fp, g):
     g.lathe(cx, cy, [(0.9, Z1 + 6.6), (0.5, Z1 + 7.6), (0.08, Z1 + 15.0)], 8, 'gold')
 
 
+# ── wave 2: the tenements along Svechnoy, Marata and the Nevsky corner ──
+
+@hero(56020036, 'Доходный дом Сагалова (Лиговский 91 / Свечной 27)', tol=0.7)
+def sagalov(fp, g):
+    """Sagalov tenement, Ligovsky 91 / Svechnoy 27 (OSM wikipedia «Доходный дом Сагалова», a heritage site) after
+    Commons «Ligovsky Avenue 91 2010-08»: seven storeys of grey textured stone plaster, a rounded bay taking the corner
+    through all upper floors, a big half-round window in a curved gable over the middle of the Ligovsky front, round-
+    arched top-floor windows there, shops below and a steep grey roof."""
+    g.pal = {'wall': '#aeaca5', 'wall2': '#8e8b84', 'trim': '#c9c6be', 'roof': '#596064'}
+    GF, FL, NF = 4.6, 3.2, 7
+    H = GF + FL * (NF - 1)
+    es = fp.edges()
+    svech = max(fronts(fp), key=lambda e: e.L)
+    lig = max((e for e in es if e.n[0] > 0.8 and not fp.party(e)), key=lambda e: e.L)
+    corner = ring_walk(fp, lig, 2.8)
+    ce = Edge(lig.at(lig.L - 2.8, 0, 0)[:2], corner)
+
+    def skip(e, s, k):
+        return e == lig and s > lig.L - 3.4 and k >= 1
+
+    walls, _ = tenement(g, fp, away_flat=True, ground=GF, floor=FL, floors=NF, bay=3.4, win=1.3, win_h=1.95, ground_kind='shop',
+                        hoods={}, arch_floors=lambda e, s, k: e == lig and k == NF - 1, attic=0.8, roof=(3.2, 3.6),
+                        surround=0.1, skip=skip, near=15, rust_floors=2, keep=(lig,), surround_floors=2)
+    g.view = lig
+    after = fp.edges()[(fp.edges().index(lig) + 1) % len(fp.edges())]
+    corner_tower(g, lig, after, 3.0, GF + 0.3, H, FL)
+    gable(g, lig, lig.L / 2, H + 0.8, 7.6, 4.4, 'curved', window='half')
+    for e in (svech,):
+        for k in (2, 5):
+            for s in (e.L * 0.3, e.L * 0.7):
+                balcony(g, e, s - 1.6, s + 1.6, GF + FL * (k - 1) + 0.95, 0.75)
+
+
+@hero(60913189, 'Доходный дом, Свечной 20')
+def svechnoy_20(fp, g):
+    """Svechnoy 20: a long four-storey house of the 1850s–80s lining the lane for 80 m. No photograph was found; it is
+    modelled as the lane's plain late-classical houses are: warm ochre plaster, rusticated ground floor with a round-
+    arched carriage gateway in the middle, window cornices on the main floor, a central balcony and a low metal roof."""
+    g.pal = {'wall': '#d9c59c', 'wall2': '#c4ae85', 'trim': '#efe7d6', 'roof': '#5c6166'}
+    GF, FL = 4.2, 3.5
+    main = max(fronts(fp), key=lambda e: e.L)
+
+    def skip(e, s, k):
+        return e == main and k == 0 and abs(s - e.L / 2) < 2.2
+
+    tenement(g, fp, away_flat=True, ground=GF, floor=FL, floors=4, bay=3.3, win=1.35, win_h=2.1, ground_kind='rect',
+             hoods={1: 'cornice'}, attic=0.45, roof=(2.6, 1.5), surround=0.12, skip=skip, near=25)
+    gate = arch(main.L / 2 - 1.6, main.L / 2 + 1.6, 0.02, 2.4, 6)
+    g.poly([main.at(a, 0.04, b) for a, b in gate], 'dark', main.nvec())
+    g.box(main, main.L / 2 - 0.25, main.L / 2 + 0.25, 3.6, 4.1, 0, 0.14, 'trim')
+    balcony(g, main, main.L / 2 - 2.2, main.L / 2 + 2.2, GF + 0.95, 0.7)
+
+
+@hero(19575781, 'Доходный дом, Марата 40')
+def marata_40(fp, g):
+    """Marata 40: a six-storey tenement of about 1900. No photograph was found; it follows the eclectic houses of the
+    same street (Marata 36–38, 33): dusty-pink plaster over a rusticated shop floor, two bay windows through four floors
+    with balconies on top and small pediments over them on the attic, pediments and cornices over the windows, a
+    carriage arch in the middle."""
+    g.pal = {'wall': '#c9aa9c', 'wall2': '#a98e81', 'trim': '#ede3d9', 'roof': '#5a5e62'}
+    GF, FL, NF = 4.6, 3.4, 6
+    H = GF + FL * (NF - 1)
+    main = max(fronts(fp), key=lambda e: e.L)
+    ers = (main.L * 0.2, main.L * 0.8)
+
+    def skip(e, s, k):
+        if e != main:
+            return False
+        if k == 0 and abs(s - e.L / 2) < 2.0:
+            return True
+        return 1 <= k <= 4 and any(abs(s - se) < 2.0 for se in ers)
+
+    tenement(g, fp, away_flat=True, ground=GF, floor=FL, floors=NF, bay=3.2, win=1.35, win_h=2.1, ground_kind='shop',
+             hoods={1: 'pediment', 2: 'cornice'}, attic=0.9, roof=(3.2, 2.4), surround=0.14, skip=skip, near=30)
+    for se in ers:
+        z1 = GF + 4 * FL
+        erker(g, main, se, 3.6, GF + 0.5, z1, 0.85, FL, 1.4, rounded=False)
+        g.box(main, se - 1.75, se + 1.75, z1, z1 + 1.0, 0.78, 0.85, 'metal', top=False)
+        gable(g, main, se, H + 0.9, 4.4, 1.9, 'triangle', window=False)
+    gate = arch(main.L / 2 - 1.6, main.L / 2 + 1.6, 0.02, 2.8, 6)
+    g.poly([main.at(a, 0.04, b) for a, b in gate], 'dark', main.nvec())
+
+
+@hero(61580054, 'Доходный дом, Марата 30')
+def marata_30(fp, g):
+    """Marata 30: a narrow seven-storey Art Nouveau tenement between lower neighbours. No photograph was found; it is
+    given the features of the street's 1900s houses of that height: light beige plaster with a darker rusticated base of
+    two storeys, a rounded bay window in the middle crowned by a curved gable, round-arched top-floor windows, iron
+    balconies and a steep roof."""
+    g.pal = {'wall': '#cfbc99', 'wall2': '#a28f70', 'trim': '#ebe1cc', 'roof': '#555a5f'}
+    GF, FL, NF = 4.8, 3.25, 7
+    H = GF + FL * (NF - 1)
+    main = max(fronts(fp), key=lambda e: e.L)
+
+    def skip(e, s, k):
+        return e == main and 2 <= k <= 5 and abs(s - e.L / 2) < 2.4
+
+    tenement(g, fp, away_flat=True, ground=GF, floor=FL, floors=NF, bay=3.1, win=1.3, win_h=2.0, ground_kind='shop',
+             hoods={2: 'cornice'}, arch_floors=(6,), attic=0.6, roof=(3.0, 3.2), surround=0.12, skip=skip, near=30,
+             rust_floors=2)
+    erker(g, main, main.L / 2, 4.6, GF + FL + 0.4, GF + 5 * FL, 0.9, FL, 1.4)
+    gable(g, main, main.L / 2, H + 0.6, 6.0, 3.4, 'curved')
+    for k in (3, 5):
+        for s in (main.L * 0.18, main.L * 0.82):
+            balcony(g, main, s - 1.2, s + 1.2, GF + FL * (k - 1) + 0.95, 0.7)
+
+
+@hero(61580031, 'Доходный дом, Свечной 16 / Коломенская 19')
+def svechnoy_16(fp, g):
+    """Svechnoy 16 / Kolomenskaya 19: a four-storey corner house of the mid-19th century. No photograph was found; it
+    is modelled as the lane's late-classical houses: pale green plaster, white pilaster strips and pediments on the
+    main floor, shops in the ground floor and a balcony over the middle."""
+    g.pal = {'wall': '#b9c3b0', 'wall2': '#9ca793', 'trim': '#eef0e6', 'roof': '#5b6064'}
+    GF, FL = 4.3, 3.5
+    main = max(fronts(fp), key=lambda e: e.L)
+    tenement(g, fp, away_flat=True, ground=GF, floor=FL, floors=4, bay=3.3, win=1.35, win_h=2.1, ground_kind='shop',
+             hoods={1: 'pediment'}, lesenes=3, attic=0.45, roof=(2.6, 1.5), surround=0.12, near=25)
+    balcony(g, main, main.L / 2 - 3.0, main.L / 2 + 3.0, GF + 0.95, 0.8)
+
+
+@hero(61580027, 'Доходный дом, Марата 26 / Кузнечный 11')
+def marata_26(fp, g):
+    """Marata 26 / Kuznechny 11 after Commons «Tsentralny District, St Petersburg, Russia - panoramio (335), (337)»: a
+    sand-coloured four-storey eclectic corner house — rusticated walls, pediments and cornices over the windows, a
+    corner bay with a balcony over the cut-off corner and a curved gable with a round window above it, small attic
+    gables along Marata."""
+    g.pal = {'wall': '#cdbd97', 'wall2': '#b8a680', 'trim': '#e6dbc1', 'roof': '#5b5f63'}
+    GF, FL, NF = 4.4, 3.6, 4
+    H = GF + FL * (NF - 1)
+    es = fp.edges()
+    mar = max(fronts(fp), key=lambda e: e.L)
+    i = es.index(mar)
+    # the Kuznechny front: the long street wall that ends a few metres before Marata starts
+    north = None
+    run = 0.0
+    for k in range(1, 6):
+        c = es[(i - k) % len(es)]
+        if c.L > 15 and not fp.party(c):
+            north = c
+            break
+        run += c.L
+    ce = Edge(north.q, mar.p) if north else None
+
+    def skip(e, s, k):
+        return ce is not None and 1 <= k <= 2 and ((e == mar and s < 2.6) or (e == north and s > e.L - 2.6))
+
+    tenement(g, fp, away_flat=True, ground=GF, floor=FL, floors=NF, bay=3.4, win=1.4, win_h=2.2, ground_kind='rect',
+             hoods={1: 'pediment', 2: 'cornice'}, lesenes=3, attic=0.45, roof=(3.0, 1.6), surround=0.14, skip=skip,
+             near=30)
+    if ce:
+        w = max(ce.L, 3.4)
+        erker(g, ce, ce.L / 2, w, GF + 0.3, GF + 2 * FL, 0.8, FL, 1.3, rounded=False)
+        g.box(ce, ce.L / 2 - w / 2, ce.L / 2 + w / 2, GF + 2 * FL, GF + 2 * FL + 1.0, 0.72, 0.8, 'metal', top=False)
+        gable(g, ce, ce.L / 2, H + 0.45, max(ce.L + 1.0, 4.4), 4.0, 'curved')
+    for f in (0.35, 0.8):
+        gable(g, mar, mar.L * f, H + 0.45, 3.4, 1.6, 'triangle', window=False)
+
+
+@hero(946837, 'Доходный дом, Лиговский 87')
+def ligovsky_87(fp, g):
+    """Ligovsky 87 (a heritage-listed tenement) after Commons «Saint Petersburg Ligovsky Avenue 87 2025-03 282» and
+    «… 295»: a six-storey eclectic house in terracotta-pink plaster, richly framed windows with pediments on the second
+    floor and cornices above, bay windows at both ends of the front with balconies on top and small gables over them,
+    iron balconies in between and shops in the rusticated ground floor."""
+    g.pal = {'wall': '#c98770', 'wall2': '#a8705c', 'trim': '#efdccb', 'roof': '#585c60'}
+    GF, FL, NF = 5.0, 3.5, 6
+    H = GF + FL * (NF - 1)
+    main = max(fronts(fp), key=lambda e: e.L)
+    ers = (main.L * 0.12, main.L * 0.88)
+
+    def skip(e, s, k):
+        return e == main and 1 <= k <= 4 and any(abs(s - se) < 1.8 for se in ers)
+
+    tenement(g, fp, away_flat=True, ground=GF, floor=FL, floors=NF, bay=3.0, win=1.3, win_h=2.1, ground_kind='shop',
+             hoods={1: 'pediment', 2: 'cornice', 3: 'cornice'}, attic=0.7, roof=(3.0, 2.0), surround=0.16, skip=skip,
+             near=25)
+    for se in ers:
+        z1 = GF + 4 * FL
+        erker(g, main, se, 3.4, GF + 0.5, z1, 0.85, FL, 1.3, rounded=False)
+        g.box(main, se - 1.65, se + 1.65, z1, z1 + 1.0, 0.78, 0.85, 'metal', top=False)
+        gable(g, main, se, H + 0.7, 4.0, 1.8, 'triangle', window=False)
+    for k in (2, 4):
+        balcony(g, main, main.L / 2 - 4.2, main.L / 2 + 4.2, GF + FL * (k - 1) + 0.95, 0.8)
+
+
+@hero(18896086, 'Доходный дом, Марата 33')
+def marata_33(fp, g):
+    """Marata 33 after Commons «4953. St. Petersburg. Marata Street, 33» and «Saint Petersburg. Marat Street, 33.
+    --2024-06-09»: a long five-storey house in peach plaster with white trim — shallow end risalits marked by pilaster
+    strips and round-arched top-floor windows, cornices over the main-floor windows, small iron balconies, shops."""
+    g.pal = {'wall': '#e1b597', 'wall2': '#cc9e7f', 'trim': '#f4e8da', 'roof': '#5c6064'}
+    GF, FL, NF = 4.4, 3.5, 5
+    H = GF + FL * (NF - 1)
+    main = max(fronts(fp), key=lambda e: e.L)
+    walls, _ = tenement(g, fp, away_flat=True, ground=GF, floor=FL, floors=NF, bay=3.3, win=1.35, win_h=2.1, ground_kind='shop',
+                        hoods={1: 'cornice'}, arch_floors=lambda e, s, k: e == main and k == NF - 1 and (s < 7.5 or s > e.L - 7.5),
+                        attic=0.45, roof=(3.0, 1.8), surround=0.13, near=25)
+    for ps in (7.5, main.L - 7.5):
+        g.box(main, ps - 0.35, ps + 0.35, GF + 0.4, H - 0.5, 0, 0.14, 'trim')
+    cs = walls.get(main, [])
+    for k, pick in ((2, (3, len(cs) - 4)), (3, (len(cs) // 2,))):
+        for i in pick:
+            if 0 <= i < len(cs):
+                balcony(g, main, cs[i] - 1.1, cs[i] + 1.1, GF + FL * (k - 1) + 0.95, 0.6)
+
+
+@hero(15081491, 'Доходный дом, Марата 3 / Стремянная 22')
+def marata_3(fp, g):
+    """Marata 3 / Stremyannaya 22 after Commons «Saint Petersburg. Marat Street, 3 (Stremyannaya St., 22)»: a five-storey
+    corner house of about 1900 — the two lower floors rusticated in dark grey-brown, the upper floors in cream plaster
+    with pediments and cornices over the windows — its corner taken by a rounded bay and crowned with a drum, a green
+    dome and a gilded spire."""
+    g.pal = {'wall': '#d8c6a2', 'wall2': '#7e7166', 'trim': '#ece2cc', 'roof': '#5b5f63'}
+    GF, FL, NF = 4.4, 3.6, 5
+    H = GF + FL * (NF - 1)
+    es = fp.edges()
+    mar = max(fronts(fp), key=lambda e: e.L)
+    south = es[es.index(mar) - 1]
+    ce = corner_edge(south, mar, 3.0)
+
+    def skip(e, s, k):
+        return (e == mar and s < 3.2) or (e == south and s > e.L - 3.2)
+
+    tenement(g, fp, away_flat=True, ground=GF, floor=FL, floors=NF, bay=3.4, win=1.35, win_h=2.1, ground_kind='shop',
+             hoods={2: 'pediment', 3: 'cornice'}, attic=0.45, roof=(3.0, 1.8), surround=0.13, skip=skip, near=30,
+             rust_floors=2)
+    cx, cy = corner_tower(g, south, mar, 3.0, 0.6, H, FL)
+    dome(g, cx, cy, H + 0.3, 2.5, 2.4, 2.8, spire=2.4, cap_col='#6f8a78')
+    for k in (2, 3):
+        for f in (0.35, 0.7):
+            balcony(g, mar, mar.L * f - 1.2, mar.L * f + 1.2, GF + FL * (k - 1) + 0.95, 0.6)
+
+
+@hero(4156618, 'Доходный дом, Невский 73–75 / Марата 2')
+def nevsky_73(fp, g):
+    """Nevsky 73–75 / Marata 2 after Commons «SPB Newski house 73» and «SPB Newski house 75»: a five-storey eclectic
+    corner block opposite the Nevsky Atrium — ochre plaster, shop windows under the ground-floor cornice, pediments on
+    the second floor and cornices on the third, iron balconies, a dentilled main cornice and a railing on the roof."""
+    g.pal = {'wall': '#d5b37e', 'wall2': '#bf9b66', 'trim': '#f0e4cc', 'roof': '#5a5e62'}
+    GF, FL, NF = 4.8, 3.6, 5
+    H = GF + FL * (NF - 1)
+    walls, _ = tenement(g, fp, away_flat=True, ground=GF, floor=FL, floors=NF, bay=3.6, win=1.4, win_h=2.2, ground_kind='shop',
+                        hoods={1: 'pediment', 2: 'cornice'}, attic=0.6, roof=(3.2, 1.8), surround=0.15, near=30,
+                        surround_floors=2)
+    top = H + 0.6
+    for e in fronts(fp):
+        cs = walls.get(e, [])
+        mid = len(cs) // 2
+        if len(cs) >= 5:
+            balcony(g, e, cs[mid - 1] - 0.9, cs[mid + 1] + 0.9, GF + 0.95, 0.85)
+            for i in (1, len(cs) - 2):
+                balcony(g, e, cs[i] - 0.9, cs[i] + 0.9, GF + 2 * FL + 0.95, 0.6)
+        g.quad(e, 0, e.L, top + 0.95, top + 1.05, -0.4, 'metal')
+        for s in bays(e.L, 2.4, 0.2):
+            g.quad(e, s - 0.03, s + 0.03, top, top + 1.0, -0.4, 'metal')
+
+
 # ───────────────────────── build, export, manifest ─────────────────────────
 
 manifest = {'map': 'ligovsky', 'heroes': []}
 cams = {}
-for osm_id, name, parts, fn in HEROES:
+for osm_id, name, parts, fn, tol in HEROES:
     if ONLY and osm_id not in ONLY:
         continue
-    fp = Footprint(osm_id, parts)
+    fp = Footprint(osm_id, parts, tol)
     g = Geo(f'hero__{osm_id}_mesh', {})
     fn(fp, g)
     r = root(osm_id)
