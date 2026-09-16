@@ -1,16 +1,18 @@
 """Hero buildings of the Warsaw map (centre around the Palace of Culture), built headless in Blender.
 
     blender -b --factory-startup -P scripts/blender/heroes/warsaw.py -- src/assets/heroes/warsaw.glb \
-        [--preview docs/heroes] [--only <osmId>,<osmId>] [--breakdown 1]
+        [--preview docs/heroes [--preview-ids <osmId>,<osmId>]] [--only <osmId>,<osmId>] [--breakdown 1]
 
 Contract: docs/KITS.md §1 and §3. Every footprint is read from src/data/maps/warsaw.world.json (`buildings[]`,
 rings in decimetres, +x east, +z south) — nothing is copied by hand. A hero is modelled in map metres around the
 centroid of its main part's outer ring (Blender X = x − cx, Y = −(z − cz), Z up from the ground) as one mesh
 object `hero__<osmId>`, using only the contract materials. Heights follow the OSM parts (height / min_height)
 and photographs on Wikimedia Commons. The manifest next to the GLB lists every OSM part a hero replaces, its
-centroid and its real triangle count. `--preview DIR` renders `DIR/warsaw-<osmId>.png` per hero (Workbench,
-cavity + shadows, back faces culled so an inverted face shows as a hole): a 3/4 view of the whole building on
-the left, a closer view of its most characteristic part on the right.
+centroid and its real triangle count. `--preview DIR` renders `DIR/warsaw-<osmId>.png` per hero (or only for the
+`--preview-ids`): Workbench, cavity + shadows, back faces culled so an inverted face shows as a hole; a 3/4 view of
+the whole building on the left, a closer view of its most characteristic part on the right, 960×540, written as
+a palette PNG. Compress the GLB afterwards (docs/KITS.md §3):
+    npx gltf-transform meshopt src/assets/heroes/warsaw.glb src/assets/heroes/warsaw.glb --level medium
 
 Heroes (hero id = the main OSM part in buildings[]; outlines drawn as parts are not in the world file):
   89352683   Pałac Kultury i Nauki — all 15 parts styled `pkin`, 237 m      (≤ 15 000 triangles)
@@ -46,7 +48,8 @@ REPO = os.path.normpath(os.path.join(HERE, '..', '..', '..'))
 MAP = 'warsaw'
 
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
-OPTS = {'out': os.path.join(REPO, 'src/assets/heroes/warsaw.glb'), 'preview': None, 'only': None, 'breakdown': None}
+OPTS = {'out': os.path.join(REPO, 'src/assets/heroes/warsaw.glb'), 'preview': None, 'preview-ids': None, 'only': None,
+        'breakdown': None}
 _rest = list(argv)
 while _rest:
     arg = _rest.pop(0)
@@ -84,6 +87,7 @@ MATERIALS = {
     'dark':  ('#1c1e21', 0.0, 0.95),
     'sign':  ('#ebe7dc', 0.0, 0.5),
     'gold':  ('#d9a93c', 1.0, 0.3),
+    'glass2': ('#1d262e', 0.0, 0.1),   # dark opaque glass: spandrels, back-painted curtain wall
 }
 MAT = {}
 for _name, (_hex, _metal, _rough) in MATERIALS.items():
@@ -591,6 +595,57 @@ def curtain(g, r, z0, z1, *, floor, mull=1.5, mull_w=0.14, mull_d=0.22, band_h=0
                 annulus(g, r, ro, zb, band_mat, down=True)
             z += floor
             k += 1
+
+
+def rhythm(g, r, z0, z1, pattern, w, d, mat, min_edge=3.0):
+    """vertical fins along every edge ≥ min_edge, spaced by the cycled `pattern` (an irregular fin rhythm)"""
+    k = 0
+    for p0, p1, L, t, n in edges(r):
+        if L < min_edge:
+            continue
+        s = 0.0
+        while s <= L:
+            slab_on_edge(g, p0, t, n, max(0.0, s - w / 2), min(L, s + w / 2), 0.0, d, z0, z1, mat)
+            s += pattern[k % len(pattern)]
+            k += 1
+
+
+def openings(g, p0, t, n, L, z0, z1, holes, mat, depth=0.6, back='glass', reveal=None):
+    """the wall of an edge (s = 0…L, z0…z1) with rectangular recessed openings holes = [(s0, s1, za, zb)]: the wall
+    is split into strips around them, each opening gets its four reveals and a back face `depth` inside"""
+    reveal = reveal or mat
+    P = lambda s_, d_, z_: (p0[0] + t[0] * s_ + n[0] * d_, p0[1] + t[1] * s_ + n[1] * d_, z_)
+    zs = sorted({z0, z1, *(z for h in holes for z in h[2:] if z0 < z < z1)})
+    for za, zb in zip(zs, zs[1:]):
+        cuts = sorted((h[0], h[1]) for h in holes if h[2] <= za + 1e-6 and h[3] >= zb - 1e-6)
+        s_ = 0.0
+        for a, b in cuts + [(L, L)]:
+            if a > s_ + 1e-6:
+                g.face([P(s_, 0, za), P(a, 0, za), P(a, 0, zb), P(s_, 0, zb)], mat)
+            s_ = max(s_, b)
+    for a, b, za, zb in holes:
+        g.face([P(a, 0, za), P(a, -depth, za), P(a, -depth, zb), P(a, 0, zb)], reveal)
+        g.face([P(b, 0, zb), P(b, -depth, zb), P(b, -depth, za), P(b, 0, za)], reveal)
+        g.face([P(a, 0, za), P(b, 0, za), P(b, -depth, za), P(a, -depth, za)], reveal)
+        g.face([P(a, -depth, zb), P(b, -depth, zb), P(b, 0, zb), P(a, 0, zb)], reveal)
+        g.face([P(a, -depth, za), P(b, -depth, za), P(b, -depth, zb), P(a, -depth, zb)], back)
+
+
+def balcony(g, p0, t, n, s0, s1, z, depth, slab='trim', rail='metal', rail_h=1.0, solid=False):
+    """a balcony slab on an edge at floor height z with a railing (a solid parapet when `solid`)"""
+    slab_on_edge(g, p0, t, n, s0, s1, 0.0, depth, z - 0.2, z, slab, top=True, bottom=True)
+    slab_on_edge(g, p0, t, n, s0, s1, depth - (0.12 if solid else 0.03), depth, z, z + rail_h,
+                 slab if solid else rail, top=solid, back=True)
+
+
+def mansard(g, r, z0, z1, inset, mat='roof', top='roof'):
+    """a mansard roof: faces sloping from ring r at z0 to r inset by `inset` at z1, flat on top"""
+    ri = offset(r, -inset)
+    for i in range(len(r)):
+        a, b, c, d = r[i], r[(i + 1) % len(r)], ri[(i + 1) % len(r)], ri[i]
+        g.face([(*a, z0), (*b, z0), (*c, z1), (*d, z1)], mat)
+    cap(g, [ri], z1, top)
+    return ri
 
 
 # ───────────────────────── heroes ─────────────────────────
@@ -1509,6 +1564,581 @@ def wars_sawa_junior():
     return H
 
 
+# ── wave 2: the next most visible buildings along the route ──
+
+def swietokrzyska_block(H, base_ids, upper_id, extra=None):
+    """1950s housing slab on Świętokrzyska: two storeys of grey stone with shop windows, sign fascia and awnings,
+    six plaster storeys of punched windows with stacks of balconies on the long faces, a continuous balcony on
+    the top floor, stone cornices"""
+    g = H.g
+    upper = H.part(upper_id)
+    base = [H.part(o) for o in base_ids]
+    ur = upper.outer
+    BASE, FL = upper.min_h, 3.0
+    top_floor = BASE + 5 * FL
+    g.occlude(ur, 0.0, upper.h)
+    if extra:
+        # the lower end of the block described only by the outline way
+        e = H.part(extra)
+        facade(g, e.outer, BASE, e.h - 0.6, bay=3.0, floor=FL, win_h=1.6, sill=0.9, pier_w=1.3, pier_d=0.2,
+               band_d=0.1, min_edge=3.0, first=BASE, soffit=False)
+        facade(g, e.outer, 0.0, BASE, bay=4.2, floor=10.0, win_h=4.6, sill=0.5, pier_w=1.1, pier_d=0.3,
+               pier='wall2', min_edge=4.0, soffit=False)
+        parapet(g, e.outer, e.h - 0.6, 0.6, 0.3, 'wall', coping='trim')
+    for p in base:
+        g.occlude(p.outer, p.min_h, p.h)
+    H.mark('outline end')
+
+    # shop floors: stone piers, shop windows, a sign fascia and awnings
+    for p in base:
+        facade(g, p.outer, 0.0, p.h, bay=4.2, floor=10.0, win_h=4.4, sill=0.5, pier_w=1.1, pier_d=0.3,
+               pier='wall2', min_edge=4.0, soffit=False)
+        band(g, simplify(p.outer, 0.3), 4.9, 5.8, 0.3, 'sign', top=False)
+        for p0, p1, L, t, n in edges(p.outer):
+            if L > 8.0:
+                slab_on_edge(g, p0, t, n, 0.6, L - 0.6, 0.0, 0.9, 4.2, 4.5, 'metal', top=True, bottom=True)
+    band(g, ur, BASE - 0.6, BASE, 0.35, 'trim')
+    H.mark('shop floors')
+
+    # housing storeys
+    facade(g, ur, BASE, upper.h - 1.2, bay=3.0, floor=FL, win_h=1.9, sill=0.8, pier_w=1.15, pier_d=0.2, band_d=0.1,
+           min_edge=4.0, first=BASE, soffit=False)
+    g.cull = False
+    for p0, p1, L, t, n in edges(ur):
+        if L < 40.0:
+            continue
+        bays = max(1, round(L / 3.0))
+        bay = L / bays
+        for i in range(2, bays - 2, 6):
+            for k in range(1, 5):
+                balcony(g, p0, t, n, i * bay + 0.3, (i + 2) * bay - 0.3, BASE + k * FL, 1.0, rail='frame')
+        balcony(g, p0, t, n, bay, L - bay, top_floor, 1.0, rail='frame')
+    band(g, ur, upper.h - 1.2, upper.h - 0.5, 0.45, 'trim')
+    parapet(g, ur, upper.h - 0.5, 0.5, 0.3, 'wall', coping='trim')
+    g.cull = True
+    H.mark('housing storeys')
+    H.view = (20, 16)
+    H.detail_view = (10, 8)
+    return H
+
+
+@hero
+def swietokrzyska30():
+    """Świętokrzyska 30 (Alina and Bolesław Koseccy, 1950s): a 125 m housing slab with a short wing, grey stone
+    shop floors under six storeys of khaki plaster with balconies (Commons: "Warsaw, Swietokrzyska 30")"""
+    H = Hero(977395065, 'Świętokrzyska 30', [977395065, 977395064, 977395063], tol=0.3)
+    H.note = 'outline way 25897457 is not in buildings[]; hero id and centroid = the housing storeys 977395065'
+    H.tint = srgb('#d9d7b8')
+    swietokrzyska_block(H, [977395064, 977395063], 977395065)
+    H.detail = ((-20, -20, 0), (25, 20, 27))
+    return H
+
+
+@hero
+def swietokrzyska32():
+    """Świętokrzyska 32 (1950s): the twin slab west of no. 30, its low east end four storeys high"""
+    H = Hero(977396326, 'Świętokrzyska 32', [977396326, 977396324, 98345813, 30621667], tol=0.3)
+    H.note = 'the outline way 30621667 (0–14 m) is in buildings[] too and is listed; its east end is modelled'
+    H.tint = srgb('#e0dbb3')
+    swietokrzyska_block(H, [977396324, 98345813], 977396326, extra=30621667)
+    H.detail = ((-20, -20, 0), (25, 20, 27))
+    return H
+
+
+@hero
+def pko_marszalkowska124():
+    """PKO BP, Marszałkowska 124 ("Dom pod Sedesami", 1950s, reclad in the 1990s), outline way 28486696: the
+    street front along Marszałkowska is a five-metre deep volume clad in pinkish-red granite with tall
+    green-framed window strips between granite piers and two projecting glazed oriel bands over the shop floor;
+    the beige office body behind rises to a set-back top floor at 38 m, the six-storey courtyard block and the
+    east wing behind it (Commons: "Ul. Marszałkowska 124, Warszawa")"""
+    ids = [977089109, 977089100, 977089101, 977089102, 977089108, 977089110, 977089111, 977089112, 977089118,
+           977089119, 977089120, 977089121, 977089122, 977089123, 977089124, 977090951, 977357483, 977357484,
+           1536551511]
+    H = Hero(977089109, 'PKO BP (Marszałkowska 124)', ids, tol=0.3)
+    H.note = ('outline way 28486696 is not in buildings[]; hero id and centroid = 977089109, the skin of the main '
+              'block (its body is 977089110)')
+    H.tint = srgb('#a8756a')
+    g = H.g
+    P = H.part
+    body, front, oriel, ground, court = P(977089110), P(977089123), P(1536551511), P(977089121), P(977089118)
+    FRONT_TOP = P(977089124).h
+    solids = [(body.outer, 3.0, body.h), (front.outer, 3.0, FRONT_TOP), (court.outer, 3.0, court.h),
+              (oriel.outer, 0.0, oriel.h)]
+    for r, z0, z1 in solids:
+        g.occlude(r, z0, z1)
+
+    # shop floor under everything
+    facade(g, ground.outer, 0.0, 3.0, bay=5.0, floor=10.0, win_h=2.6, sill=0.2, pier_w=0.9, pier_d=0.25,
+           pier='wall', min_edge=4.0, soffit=False)
+    H.mark('shop floor')
+
+    # granite front: piers, tall window strips, dark transoms at every floor; oriel bands over the shop floor
+    facade(g, front.outer, 3.0, FRONT_TOP, bay=3.4, floor=3.5, win_h=3.1, sill=0.2, pier_w=1.8, pier_d=0.45,
+           band_d=0.12, core='glass', pier='wall', spandrel='glass2', min_edge=9.0, first=3.0, soffit=False)
+    g.cull = False
+    for p0, p1, L, t, n in edges(oriel.outer):
+        if L < 20.0:
+            continue
+        for z0, z1 in ((3.6, 6.9), (7.6, 10.7)):
+            slab_on_edge(g, p0, t, n, 1.0, L - 1.0, -1.0, 0.1, z0, z1, 'glass', back=False)
+            slab_on_edge(g, p0, t, n, 0.8, L - 0.8, -1.0, 0.3, z1, z1 + 0.5, 'wall', top=True, bottom=True)
+            k = max(1, round((L - 2.0) / 1.6))
+            for i in range(1, k):
+                sx = 1.0 + (L - 2.0) * i / k
+                slab_on_edge(g, p0, t, n, sx - 0.06, sx + 0.06, 0.1, 0.18, z0, z1, 'glass2')
+        slab_on_edge(g, p0, t, n, 0.8, L - 0.8, -1.0, 0.3, 3.1, 3.6, 'wall', top=True, bottom=True)
+    band(g, front.outer, FRONT_TOP - 0.8, FRONT_TOP, 0.3, 'wall', top=True, bottom=True)
+    cap(g, [front.outer], FRONT_TOP, 'roof')
+    g.cull = True
+    H.mark('granite front')
+
+    # beige office body with punched windows, set-back top floor above the granite front
+    facade(g, body.outer, 3.0, body.h - 1.0, bay=3.2, floor=3.5, win_h=1.8, sill=0.9, pier_w=1.4, pier_d=0.2,
+           band_d=0.1, pier='trim', min_edge=4.0, first=3.0, soffit=False)
+    g.cull = False
+    parapet(g, body.outer, body.h - 1.0, 1.0, 0.3, 'trim', coping='metal', inner=False)
+    for osm in (977089100, 977089101, 977089102):
+        q = P(osm)
+        prism(g, q.outer, q.min_h, q.h, 'metal', top='roof')
+    g.cull = True
+    H.mark('office body')
+
+    # courtyard block, the small end blocks, the east wing and roof plant
+    facade(g, court.outer, 3.0, court.h - 0.8, bay=3.2, floor=3.5, win_h=1.7, sill=0.9, pier_w=1.4, pier_d=0.15,
+           band_d=0.08, pier='trim', min_edge=5.0, first=3.0, soffit=False)
+    g.cull = False
+    parapet(g, court.outer, court.h - 0.8, 0.8, 0.3, 'trim', coping='metal', inner=False)
+    for osm in (977089119, 977089120):
+        q = P(osm)
+        facade(g, q.outer, q.min_h, q.h, bay=2.8, floor=3.5, win_h=1.7, sill=0.9, pier_w=1.2, pier_d=0.15,
+               pier='wall', min_edge=2.0, first=3.0, soffit=False)
+        cap(g, [q.outer], q.h, 'roof')
+    east = P(977089108)
+    curtain(g, east.outer, east.min_h, east.h, floor=3.5, mull=1.8, mull_w=0.12, mull_d=0.15, band_h=0.9, band_d=0.1,
+            band_mat='glass2')
+    cap(g, [east.outer], east.h, 'roof')
+    for osm in (977357483, 977089111, 977089112, 977090951):
+        q = P(osm)
+        prism(g, q.outer, q.min_h, q.h, 'metal', top='roof')
+    g.cull = True
+    H.mark('courtyard and east wing')
+
+    H.view = (235, 14)
+    H.detail = ((-20, -32, 0), (12, 30, 40))
+    H.detail_view = (250, 6)
+    return H
+
+
+@hero
+def centrum_marszalkowska():
+    """Centrum Marszałkowska, Marszałkowska 126/134 (2019, on the site of the Sezam department store), outline way
+    579369105: blue-green glass behind vertical fins in an irregular rhythm, a four-storey podium with a planted
+    roof terrace, the office floors set back above it and a top floor with the tenants' light boxes, dark glass
+    shop fronts and the metro entrance pavilion (Commons: "Centrum Marszałkowska w Warszawie 2018", views from
+    Varso and PKiN)"""
+    ids = [579369103, 579369104, 977064598, 337573264, 1436793410, 977942477]
+    H = Hero(579369103, 'Centrum Marszałkowska', ids, tol=0.3)
+    H.note = 'outline way 579369105 is not in buildings[]; hero id and centroid = the top floor 579369103'
+    g = H.g
+    P = H.part
+    top, mid, podium, ground, box, kiosk = (P(o) for o in ids)
+    FINS = [0.9, 1.5, 0.6, 1.2, 2.1, 0.9, 1.8, 0.6, 1.5, 1.2]
+    for q in (top, mid, podium, ground, box):
+        g.occlude(q.outer, q.min_h, q.h)
+
+    # shop floor and the metro pavilion
+    facade(g, ground.outer, 0.0, ground.h, bay=6.0, floor=20.0, win_h=5.6, sill=0.3, pier_w=0.5, pier_d=0.2,
+           core='glass', pier='metal', spandrel='glass2', min_edge=3.0, soffit=False)
+    prism(g, kiosk.outer, 0.0, kiosk.h - 0.5, 'glass', top=False)
+    band(g, kiosk.outer, kiosk.h - 0.5, kiosk.h, 0.4, 'metal')
+    cap(g, [kiosk.outer], kiosk.h, 'roof')
+    H.mark('shop floor, pavilion')
+
+    # the three glass volumes: floor bands of dark glass, irregular fins, planted terraces on the set-backs
+    for q, fl in ((podium, 3.7), (mid, 4.0), (top, 3.6)):
+        curtain(g, q.outer, q.min_h, q.h, floor=fl, mull=0, band_h=0.55, band_d=0.1, band_mat='glass2')
+        rhythm(g, q.outer, q.min_h, q.h, FINS, 0.12, 0.4, 'frame')
+    curtain(g, box.outer, box.min_h, box.h, floor=4.4, mull=1.2, band_h=0, mull_d=0.3)
+    cap(g, [podium.outer], podium.min_h, 'glass2', down=True)
+    g.cull = False
+    cap(g, [podium.outer], podium.h, 'roof')
+    cap(g, [mid.outer], mid.h, 'roof')
+    parapet(g, top.outer, top.h, 1.1, 0.25, 'glass', coping='metal', inner=False)
+    H.mark('glass volumes')
+
+    # roof plant and the light boxes on the top floor
+    e = longest_edge(top.outer)
+    inner = scale_ring(top.outer, 0.55)
+    prism(g, inner, top.h, top.h + 3.0, 'metal', top='roof')
+    for p0, p1, L, t, n in sorted(edges(top.outer), key=lambda e_: -e_[2])[:2]:
+        slab_on_edge(g, p0, t, n, L * 0.15, L * 0.15 + min(14.0, L * 0.4), -0.6, -0.3, top.h + 0.3, top.h + 2.8,
+                     'sign', top=True, back=True)
+    g.cull = True
+    H.mark('roof, signs')
+
+    H.view = (225, 18)
+    H.detail = ((-28, -20, 0), (5, 35, 42))
+    H.detail_view = (250, 12)
+    return H
+
+
+@hero
+def msn():
+    """Muzeum Sztuki Nowoczesnej, Marszałkowska 103 (Thomas Phifer and Partners, 2024), outline way 944207076: a
+    plain white concrete box on Plac Defilad — the lower gallery volume and the upper one parted by a deep
+    horizontal groove, the ground floor recessed behind white columns, few but deep openings: a long slit and two
+    square windows towards Marszałkowska, a big square window and a tall narrow one on the south end, a loggia
+    cut into the north-east corner (Commons: "Muzeum Sztuki Nowoczesnej w Warszawie 2024/2025")"""
+    H = Hero(1329680135, 'Muzeum Sztuki Nowoczesnej', [1329680135, 1329680136, 1329680167], tol=0.3)
+    H.note = 'outline way 944207076 is not in buildings[]; hero id and centroid = the upper volume 1329680135'
+    H.tint = srgb('#f0efea')
+    g = H.g
+    upper, lower, ground = H.part(1329680135), H.part(1329680136), H.part(1329680167)
+    r = upper.outer
+
+    # recessed glazed ground floor between white columns, the soffit of the box above it
+    facade(g, ground.outer, 0.0, ground.h, bay=9.0, floor=20.0, win_h=4.6, sill=0.2, pier_w=0.9, pier_d=0.3,
+           core='glass', pier='wall', spandrel='wall', min_edge=4.0, soffit=False)
+    cap(g, [r, ground.outer[::-1]], lower.min_h, 'wall', down=True)
+    H.mark('ground floor')
+
+    def face_of(e):
+        nx, ny = e[4]
+        return 'east' if nx > 0.7 else 'west' if nx < -0.7 else 'north' if ny > 0 else 'south'
+    long_east = [e for e in edges(r) if face_of(e) == 'east']
+    east_len = sum(e[2] for e in long_east)
+    along = 0.0
+    for e in edges(r):
+        p0, p1, L, t, n = e
+        side = face_of(e)
+        low, high = [], []
+        if side == 'east':
+            # a ribbon slit under the groove along the whole street front, square windows up high, the loggia
+            low.append((1.5, L - 1.5, 10.6, 11.6))
+            for f in (0.62, 0.78):
+                sx = f * east_len - along
+                if 2.5 < sx < L - 2.5:
+                    high.append((sx - 2.0, sx + 2.0, 17.5, 21.5))
+            if along + L >= east_len - 0.1:
+                high.append((L - 9.0, L - 0.6, 19.0, upper.h - 1.2))
+            along += L
+        elif side == 'south':
+            low.append((L * 0.28 - 1.2, L * 0.28 + 1.2, 6.2, 11.2))
+            high.append((L * 0.25 - 3.4, L * 0.25 + 3.4, 16.0, 22.0))
+        elif side == 'north':
+            high.append((L * 0.7 - 2.5, L * 0.7 + 2.5, 17.0, 22.0))
+        openings(g, p0, t, n, L, lower.min_h, lower.h, low, 'wall', depth=0.9)
+        openings(g, p0, t, n, L, upper.min_h, upper.h, high, 'wall', depth=1.2 if side != 'east' else 1.6,
+                 back='glass')
+    # the groove between the two volumes
+    groove = offset(r, -0.9)
+    annulus(g, groove, r, lower.h, 'wall')
+    wall(g, groove, lower.h, upper.min_h, 'wall2')
+    annulus(g, groove, r, upper.min_h, 'wall', down=True)
+    parapet(g, r, upper.h, 0.6, 0.35, 'wall', coping='wall', inner=False)
+    H.mark('the white box')
+
+    H.view = (60, 12)
+    H.detail = ((0, -50, 0), (35, 20, 27))
+    H.detail_view = (120, 8)
+    return H
+
+
+@hero
+def central_point():
+    """Central Point, Marszałkowska 107 (2021, over the Świętokrzyska metro interchange), outline way 924778878:
+    a 92 m glass office tower of 22 floors with dense light mullion strips and a glazed crown screen, standing on
+    a podium of close grey stone fins (Commons: "Central Point Warszawa", "2024 Warszawa Central Point")"""
+    ids = [1434330154, 1434330155, 1434330156, 1434330158]
+    H = Hero(1434330154, 'Central Point', ids, tol=0.3)
+    H.note = ('outline way 924778878 (height 92 m) is not in buildings[]; the tower part says 73.4 m, the model follows '
+              'the outline and the photos; hero id and centroid = the tower 1434330154')
+    g = H.g
+    tower, podium, strip, plaza = (H.part(o) for o in ids)
+    ROOF, TOP = 88.0, 92.0
+    for q, z0, z1 in ((tower, podium.h, ROOF), (podium, podium.min_h, podium.h), (strip, strip.min_h, strip.h)):
+        g.occlude(q.outer, z0, z1)
+
+    g.occlude(plaza.outer, 0.0, plaza.h)
+    for q in (plaza, podium, strip):
+        # the glazed street level reaches the ground under the whole podium
+        facade(g, q.outer, 0.0, q.min_h if q is not plaza else plaza.h, bay=7.0, floor=20.0, win_h=3.6, sill=0.2,
+               pier_w=0.6, pier_d=0.2, core='glass', pier='metal', spandrel='glass2', min_edge=4.0, soffit=False)
+    for q in (podium, strip):
+        curtain(g, q.outer, q.min_h, q.h, floor=3.5, mull=0, band_h=0.5, band_d=0.08, glass='glass2',
+                band_mat='trim')
+        rhythm(g, q.outer, q.min_h, q.h, [0.9], 0.25, 0.55, 'trim')
+    g.cull = False
+    cap(g, [podium.outer], podium.h, 'roof')
+    cap(g, [strip.outer], strip.h, 'roof')
+    g.cull = True
+    H.mark('podium')
+
+    curtain(g, tower.outer, podium.h, ROOF, floor=3.6, mull=1.5, mull_w=0.2, mull_d=0.35, band_h=0.35, band_d=0.08,
+            band_mat='glass2', mull_mat='frame')
+    g.occluders.clear()
+    screen = offset(tower.outer, 0.1)
+    curtain(g, screen, ROOF, TOP, floor=0, mull=1.5, mull_w=0.2, mull_d=0.35, band_h=0, mull_mat='frame')
+    wall(g, offset(screen, -0.3)[::-1], ROOF, TOP, 'glass2')
+    annulus(g, offset(screen, -0.3), screen, TOP, 'metal')
+    cap(g, [offset(screen, -0.3)], ROOF, 'roof')
+    prism(g, scale_ring(tower.outer, 0.5), ROOF, ROOF + 2.5, 'metal', top='roof')
+    H.mark('tower')
+
+    H.view = (30, 12)
+    H.detail = ((-25, -20, 0), (25, 32, 30))
+    H.detail_view = (15, 10)
+    return H
+
+
+@hero
+def polonia_palace():
+    """Hotel Polonia Palace, Aleje Jerozolimskie 45 (Juliusz Nagórski, 1913), outline way 28252464: the cream
+    neo-baroque street front on Jerozolimskie — a rusticated ground floor with arched openings, four storeys of
+    windows, giant pilasters and iron balconies on the central risalit, a heavy cornice, the slate mansard with
+    dormers and the segmental gable with its oval window over the centre; courtyard wings behind (Commons:
+    "Polonia Palace Hotel in Warsaw 2014-02-09", "Hotel Polonia Palace w Warszawie 2022")"""
+    ids = [977055393, 975791826, 975791827, 975791828, 975791829, 975791830, 975791831, 975791833, 975791834,
+           977055386, 977055387, 977055388, 977055389, 977055390, 977055391, 977055392, 977055394, 977055395,
+           977387494, 977387495, 977387496, 977387497, 977387498, 977958193, 978229717, 978229718]
+    H = Hero(977055393, 'Hotel Polonia Palace', ids, tol=0.3)
+    H.note = 'outline way 28252464 is not in buildings[]; hero id and centroid = the street front 977055393'
+    H.tint = srgb('#e6dcc4')
+    g = H.g
+    P = H.part
+    CORNICE, EAVES = 23.5, 25.0
+    front = P(977055393)
+    wings = [P(o) for o in (977055389, 977055390, 977055395, 977958193, 977055386, 977055387, 977055388,
+                            975791831, 975791833, 978229717, 978229718)]
+    low = [P(o) for o in (975791827, 975791829, 975791830, 975791834)]
+    for q in [front] + wings + low:
+        g.occlude(q.outer, 0.0, q.h)
+
+    # the street front (window reveals and dormers lie inside the front part: no culling here)
+    g.cull = False
+    street = [e for e in edges(front.outer) if e[2] > 20.0 and e[4][1] > 0.6]
+    for p0, p1, L, t, n in street:
+        bays = max(1, round(L / 3.4))
+        bay = L / bays
+        arches = [((i + 0.2) * bay, (i + 0.8) * bay, 0.8, 4.6) for i in range(bays)]
+        openings(g, p0, t, n, L, 0.0, 6.0, arches, 'wall2', depth=0.5)
+        slab_on_edge(g, p0, t, n, 0.0, L, 0.0, 0.35, 5.6, 6.3, 'trim', top=True, bottom=True)
+        floors = [(i * bay + bay * 0.25, i * bay + bay * 0.75, z, z + 2.6) for i in range(bays)
+                  for z in (7.0, 11.0, 15.0, 19.0)]
+        openings(g, p0, t, n, L, 6.0, CORNICE, floors, 'wall', depth=0.35)
+        for i in range(bays):
+            for z in (7.0, 11.0, 15.0, 19.0):
+                slab_on_edge(g, p0, t, n, i * bay + bay * 0.21, i * bay + bay * 0.79, 0.0, 0.18, z - 0.25, z,
+                             'trim', top=True)
+                slab_on_edge(g, p0, t, n, i * bay + bay * 0.21, i * bay + bay * 0.79, 0.0, 0.14, z + 2.6, z + 3.0,
+                             'trim', top=True, bottom=True)
+        # central risalit: giant pilasters, balconies, the gable with the oval window
+        mid = L / 2
+        for k in (-2, -1, 1, 2):
+            slab_on_edge(g, p0, t, n, mid + k * 2.6 * bay / 3.4 - 0.45, mid + k * 2.6 * bay / 3.4 + 0.45, 0.0, 0.5,
+                         6.3, CORNICE, 'trim', top=True)
+        for z in (11.0, 19.0):
+            balcony(g, p0, t, n, mid - 6.5, mid + 6.5, z, 0.9, slab='trim', rail='metal', rail_h=0.9)
+        for s0, s1 in ((1.0, 7.0), (L - 7.0, L - 1.0)):
+            balcony(g, p0, t, n, s0, s1, 15.0, 0.8, slab='trim', rail='metal', rail_h=0.9)
+        slab_on_edge(g, p0, t, n, -0.3, L + 0.3, 0.0, 0.9, CORNICE, EAVES, 'trim', top=True, bottom=True)
+        # mansard with dormers
+        q = lambda s_, d_: (p0[0] + t[0] * s_ - n[0] * d_, p0[1] + t[1] * s_ - n[1] * d_)
+        g.face([(*q(0, 0), EAVES), (*q(L, 0), EAVES), (*q(L, 3.0), front.h - 0.5), (*q(0, 3.0), front.h - 0.5)], 'roof')
+        for i in range(bays):
+            if abs((i + 0.5) * bay - mid) < 7.5:
+                continue
+            sc = (i + 0.5) * bay
+            slab_on_edge(g, p0, t, n, sc - 0.7, sc + 0.7, -1.9, -0.9, EAVES + 0.9, EAVES + 3.4, 'trim', top='roof')
+            g.quad(q(sc - 0.45, 0.88), q(sc + 0.45, 0.88), EAVES + 1.2, EAVES + 3.0, 'glass')
+        arc = [(mid + math.cos(a) * 9.0, EAVES + 2.2 + math.sin(a) * 3.2) for a in
+               [math.pi * k / 8 for k in range(9)]]
+        gable = [(mid + 9.0, EAVES)] + arc + [(mid - 9.0, EAVES)]
+        for d_, flip in ((-0.2, False), (-1.2, True)):
+            pts = [(*q(s_, d_), z_) for s_, z_ in gable]
+            g.face(pts[::-1] if not flip else pts, 'trim')
+        for (s0, z0), (s1, z1) in zip(gable, gable[1:] + gable[:1]):
+            if z0 == EAVES and z1 == EAVES:
+                continue
+            g.face([(*q(s0, -0.2), z0), (*q(s1, -0.2), z1), (*q(s1, -1.2), z1), (*q(s0, -1.2), z0)], 'trim')
+        c = q(mid, -1.25)
+        disc(g, c, n, EAVES + 2.6, 1.3, 12, 'glass', d=0.0)
+        slab_on_edge(g, p0, t, n, mid - 9.6, mid + 9.6, 0.0, 1.5, EAVES - 0.1, EAVES + 0.5, 'trim', top=True)
+    g.cull = True
+    H.mark('street front')
+
+    # wings: punched windows, cornice, flat roofs behind parapets
+    for w in wings:
+        facade(g, w.outer, 0.0, min(w.h, CORNICE), bay=3.4, floor=3.9, win_h=2.1, sill=1.0, pier_w=1.5, pier_d=0.2,
+               band_d=0.1, min_edge=4.0, first=0.4, soffit=False, plinth='wall2')
+    g.cull = False
+    for w in wings:
+        if w.h > CORNICE + 1.0:
+            wall(g, w.outer, CORNICE, w.h - 1.0, 'wall')
+            parapet(g, w.outer, w.h - 1.0, 1.0, 0.3, 'wall', coping='trim')
+        else:
+            cap(g, [w.outer], w.h, 'roof')
+    cap(g, [front.outer], front.h - 0.5, 'roof')
+    for q_ in low:
+        cap(g, [q_.outer], q_.h, 'roof')
+    g.cull = True
+    for q_ in low:
+        facade(g, q_.outer, q_.min_h, q_.h, bay=3.4, floor=4.0, win_h=2.2, sill=0.8, pier_w=1.4, pier_d=0.2,
+               min_edge=3.0, soffit=False)
+    roofbox, shaft = P(975791826), P(975791828)
+    prism(g, roofbox.outer, roofbox.min_h, roofbox.h, 'metal', top='roof')
+    prism(g, shaft.outer, shaft.h - 3.0, shaft.h + 1.0, 'wall', top='roof')
+    H.mark('wings')
+
+    H.view = (200, 14)
+    H.detail = ((-26, -8, 0), (28, 14, 36))
+    H.detail_view = (170, 6)
+    return H
+
+
+@hero
+def junior():
+    """Junior, Marszałkowska 116/122 (1970s department store of the Eastern Wall, rebuilt as part of Wars Sawa
+    Junior), outline way 25911176: a long box of large pale aqua glass panels cantilevered over the recessed shop
+    floor, giant white brand panels on the glass, a white top band and a set-back top floor with plant screens
+    (Commons: "Marszałkowska 104-122, Mango, Złota, Warsaw", "Marszałkowska 104, Warsaw")"""
+    ids = [977970045, 977970042, 977970043, 977970044, 977970046]
+    H = Hero(977970045, 'Junior', ids, tol=0.35)
+    H.note = 'outline way 25911176 is not in buildings[]; hero id and centroid = the glass box 977970045'
+    g = H.g
+    P = H.part
+    box, top, ground = P(977970045), P(977970044), P(977970046)
+    for q in (box, top, ground):
+        g.occlude(q.outer, q.min_h, q.h)
+
+    facade(g, ground.outer, 0.0, ground.h, bay=6.0, floor=20.0, win_h=4.4, sill=0.3, pier_w=0.6, pier_d=0.2,
+           core='glass', pier='metal', spandrel='glass2', min_edge=4.0, soffit=False)
+    cap(g, [box.outer, ground.outer[::-1]], box.min_h, 'glass2', down=True)
+    H.mark('shop floor')
+
+    curtain(g, box.outer, box.min_h, box.h - 1.0, floor=3.0, mull=3.0, mull_w=0.14, mull_d=0.12, band_h=0.14,
+            band_d=0.08)
+    band(g, box.outer, box.h - 1.0, box.h, 0.25, 'trim')
+    g.cull = False
+    cap(g, [box.outer], box.h, 'roof')
+    # brand panels and a billboard on the long street faces, light boxes over the shop entrances
+    for p0, p1, L, t, n in sorted(edges(box.outer), key=lambda e: -e[2])[:2]:
+        for f, w in ((0.18, 11.0), (0.5, 14.0), (0.8, 11.0)):
+            slab_on_edge(g, p0, t, n, L * f - w / 2, L * f + w / 2, 0.12, 0.3, box.min_h + 2.2, box.h - 2.2, 'sign',
+                         top=True, bottom=True)
+    curtain(g, top.outer, top.min_h, top.h, floor=0, mull=2.0, mull_w=0.2, mull_d=0.1, band_h=0, glass='glass2',
+            mull_mat='metal')
+    cap(g, [top.outer], top.h, 'roof')
+    for osm in (977970042, 977970043):
+        q = P(osm)
+        prism(g, q.outer, q.min_h, q.h + 1.5, 'metal', top='roof')
+    g.cull = True
+    H.mark('glass box')
+
+    H.view = (250, 14)
+    H.detail = ((-35, -20, 0), (5, 40, 23))
+    H.detail_view = (265, 8)
+    return H
+
+
+@hero
+def mercure_centrum():
+    """Mercure Warszawa Centrum, Złota 48/54 (1990s hotel by Złote Tarasy), outline way 30621662: a U-shaped block of
+    beige stone with a regular grid of paired window columns between stone piers over a two-storey glazed shop
+    base, a glass stair tower in the courtyard, a set-back glass top floor and roof plant, the vertical sign strip
+    on the street front and the glass entrance canopy (Commons: "Hotel Mercure Warszawa Centrum 2021")"""
+    ids = [984691362, 984691363, 984691364, 984691365, 984691371, 984691376, 984691377, 984691380, 984691381,
+           984691382, 984691383, 984742439, 984742440, 984742441, 984742442, 984742443, 984950183, 984950184]
+    H = Hero(984691362, 'Mercure Warszawa Centrum', ids, tol=0.35)
+    H.note = 'outline way 30621662 is not in buildings[]; hero id and centroid = the hotel block 984691362'
+    H.tint = srgb('#dcd3bd')
+    g = H.g
+    P = H.part
+    main, base_hi, base_lo, inner, inner_lo = P(984691362), P(984950183), P(984950184), P(984691365), P(984742439)
+    glass_top, top, plant = P(984742443), P(984691364), P(984691363)
+    stair = [P(o) for o in (984691371, 984742440, 984742441, 984742442)]
+    for q in (main, base_hi, base_lo, inner, inner_lo, glass_top):
+        g.occlude(q.outer, q.min_h, q.h)
+
+    # glazed shop base with stone piers and a stone fascia
+    facade(g, base_lo.outer, 0.0, base_hi.h, bay=5.6, floor=20.0, win_h=6.6, sill=0.3, pier_w=1.0, pier_d=0.35,
+           core='glass', pier='wall', spandrel='wall', min_edge=4.0, soffit=False)
+    H.mark('base')
+
+    # hotel floors: paired windows between stone piers
+    facade(g, main.outer, main.min_h, main.h - 0.9, bay=2.8, floor=3.1, win_h=1.9, sill=0.8, pier_w=1.05, pier_d=0.3,
+           band_d=0.12, min_edge=4.0, first=main.min_h, soffit=False)
+    facade(g, inner.outer, inner_lo.min_h, inner.h, bay=2.8, floor=3.1, win_h=1.9, sill=0.8, pier_w=1.05,
+           pier_d=0.2, band_d=0.1, min_edge=4.0, first=inner_lo.min_h, soffit=False)
+    g.cull = False
+    band(g, main.outer, main.h - 0.9, main.h, 0.35, 'trim')
+    cap(g, [main.outer], main.h, 'roof')
+    cap(g, [inner.outer], inner.h, 'roof')
+    H.mark('hotel floors')
+
+    curtain(g, glass_top.outer, glass_top.min_h, glass_top.h, floor=4.5, mull=1.5, band_h=0.3, band_d=0.08)
+    cap(g, [glass_top.outer], glass_top.h, 'roof')
+    curtain(g, top.outer, top.min_h, top.h - 0.5, floor=0, mull=1.8, band_h=0)
+    band(g, top.outer, top.h - 0.5, top.h, 0.6, 'metal')
+    cap(g, [top.outer], top.h, 'roof')
+    prism(g, plant.outer, plant.min_h, plant.h, 'metal', top='roof')
+    for q in stair:
+        curtain(g, q.outer, q.min_h, q.h, floor=3.1, mull=0, band_h=0.2, band_d=0.05)
+    H.mark('glass tops, stair tower')
+
+    # the vertical sign strip and the entrance canopy on the longest face towards Aleja Jana Pawła II (west)
+    p0, p1, L, t, n = max((e for e in edges(simplify(main.outer, 1.0)) if e[4][0] < -0.5), key=lambda e: e[2])
+    slab_on_edge(g, p0, t, n, L * 0.3 - 0.9, L * 0.3 + 0.9, 0.3, 1.0, main.min_h + 2.0, main.h - 1.0, 'sign',
+                 top=True, bottom=True)
+    slab_on_edge(g, p0, t, n, L * 0.62 - 6.0, L * 0.62 + 6.0, 0.0, 1.0, 4.2, 4.6, 'glass', top=True, bottom=True)
+    g.cull = True
+    H.mark('sign, canopy')
+
+    H.view = (250, 14)
+    H.detail = ((-55, -30, 0), (0, 40, 30))
+    H.detail_view = (235, 8)
+    return H
+
+
+@hero
+def sliska10():
+    """Śliska 10 (housing co-operative "Zachód"), at Aleja Jana Pawła II: a fourteen-storey point block of pale
+    panels with rows of windows, stacked balconies with solid parapets on the long faces, shops in the ground
+    floor and the lift machine room on the roof (Commons: "Ulica Śliska przy al. Jana Pawła II w Warszawie 2023")"""
+    H = Hero(30612858, 'Śliska 10', [30612858], tol=0.3)
+    H.tint = srgb('#dedcd4')
+    g = H.g
+    p = H.part(30612858)
+    r = p.outer
+    FL, BASE = 3.2, 4.2
+    top = BASE + 13 * FL
+    facade(g, r, 0.0, BASE, bay=4.0, floor=10.0, win_h=3.4, sill=0.3, pier_w=0.8, pier_d=0.2, core='glass',
+           pier='wall2', min_edge=3.0, soffit=False)
+    facade(g, r, BASE, top, bay=2.8, floor=FL, win_h=1.5, sill=0.95, pier_w=1.2, pier_d=0.15, band_d=0.08,
+           min_edge=3.0, first=BASE, soffit=False)
+    H.mark('facades')
+    for p0, p1, L, t, n in edges(r):
+        if L < 15.0:
+            continue
+        bays = max(1, round(L / 2.8))
+        bay = L / bays
+        for i in (1, bays - 3):
+            if i < 0 or i + 2 > bays:
+                continue
+            for k in range(1, 13):
+                balcony(g, p0, t, n, i * bay + 0.2, (i + 2) * bay - 0.2, BASE + k * FL, 1.2, slab='trim', solid=True)
+    H.mark('balconies')
+    parapet(g, r, top, 1.0, 0.3, 'wall', coping='metal')
+    prism(g, scale_ring(r, 0.3), top, top + 3.2, 'wall2', top='roof')
+    H.mark('roof')
+
+    H.view = (240, 12)
+    H.detail = ((-13, -15, 0), (13, 19, 20))
+    H.detail_view = (250, 10)
+    return H
+
+
 # ───────────────────────── build, export, manifest ─────────────────────────
 
 def build_all():
@@ -1571,10 +2201,46 @@ def export(built):
 
 # ───────────────────────── previews ─────────────────────────
 
+def write_palette_png(path, rgb, colours=256):
+    """8-bit indexed PNG of an H×W×3 uint8 image (top row first): median cut over 15-bit colours"""
+    import struct
+    import zlib
+    import numpy as np
+    h, w, _ = rgb.shape
+    q = rgb.reshape(-1, 3).astype(np.int32) >> 3
+    keys = (q[:, 0] << 10) | (q[:, 1] << 5) | q[:, 2]
+    uniq, inverse, counts = np.unique(keys, return_inverse=True, return_counts=True)
+    cols = np.stack([(uniq >> 10) & 31, (uniq >> 5) & 31, uniq & 31], axis=1) * 8 + 4
+    boxes = [np.arange(len(uniq))]
+    while len(boxes) < colours:
+        # split the box whose widest channel spread, weighted by its pixel count, is largest
+        score = [np.ptp(cols[b], axis=0).max() * np.sqrt(counts[b].sum()) if len(b) > 1 else -1 for b in boxes]
+        i = int(np.argmax(score))
+        if score[i] <= 0:
+            break
+        b = boxes[i]
+        order = b[np.argsort(cols[b, np.ptp(cols[b], axis=0).argmax()], kind='stable')]
+        cum = np.cumsum(counts[order])
+        cut = min(max(int(np.searchsorted(cum, cum[-1] / 2)), 1), len(order) - 1)
+        boxes[i:i + 1] = [order[:cut], order[cut:]]
+    palette = np.array([np.average(cols[b], axis=0, weights=counts[b]) for b in boxes]).round().astype(np.uint8)
+    lut = np.zeros(len(uniq), np.uint8)
+    for k, b in enumerate(boxes):
+        lut[b] = k
+    index = lut[inverse.ravel()].reshape(h, w)
+    raw = b''.join(b'\x00' + row.tobytes() for row in index)
+
+    def chunk(tag, data):
+        return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', zlib.crc32(tag + data) & 0xffffffff)
+    with open(path, 'wb') as fh:
+        fh.write(b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 3, 0, 0, 0))
+                 + chunk(b'PLTE', palette.tobytes()) + chunk(b'IDAT', zlib.compress(raw, 9)) + chunk(b'IEND', b''))
+
+
 def preview(built, out_dir):
     import numpy as np
     os.makedirs(out_dir, exist_ok=True)
-    tmp = '/mnt/ramdisk/kits-hero-warsaw/render'
+    tmp = '/dev/shm/kits-hero-warsaw/render'
     os.makedirs(tmp, exist_ok=True)
     scene.render.engine = 'BLENDER_WORKBENCH'
     sh = scene.display.shading
@@ -1639,7 +2305,10 @@ def preview(built, out_dir):
         scene.render.filepath = path
         bpy.ops.render.render(write_still=True)
 
+    wanted = set(int(x) for x in OPTS['preview-ids'].split(',')) if OPTS['preview-ids'] else None
     for h in built:
+        if wanted and h.main not in wanted:
+            continue
         for o in built:
             o.obj.hide_render = o is not h
         tint = h.tint or wall_base[:3]
@@ -1652,20 +2321,18 @@ def preview(built, out_dir):
         az, el = h.view
         a = os.path.join(tmp, f'{h.main}_a.png')
         b = os.path.join(tmp, f'{h.main}_b.png')
-        shot(h, lo, hi, az, el, 640, 720, a)
+        shot(h, lo, hi, az, el, 480, 540, a)
         clo, chi = h.detail if h.detail else (lo, hi)
-        shot(h, clo, chi, h.detail_view[0], h.detail_view[1], 640, 720, b)
+        shot(h, clo, chi, h.detail_view[0], h.detail_view[1], 480, 540, b)
         ia, ib = bpy.data.images.load(a), bpy.data.images.load(b)
-        pa = np.array(ia.pixels[:]).reshape(720, 640, 4)
-        pb = np.array(ib.pixels[:]).reshape(720, 640, 4)
-        sheet = bpy.data.images.new(f'sheet_{h.main}', 1280, 720, alpha=False)
-        sheet.pixels[:] = np.concatenate([pa, pb], axis=1).ravel()
-        sheet.filepath_raw = os.path.join(out_dir, f'{MAP}-{h.main}.png')
-        sheet.file_format = 'PNG'
-        sheet.save()
-        for im in (ia, ib, sheet):
+        pa = np.array(ia.pixels[:]).reshape(540, 480, 4)
+        pb = np.array(ib.pixels[:]).reshape(540, 480, 4)
+        sheet = np.concatenate([pa, pb], axis=1)[::-1, :, :3]
+        out = os.path.join(out_dir, f'{MAP}-{h.main}.png')
+        write_palette_png(out, (np.clip(sheet, 0, 1) * 255).round().astype(np.uint8))
+        for im in (ia, ib):
             bpy.data.images.remove(im)
-        print('PREVIEW', os.path.join(out_dir, f'{MAP}-{h.main}.png'))
+        print('PREVIEW', out)
     MAT['wall'].diffuse_color = wall_base
     MAT['wall2'].diffuse_color = wall2_base
     for o in built:

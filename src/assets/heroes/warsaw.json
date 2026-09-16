@@ -295,6 +295,224 @@
     -31.84
    ],
    "note": "outline way 963063721 is not in buildings[]; hero id and centroid = the Sawa part 350962669"
+  },
+  {
+   "id": 977395065,
+   "ids": [
+    977395065,
+    977395063,
+    977395064
+   ],
+   "name": "Świętokrzyska 30",
+   "height": 26.0,
+   "tris": 2542,
+   "centroid": [
+    -49.3,
+    -343.65
+   ],
+   "note": "outline way 25897457 is not in buildings[]; hero id and centroid = the housing storeys 977395065"
+  },
+  {
+   "id": 977396326,
+   "ids": [
+    977396326,
+    30621667,
+    98345813,
+    977396324
+   ],
+   "name": "Świętokrzyska 32",
+   "height": 26.0,
+   "tris": 3348,
+   "centroid": [
+    -197.64,
+    -297.89
+   ],
+   "note": "the outline way 30621667 (0–14 m) is in buildings[] too and is listed; its east end is modelled"
+  },
+  {
+   "id": 977089109,
+   "ids": [
+    977089109,
+    977089100,
+    977089101,
+    977089102,
+    977089108,
+    977089110,
+    977089111,
+    977089112,
+    977089118,
+    977089119,
+    977089120,
+    977089121,
+    977089122,
+    977089123,
+    977089124,
+    977090951,
+    977357483,
+    977357484,
+    1536551511
+   ],
+   "name": "PKO BP (Marszałkowska 124)",
+   "height": 40.0,
+   "tris": 3779,
+   "centroid": [
+    259.22,
+    -248.91
+   ],
+   "note": "outline way 28486696 is not in buildings[]; hero id and centroid = 977089109, the skin of the main block (its body is 977089110)"
+  },
+  {
+   "id": 579369103,
+   "ids": [
+    579369103,
+    337573264,
+    579369104,
+    977064598,
+    977942477,
+    1436793410
+   ],
+   "name": "Centrum Marszałkowska",
+   "height": 43.0,
+   "tris": 3882,
+   "centroid": [
+    232.42,
+    -330.8
+   ],
+   "note": "outline way 579369105 is not in buildings[]; hero id and centroid = the top floor 579369103"
+  },
+  {
+   "id": 1329680135,
+   "ids": [
+    1329680135,
+    1329680136,
+    1329680167
+   ],
+   "name": "Muzeum Sztuki Nowoczesnej",
+   "height": 26.6,
+   "tris": 384,
+   "centroid": [
+    208.14,
+    -135.47
+   ],
+   "note": "outline way 944207076 is not in buildings[]; hero id and centroid = the upper volume 1329680135"
+  },
+  {
+   "id": 1434330154,
+   "ids": [
+    1434330154,
+    1434330155,
+    1434330156,
+    1434330158
+   ],
+   "name": "Central Point",
+   "height": 92.0,
+   "tris": 3108,
+   "centroid": [
+    104.91,
+    -395.01
+   ],
+   "note": "outline way 924778878 (height 92 m) is not in buildings[]; the tower part says 73.4 m, the model follows the outline and the photos; hero id and centroid = the tower 1434330154"
+  },
+  {
+   "id": 977055393,
+   "ids": [
+    977055393,
+    975791826,
+    975791827,
+    975791828,
+    975791829,
+    975791830,
+    975791831,
+    975791833,
+    975791834,
+    977055386,
+    977055387,
+    977055388,
+    977055389,
+    977055390,
+    977055391,
+    977055392,
+    977055394,
+    977055395,
+    977387494,
+    977387495,
+    977387496,
+    977387497,
+    977387498,
+    977958193,
+    978229717,
+    978229718
+   ],
+   "name": "Hotel Polonia Palace",
+   "height": 35.0,
+   "tris": 4171,
+   "centroid": [
+    289.74,
+    280.69
+   ],
+   "note": "outline way 28252464 is not in buildings[]; hero id and centroid = the street front 977055393"
+  },
+  {
+   "id": 977970045,
+   "ids": [
+    977970045,
+    977970042,
+    977970043,
+    977970044,
+    977970046
+   ],
+   "name": "Junior",
+   "height": 23.5,
+   "tris": 1790,
+   "centroid": [
+    295.69,
+    -171.97
+   ],
+   "note": "outline way 25911176 is not in buildings[]; hero id and centroid = the glass box 977970045"
+  },
+  {
+   "id": 984691362,
+   "ids": [
+    984691362,
+    984691363,
+    984691364,
+    984691365,
+    984691371,
+    984691376,
+    984691377,
+    984691380,
+    984691381,
+    984691382,
+    984691383,
+    984742439,
+    984742440,
+    984742441,
+    984742442,
+    984742443,
+    984950183,
+    984950184
+   ],
+   "name": "Mercure Warszawa Centrum",
+   "height": 34.0,
+   "tris": 2717,
+   "centroid": [
+    -327.26,
+    101.04
+   ],
+   "note": "outline way 30621662 is not in buildings[]; hero id and centroid = the hotel block 984691362"
+  },
+  {
+   "id": 30612858,
+   "ids": [
+    30612858
+   ],
+   "name": "Śliska 10",
+   "height": 49.0,
+   "tris": 2288,
+   "centroid": [
+    -432.05,
+    -44.91
+   ]
   }
  ]
 }
