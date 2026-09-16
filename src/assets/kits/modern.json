@@ -1,0 +1,20 @@
+{
+  "kit": "modern",
+  "bay": 3.2, "floor": 3.8, "ground": 4.8, "cap": 1.2, "corner": 0.35,
+  "families": { "glass": ["curtain", "spandrel", "fins"], "ribbon": ["ribbon"], "punched": ["punched"] },
+  "modules": {
+    "curtain": { "w": 3.2, "h": 3.8, "role": "floor", "weight": 3, "tris": 32 },
+    "spandrel": { "w": 3.2, "h": 3.8, "role": "floor", "weight": 3, "tris": 48 },
+    "ribbon": { "w": 3.2, "h": 3.8, "role": "floor", "weight": 2, "tris": 40 },
+    "fins": { "w": 3.2, "h": 3.8, "role": "floor", "weight": 1, "tris": 52 },
+    "punched": { "w": 3.2, "h": 3.8, "role": "floor", "weight": 2, "tris": 64 },
+    "blank": { "w": 3.2, "h": 3.8, "role": "blank", "weight": 1, "tris": 24 },
+    "g_lobby": { "w": 3.2, "h": 4.8, "role": "ground", "weight": 2, "tris": 54 },
+    "g_glass": { "w": 3.2, "h": 4.8, "role": "ground", "weight": 2, "tris": 38 },
+    "g_entry": { "w": 3.2, "h": 4.8, "role": "entrance", "weight": 1, "tris": 126 },
+    "g_shop": { "w": 3.2, "h": 4.8, "role": "shop", "weight": 1, "tris": 66 },
+    "cap": { "w": 3.2, "h": 1.2, "role": "cap", "weight": 3, "tris": 32 },
+    "cap_screen": { "w": 3.2, "h": 1.2, "role": "cap", "weight": 1, "tris": 40 },
+    "corner": { "w": 0.35, "h": 3.8, "role": "corner", "weight": 1, "tris": 8 }
+  }
+}
