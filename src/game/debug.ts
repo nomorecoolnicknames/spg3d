@@ -87,8 +87,10 @@ export function installDebug(): void {
         audio.unlock();
         return audio.unlocked;
       },
-      audioState: () => ({ unlocked: audio.unlocked, music: audio.music.state.playing, track: audio.music.state.track.title, time: audio.music.state.time }),
+      audioState: () => ({ unlocked: audio.unlocked, music: audio.music.state.playing, track: audio.music.state.track.title, time: audio.music.state.time, volume: audio.music.effectiveVolume() }),
       audioPlay: (name: unknown) => audio.play(name as 'ui-click'),
+      /** QA: change saved settings (e.g. the music volume before a reload) */
+      setSettings: (patch: unknown) => setSettings(patch as Parameters<typeof setSettings>[0]),
       /** the playlist moving on by itself (QA: a later player mount must not jump back) */
       musicNext: () => audio.music.next(),
       /** render an engine bank and report loudness per layer + the loop seam jump vs the typical sample step */

@@ -111,6 +111,8 @@ export interface AudioSystem {
     seek(t: number): void;
     setDsp(d: Partial<DspSettings>): void;
     subscribe(cb: (s: MusicState) => void): () => void;
+    /** the loudness the current track actually plays at, 0..1 (QA) */
+    effectiveVolume(): number;
   };
   /** Boss/mech ambience loops keyed by name; `start` is idempotent. */
   loop(name: 'laser-beam' | 'mech-idle' | 'rain' | 'wind' | 'core-hum', on: boolean, gain?: number): void;

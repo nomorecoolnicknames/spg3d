@@ -58,6 +58,12 @@ export class MusicManager {
   } | null = null;
   private raf = 0;
   private wantPlay = false;
+  /**
+   * master × music from the settings. Until Web Audio is unlocked the decks play straight to the speakers,
+   * bypassing the music bus — so the element's own volume has to carry the setting, or the game starts at
+   * full blast whatever the slider says (Android WebView autoplays before the first touch).
+   */
+  private directVolume = 0.9 * 0.45;
 
   constructor() {
     this.state = { index: 0, playing: false, time: 0, duration: 0, track: TRACKS[0], bars: new Array<number>(BARS).fill(0) };
@@ -70,6 +76,7 @@ export class MusicManager {
     if (el) {
       el.preload = 'auto';
       el.crossOrigin = 'anonymous';
+      el.volume = this.directVolume;
       el.addEventListener('ended', () => {
         if (el === this.decks[this.cur].el) this.next();
       });
@@ -145,11 +152,27 @@ export class MusicManager {
         d.gain.gain.value = d === this.decks[this.cur] ? 1 : 0;
         d.src.connect(d.gain);
         d.gain.connect(input);
+        // routed through the graph now: the bus gain carries the volume
+        d.el.volume = 1;
       } catch {
         /* element already connected elsewhere */
       }
     }
     this.applyRate();
+  }
+
+  /** QA: the loudness the current deck actually plays at (element volume × music bus when routed) */
+  effectiveVolume(): number {
+    const d = this.decks[this.cur];
+    if (!d.el) return 0;
+    const bus = d.src ? getBuses()?.music.gain.value ?? 0 : 1;
+    return d.el.volume * bus;
+  }
+
+  /** volume for decks that are not routed through Web Audio (see directVolume) */
+  setDirectVolume(v: number): void {
+    this.directVolume = Math.max(0, Math.min(1, v));
+    for (const d of this.decks) if (d.el) d.el.volume = d.src ? 1 : this.directVolume;
   }
 
   private notify(): void {

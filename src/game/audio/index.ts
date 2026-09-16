@@ -39,6 +39,7 @@ class AudioSystemImpl implements AudioSystem {
 
   setVolumes(v: { master?: number; music?: number; sfx?: number; engine?: number }): void {
     this.volumes = { ...this.volumes, ...v };
+    this.music.setDirectVolume(this.volumes.master * this.volumes.music);
     this.applyVolumes();
   }
 
