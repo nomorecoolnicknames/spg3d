@@ -36,6 +36,11 @@ export class RacerAI {
   private steerS = 0;
   private wobblePhase = Math.random() * 100;
   private throttleS = 0;
+  /** lateral offset of a car right in front (for backing out of a lock-up) */
+  private nose = 0;
+  private stuckTries = 0;
+  /** set when backing out failed repeatedly: the race puts the car back on the line */
+  wantsRespawn = false;
 
   constructor(
     private track: TrackData,
@@ -65,15 +70,16 @@ export class RacerAI {
       const aheadM = ahead * t.spacing;
       if (aheadM > 0.5 && aheadM < 14 + v * 0.25) {
         const dLat = o.lat - ctx.lat;
-        if (Math.abs(dLat) < 2.4) {
+        if (Math.abs(dLat) < 2.8) {
           if (this.avoidT <= 0) {
             // pass on the side with more room
-            const room = t.halfW - 1.6;
+            const room = t.halfW - 1.4;
             const side = dLat >= 0 ? -1 : 1; // other car is on our left → pass on the right
-            this.avoid = Math.max(-room, Math.min(room, o.lat + side * 3.2));
+            this.avoid = Math.max(-room, Math.min(room, o.lat + side * 4.0));
             this.avoidT = 1.6;
           }
           if (o.speed < v - 2 && aheadM < 7) blockedSlow = true;
+          if (aheadM < 4 && Math.abs(dLat) < 1.6) this.nose = o.lat - ctx.lat;
         }
       }
     }
@@ -96,9 +102,11 @@ export class RacerAI {
     const delta = Math.atan(kappa * car.wheelbase);
     let steer = delta / car.maxSteer(v);
     const wrongWay = Math.abs(diff) > 1.3;
-    // slide control: counter-steer against lateral velocity and yaw, ease off the pursuit term
-    const sliding = car.drifting || Math.abs(car.vy) > 6.5;
-    if (sliding && !wrongWay) steer = steer * 0.5 + (car.vy / Math.max(6, v)) * 1.1 - car.yawRate * 0.25;
+    // slide control: catch the slide with the wheels (counter-steer is the same sign as the body slip angle),
+    // ease off the pursuit term. The steering input is relative to maxSteer, so β is converted into it.
+    const sliding = car.drifting || Math.abs(car.beta) > 0.12;
+    const lockNow = Math.max(0.05, car.maxSteer(v));
+    if (sliding && !wrongWay) steer = steer * 0.4 + (car.beta / lockNow) * 0.55 - car.yawRate * 0.22;
     if (wrongWay) steer = Math.sign(diff);
     // wall repulsion near the edges
     const edge = Math.abs(ctx.lat) - (t.halfW - 3.2);
@@ -107,7 +115,9 @@ export class RacerAI {
     this.steerS += (steer - this.steerS) * Math.min(1, dt * 14);
 
     // --- target speed: min of the profile over the braking horizon ---
-    const scale = this.skill * this.difficulty;
+    // the line speeds in TrackData are for a reference grip: each car scales them by what its chassis can hold
+    // half the grip advantage of the car, so the AI keeps a margin on the loose ones
+    const scale = this.skill * this.difficulty * (0.5 + 0.5 * car.corneringScale);
     let target = Infinity;
     const horizon = Math.round((8 + v * 0.55) / t.spacing);
     for (let k = 0; k <= horizon; k += 2) {
@@ -125,7 +135,8 @@ export class RacerAI {
     if (blockedSlow) target = Math.min(target, v - 1.5);
     if (Math.abs(diff) > 0.9) target *= 0.6;
     if (wrongWay) target = 6; // turn around slowly
-    if (sliding) target = Math.min(target, v - 2); // no throttle while sliding, gentle brake
+    // sliding: back off, the more sideways the car is the more
+    if (sliding) target = Math.min(target, v - 2 - 12 * Math.max(0, Math.abs(car.beta) - 0.12));
 
     let throttle = 0, brake = 0;
     if (v < target - 0.5) throttle = Math.min(1, (target - v) / 3 + 0.35);
@@ -145,13 +156,21 @@ export class RacerAI {
     // --- stuck handling ---
     if (ctx.canDrive && v < 1.5 && this.reverseT <= 0) this.stuckT += dt;
     else if (v > 3) this.stuckT = 0;
-    if (this.stuckT > 2.2) {
-      this.reverseT = 1.1;
+    if (this.stuckT > 1.4) {
+      this.reverseT = 1.0;
       this.stuckT = 0;
+      // wedged against a car or a barrier for the third time: ask the race to set it back on the line
+      if (++this.stuckTries >= 2) {
+        this.wantsRespawn = true;
+        this.stuckTries = 0;
+      }
     }
+    if (v > 8) this.stuckTries = 0;
     if (this.reverseT > 0) {
+      // back out and turn the wheel away from whatever is in the way, then pull round it
       this.reverseT -= dt;
-      return { steer: -this.steerS, throttle: 0, brake: 1, handbrake: false, nitro: false };
+      const away = this.nose !== 0 ? -Math.sign(this.nose) : -Math.sign(this.steerS || 1);
+      return { steer: away * 0.8, throttle: 0, brake: 1, handbrake: false, nitro: false };
     }
 
     return { steer: this.steerS, throttle: ctx.canDrive ? this.throttleS : 0, brake: ctx.canDrive ? brake : 0, handbrake: false, nitro };

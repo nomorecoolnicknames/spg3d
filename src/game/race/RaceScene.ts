@@ -556,6 +556,13 @@ export class RaceScene implements SceneController {
         ctx.canDrive = canDrive && !r.finished;
         r.input = r.ai.drive(r.car, ctx, dt);
         if (r.finished) r.input.throttle = Math.min(r.input.throttle, 0.4);
+        if (r.ai.wantsRespawn) {
+          // wedged against a barrier or another car: put it back on the racing line where it stands
+          r.ai.wantsRespawn = false;
+          const si = Math.floor(r.progress) % this.track.count;
+          const sm = this.track.samples[si];
+          r.car.place(sm.pos.x + sm.left.x * sm.lineOffset, sm.pos.z + sm.left.z * sm.lineOffset, sm.pos.y, this.track.headingAt(si));
+        }
       }
       if (r.isPlayer && this.fly) {
         r.flewThisLap = true;
