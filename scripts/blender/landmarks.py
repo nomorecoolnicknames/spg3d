@@ -81,6 +81,8 @@ M = {
     'clock': material('clock', srgb('#f8f4e8'), rough=0.4, emit=srgb('#fff6dc'), strength=1.8),
     'clockHands': material('clockHands', srgb('#1a1a1a'), rough=0.5),
     'steel': material('steel', srgb('#6c7076'), metal=0.8, rough=0.35),
+    'panel': material('panel', srgb('#f2f3ef'), rough=0.35, emit=srgb('#fff6e2'), strength=1.4),
+    'boxSide': material('boxSide', srgb('#2b2f36'), metal=0.85, rough=0.35),
 }
 
 
@@ -206,6 +208,76 @@ def plane(parent, name, w, h, loc, mat, facing='front'):
     return o
 
 
+def split_faces(obj, face_mat, side_mat):
+    """light box: the glyph face (towards glTF +Z, i.e. Blender −Y) is the bright panel, the sides dark metal"""
+    obj.data.materials.clear()
+    obj.data.materials.append(face_mat)
+    obj.data.materials.append(side_mat)
+    for p in obj.data.polygons:
+        p.material_index = 0 if p.normal.y < -0.75 else 1
+
+
+def light_box_text(parent, name, body, height, loc, depth, face_mat, side_mat):
+    """extruded glyphs scaled to a real cap height, with a bright face and dark sides"""
+    cu = bpy.data.curves.new(name, 'FONT')
+    cu.body = body
+    cu.font = bpy.data.fonts.load(FONT, check_existing=True)
+    cu.size = height
+    cu.extrude = depth / 2
+    cu.bevel_depth = 0.012
+    cu.bevel_resolution = 1
+    cu.resolution_u = 3
+    cu.align_x = 'CENTER'
+    cu.align_y = 'BOTTOM'
+    o = bpy.data.objects.new(name, cu)
+    scene.collection.objects.link(o)
+    o.rotation_euler = (math.pi / 2, 0, 0)
+    o.location = loc
+    bpy.context.view_layer.objects.active = o
+    o.select_set(True)
+    bpy.ops.object.convert(target='MESH')
+    o = bpy.context.view_layer.objects.active
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    bpy.context.view_layer.update()
+    if o.dimensions.z > 1e-4:
+        k = height / o.dimensions.z
+        o.scale = (k, 1, k)
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    o.select_set(False)
+    split_faces(o, face_mat, side_mat)
+    o.parent = parent
+    return o
+
+
+def heart(parent, name, size, loc, depth, face_mat, side_mat):
+    """the classic parametric heart, extruded into a light box"""
+    n = 72
+    pts = []
+    for i in range(n):
+        t = (i / n) * math.tau
+        x = 16 * math.sin(t) ** 3
+        z = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
+        pts.append((x / 16 * size / 2, 0.0, z / 16 * size / 2))
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(pts, [], [list(range(n))])
+    me.validate()
+    o = bpy.data.objects.new(name, me)
+    scene.collection.objects.link(o)
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    r = bmesh.ops.extrude_face_region(bm, geom=bm.faces[:])
+    verts = [v for v in r['geom'] if isinstance(v, bmesh.types.BMVert)]
+    bmesh.ops.translate(bm, vec=(0, depth, 0), verts=verts)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    bm.to_mesh(me)
+    bm.free()
+    o.location = loc
+    split_faces(o, face_mat, side_mat)
+    o.parent = parent
+    return o
+
+
 # ───────────────────────── Shchyolkovo ─────────────────────────
 
 def shch_stela():
@@ -234,11 +306,23 @@ def shch_stela():
 
 
 def shch_love():
+    """«Я ♥ ЩЁЛКОВО» photo-zone sign: light-box letters and a heart on a granite plinth"""
     r = root('shch_love')
-    box(r, 'stand', (9.0, 1.2, 0.5), (0, 0, 0), M['granite'])
-    text(r, 'ya', 'Я', 1.4, (-3.6, -0.2, 1.25), M['letter'], extrude=0.2)
-    text(r, 'heart', '♥', 1.5, (-2.3, -0.2, 1.25), M['red'], extrude=0.22)
-    text(r, 'town', 'ЩЁЛКОВО', 1.1, (1.4, -0.2, 1.15), M['letter'], extrude=0.18)
+    depth, z0 = 0.26, 0.46
+    ya = light_box_text(r, 'ya', 'Я', 1.25, (0, 0, z0), depth, M['panel'], M['boxSide'])
+    hrt = heart(r, 'heart', 1.15, (0, -depth / 2, z0), depth, M['red'], M['boxSide'])
+    town = light_box_text(r, 'town', 'ЩЁЛКОВО', 0.8, (0, 0, z0), depth, M['panel'], M['boxSide'])
+    bpy.context.view_layer.update()
+    gap = 0.3
+    widths = [o.dimensions.x for o in (ya, hrt, town)]
+    total = sum(widths) + gap * 2
+    x = -total / 2
+    for o, w in zip((ya, hrt, town), widths):
+        o.location.x = x + w / 2
+        x += w + gap
+    hrt.location.z = z0 + hrt.dimensions.z / 2
+    box(r, 'plinth', (total + 0.9, 1.15, 0.36), (0, 0, 0), M['granite'])
+    box(r, 'plinthCap', (total + 1.2, 1.32, 0.1), (0, 0, 0.36), M['cubeGrey'])
     return r
 
 
