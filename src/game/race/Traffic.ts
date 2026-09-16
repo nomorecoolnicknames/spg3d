@@ -61,7 +61,7 @@ export class Traffic {
     t.dir = i % 3 === 0 ? -1 : 1;
     // ahead of the player for the ones coming towards us, behind for the ones we catch up with
     const aheadM = t.dir === -1 ? 170 + Math.random() * 190 : 60 + Math.random() * 220;
-    t.progress = (((playerProgress + (aheadM / this.track.spacing) * (t.dir === -1 ? 1 : 1)) % n) + n) % n;
+    t.progress = (((playerProgress + aheadM / this.track.spacing) % n) + n) % n;
     t.lat = t.dir === 1 ? -lanes : lanes;
     t.speed = t.dir === 1 ? 11 + Math.random() * 6 : 13 + Math.random() * 7;
     t.spun = 0;
@@ -129,7 +129,8 @@ export class Traffic {
       const x = s2.pos.x + s2.left.x * t.lat, z = s2.pos.z + s2.left.z * t.lat;
       const heading = this.track.headingAt(i2) + (t.dir === -1 ? Math.PI : 0);
       t.car.place(x, z, s2.pos.y, heading);
-      t.car.vx = t.speed * t.dir;
+      // the heading already points the way it drives, so its own forward speed is positive either way
+      t.car.vx = t.speed;
       this.place(t, x, s2.pos.y, z, heading);
       t.vis.setWheels(this.t * t.speed * 2.2, 0);
       // contact with the player: hand the traffic car to physics so it spins away

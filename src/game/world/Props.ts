@@ -6,7 +6,8 @@ import { reseed, rnd } from './textures';
 
 export interface PropsRig {
   group: THREE.Group;
-  update(t: number): void;
+  /** t = elapsed seconds; the camera position lets distant detail switch off */
+  update(t: number, camX?: number, camZ?: number): void;
   dispose(): void;
   /** light sources for the LampField (car and road lighting, halos) */
   lamps?: Lamp[];

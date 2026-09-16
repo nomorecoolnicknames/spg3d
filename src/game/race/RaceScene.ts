@@ -139,6 +139,8 @@ export class RaceScene implements SceneController {
   private flySpeed = 0;
   private flyProbe = 0;
   private viewOverride: [number, number, number, number, number, number] | null = null;
+  /** reused snapshot objects for the AI (racers first, then traffic) */
+  private aiPool: AIOther[] = [];
   private aiCtx: AIContext = { progress: 0, lat: 0, others: this.aiOthers, selfIndex: -1, canDrive: false };
   private traffic: Traffic | null = null;
   private crowd: CrowdRig | null = null;
@@ -548,23 +550,21 @@ export class RaceScene implements SceneController {
     const playerProg = this.player.progress;
     // snapshot for AI avoidance, updated in place (no per-step allocations)
     const others = this.aiOthers;
-    for (let i = 0; i < this.racers.length; i++) {
-      const o = this.racers[i];
-      const snap = (others[i] ??= { progress: 0, lat: 0, speed: 0, isPlayer: false });
-      snap.progress = o.progress;
-      snap.lat = o.lat;
-      snap.speed = o.car.speed;
-      snap.isPlayer = o.isPlayer;
-    }
-    others.length = this.racers.length;
-    // the AI treats traffic as slow cars on the route: same avoidance, same overtaking
-    this.traffic?.forEachObstacle((progress, lat, speed) => {
-      const snap = (others[others.length] ??= { progress: 0, lat: 0, speed: 0, isPlayer: false });
+    const pool = this.aiPool;
+    let slot = 0;
+    const take = (progress: number, lat: number, speed: number, isPlayer: boolean) => {
+      const snap = (pool[slot] ??= { progress: 0, lat: 0, speed: 0, isPlayer: false });
       snap.progress = progress;
       snap.lat = lat;
-      snap.speed = Math.abs(speed);
-      snap.isPlayer = false;
-    });
+      snap.speed = speed;
+      snap.isPlayer = isPlayer;
+      others[slot] = snap;
+      slot++;
+    };
+    for (const o of this.racers) take(o.progress, o.lat, o.car.speed, o.isPlayer);
+    // the AI treats traffic as slow cars on the route: same avoidance, same overtaking
+    this.traffic?.forEachObstacle((progress, lat, speed) => take(progress, lat, Math.abs(speed), false));
+    others.length = slot;
     for (let ri = 0; ri < this.racers.length; ri++) {
       const r = this.racers[ri];
       // inputs
