@@ -1,0 +1,115 @@
+{
+  "kit": "panel",
+  "bay": 3.0,
+  "floor": 2.8,
+  "ground": 3.0,
+  "cap": 0.9,
+  "corner": 0.4,
+  "modules": {
+    "win": {
+      "w": 3.0,
+      "h": 2.8,
+      "role": "floor",
+      "weight": 3,
+      "tris": 39
+    },
+    "win2": {
+      "w": 3.0,
+      "h": 2.8,
+      "role": "floor",
+      "weight": 2,
+      "tris": 71
+    },
+    "win_ac": {
+      "w": 3.0,
+      "h": 2.8,
+      "role": "floor",
+      "weight": 1,
+      "tris": 51
+    },
+    "loggia": {
+      "w": 3.0,
+      "h": 2.8,
+      "role": "floor",
+      "weight": 2,
+      "tris": 84
+    },
+    "loggia_glazed": {
+      "w": 3.0,
+      "h": 2.8,
+      "role": "floor",
+      "weight": 2,
+      "tris": 66
+    },
+    "balcony": {
+      "w": 3.0,
+      "h": 2.8,
+      "role": "floor",
+      "weight": 1,
+      "tris": 87
+    },
+    "stair": {
+      "w": 3.0,
+      "h": 2.8,
+      "role": "stair",
+      "weight": 1,
+      "tris": 41
+    },
+    "blank": {
+      "w": 3.0,
+      "h": 2.8,
+      "role": "blank",
+      "weight": 1,
+      "tris": 7
+    },
+    "g_win": {
+      "w": 3.0,
+      "h": 3.0,
+      "role": "ground",
+      "weight": 3,
+      "tris": 74
+    },
+    "g_plinth": {
+      "w": 3.0,
+      "h": 3.0,
+      "role": "ground",
+      "weight": 1,
+      "tris": 84
+    },
+    "g_door": {
+      "w": 3.0,
+      "h": 3.0,
+      "role": "entrance",
+      "weight": 1,
+      "tris": 80
+    },
+    "g_shop": {
+      "w": 3.0,
+      "h": 3.0,
+      "role": "shop",
+      "weight": 1,
+      "tris": 86
+    },
+    "corner": {
+      "w": 0.4,
+      "h": 2.8,
+      "role": "corner",
+      "weight": 1,
+      "tris": 7
+    },
+    "cap": {
+      "w": 3.0,
+      "h": 0.9,
+      "role": "cap",
+      "weight": 3,
+      "tris": 33
+    },
+    "cap_drain": {
+      "w": 3.0,
+      "h": 0.9,
+      "role": "cap",
+      "weight": 1,
+      "tris": 27
+    }
+  }
+}
