@@ -7,7 +7,7 @@ import path from 'node:path';
 
 const [track = 'shchyolkovo', quality = 'medium', out = 'qa/out/tour/t', list = '0.1,0.5', settle = '2500', extra = ''] = process.argv.slice(2);
 const port = 3770 + Math.floor(Math.random() * 100);
-const server = spawn('node', ['scripts/serve.mjs', '--dir', 'dist', '--port', String(port)], { stdio: 'ignore' });
+const server = spawn('node', ['scripts/serve.mjs', '--dir', process.env.DIST ?? 'dist', '--port', String(port)], { stdio: 'ignore' });
 process.on('exit', () => server.kill());
 for (let i = 0; i < 60; i++) { try { if ((await fetch(`http://localhost:${port}/`)).ok) break; } catch {} await new Promise((r) => setTimeout(r, 500)); }
 mkdirSync(path.dirname(out), { recursive: true });
@@ -23,7 +23,9 @@ for (const u of list.split(',').map(Number)) {
   await page.waitForTimeout(Number(settle));
   const s = await page.evaluate(() => window.__spg.snapshot());
   await page.screenshot({ path: `${out}-${u.toFixed(3)}.png`, timeout: 240000 });
-  console.log(u, 'calls', s.drawCalls, 'tris', s.triangles, 'speed', s.hud?.speedKmh);
+  const w = await page.evaluate(() => window.__spg.knobs.worldStats?.());
+  const lod = w && 'kitDrawn' in w ? ` kit drawn ${w.kitDrawn} (collapsed ${w.kitCollapsed}), far drawn ${w.farDrawn} (collapsed ${w.farCollapsed})` : '';
+  console.log(u, 'calls', s.drawCalls, 'tris', s.triangles, 'speed', s.hud?.speedKmh, lod);
 }
 console.log('errors', logs.slice(0, 5));
 await browser.close();

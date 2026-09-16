@@ -11,7 +11,7 @@ const quality = opt('--q', 'medium');
 const settle = Number(opt('--settle', '2500'));
 const [track, out, ...views] = args;
 const port = 3870 + Math.floor(Math.random() * 100);
-const server = spawn('node', ['scripts/serve.mjs', '--dir', 'dist', '--port', String(port)], { stdio: 'ignore' });
+const server = spawn('node', ['scripts/serve.mjs', '--dir', process.env.DIST ?? 'dist', '--port', String(port)], { stdio: 'ignore' });
 process.on('exit', () => server.kill());
 for (let i = 0; i < 60; i++) { try { if ((await fetch(`http://localhost:${port}/`)).ok) break; } catch {} await new Promise((r) => setTimeout(r, 500)); }
 mkdirSync(path.dirname(out), { recursive: true });

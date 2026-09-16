@@ -4,6 +4,7 @@ import polygonClipping from 'polygon-clipping';
 import type { TrackData } from '../TrackData';
 import type { Lamp } from '../../render/LampField';
 import { GeoBuilder, createCityMaterial, type LampSpace } from '../city/kit';
+import { createFarFacadeMaterial, createKitDepthMaterial, createKitMaterial, getKitLibrary, KitBuilder, layoutWall, placeHero, type Kit, type KitLod } from './Kits';
 import type { CellName } from '../city/atlas';
 import { parkedCars, trafficLight, trees } from '../city/street';
 import { BUILDING_KIND as K, type Flat, type OsmStyle, type OsmWorld } from './types';
@@ -33,14 +34,18 @@ export interface OsmCityRig {
   group: THREE.Group;
   /** t = elapsed seconds; the camera position lets distant tree cells switch off */
   update(t: number, camX?: number, camZ?: number): void;
+  /** QA: triangles of the modelled and flat facades that are really drawn at the current eye (the rest collapse) */
+  lodStats(): { kitDrawn: number; kitCollapsed: number; farDrawn: number; farCollapsed: number };
   dispose(): void;
   lamps: Lamp[];
   /** arena mode: walls within 14 m of the rim that face the yard (for wall dressing) */
   walls: YardWall[];
-  stats: { sectors: number; buildings: number; triangles: number; lamps: number };
+  stats: { sectors: number; buildings: number; triangles: number; kitTriangles: number; lamps: number };
 }
 
 const PAVE = 5;
+/** OSM way of the Astrum hotel tower in Shchyolkovo (its hero also covers the mall podium and the upper parts) */
+const ASTRUM_TOWER = 144710719;
 const CURB = 0.15;
 const LAMP_SPACING = 30;
 const LAMP_H = 8.5;
@@ -685,8 +690,88 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
       return [];
     }
   };
+  // Blender kits and heroes (Kits.ts, docs/KITS.md): modelled facades on the buildings near the route, whole
+  // modelled landmarks in place of their extrusions. Heroes on every tier, kit facades from medium up.
+  const kitLib = getKitLibrary(world.id);
+  const kitRadius = quality.level === 'high' ? 200 : quality.level === 'medium' ? 110 : 0;
+  // modelled facades within this distance of the eye, the flat ones beyond (the boss yard is all close)
+  const kitLod: KitLod = {
+    near: { value: arena ? 1e7 : quality.level === 'high' ? 150 : 85 },
+    eye: { value: new THREE.Vector2(track?.samples[0].pos.x ?? 0, track?.samples[0].pos.z ?? 0) },
+  };
+  const kitSectors = new Map<string, KitBuilder>();
+  // the flat facades of kit buildings stay in the city sectors for the distance: every city vertex carries the
+  // centre and radius of its kit building, or a radius that never collapses (roofs, all other buildings)
+  const cityLod = new Map<GeoBuilder, number[]>();
+  const NEVER = -1e9;
+  const tagCity = (b: GeoBuilder, cx: number, cz: number, r: number) => {
+    let a = cityLod.get(b);
+    if (!a) cityLod.set(b, (a = []));
+    while (a.length < b.vertexCount * 3) a.push(cx, cz, r);
+  };
+  // kit cells are a quarter of a city sector: only the cells near the eye are drawn at all
+  const KSEC = SEC / 2;
+  const kgb = (x: number, z: number): KitBuilder => {
+    const k = `${Math.floor(x / KSEC)},${Math.floor(z / KSEC)}`;
+    let b = kitSectors.get(k);
+    if (!b) kitSectors.set(k, (b = new KitBuilder()));
+    return b;
+  };
+  const heroRings: P2[][] = [];
+  /**
+   * Is a wall seen from the route? Yes if it faces the nearest stretch of the route (or runs alongside it), or if
+   * the street it looks onto is the route further out. Back walls and courtyard sides keep their flat facade, and
+   * so do low buildings in the second row (more than 50 m from the route), which the first row hides.
+   */
+  const facesRoute = (p: P2, q: P2, dir: { x: number; z: number }, h: number): boolean => {
+    if (!track) return true;
+    const mx = (p.x + q.x) / 2, mz = (p.z + q.z) / 2;
+    const n0 = near(mx, mz, 3);
+    if (h < 18 && n0.d > 50) return false;
+    if (n0.i >= 0) {
+      const sp = track.samples[n0.i].pos;
+      const dx = sp.x - mx, dz = sp.z - mz, d = Math.hypot(dx, dz) || 1;
+      if ((dx * dir.x + dz * dir.z) / d > -0.3) return true;
+    }
+    for (const k of [15, 40, 70, 100]) if (near(mx + dir.x * k, mz + dir.z * k, 1).d < HALF + 12) return true;
+    return false;
+  };
+  /** tan of half the turn of a footprint at b (a → b → c): positive where the corner points outwards */
+  const halfTurn = (a: P2, b: P2, c: P2): number => {
+    const e1x = b.x - a.x, e1z = b.z - a.z, e2x = c.x - b.x, e2z = c.z - b.z;
+    const l1 = Math.hypot(e1x, e1z) || 1, l2 = Math.hypot(e2x, e2z) || 1;
+    const turn = Math.atan2(Math.abs(e1x * e2z - e1z * e2x) / (l1 * l2), (e1x * e2x + e1z * e2z) / (l1 * l2));
+    // outward normal of a → b is (e1z, −e1x): the corner is outside when the next edge heads against it
+    const outside = e2x * e1z - e2z * e1x < 0;
+    return Math.tan(turn / 2) * (outside ? 1 : -1);
+  };
+  const hashId = (id: number) => {
+    const x = Math.sin(id * 12.9898) * 43758.5453;
+    return x - Math.floor(x);
+  };
+  let bl7 = 0;
+  const kitFor = (fa: Facade, kindB: number, hB: number): { kit: Kit; family?: string } | null => {
+    const get = (n: string) => kitLib?.kits.get(n);
+    const main = fa.main;
+    const pick1 = (n: string, family?: string) => {
+      const kit = get(n);
+      return kit ? { kit, family } : null;
+    };
+    if (main.startsWith('panel') || main === 'towerWin') return pick1('panel');
+    if (main.startsWith('glass') || fa.office) {
+      // towers are glass; lower business centres are punched cladding or 90s ribbon windows as often as glass
+      if (hB >= 40) return pick1('modern', 'glass');
+      const r = hashId(bl7);
+      return pick1('modern', r < 0.4 ? 'punched' : r < 0.65 ? 'ribbon' : 'glass');
+    }
+    if (main.startsWith('pl') || main.startsWith('stal')) return pick1('classic');
+    if (main === 'wareWin' || (kindB === K.industrial && main === 'brickBlank') || (style === 'spb' && main.startsWith('red') && hB <= 11)) return pick1('brick', 'warehouse');
+    if (main.startsWith('brick') || main.startsWith('red')) return pick1('brick', 'house');
+    return null;
+  };
   for (const bl of world.buildings) {
-    const [hdm, mdm, kind, colour, , , landmark, , outerF] = bl;
+    const [hdm, mdm, kind, colour, , , landmark, osmId, outerF] = bl;
+    bl7 = osmId;
     let ring0 = decode(outerF);
     if (ring0.length < 3) continue;
     if (area(ring0) < 0) ring0 = ring0.reverse();
@@ -699,6 +784,22 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
       cz0 += p.z;
     }
     if (!inReach(cx0 / ring0.length, cz0 / ring0.length) && h < 40) continue;
+    const hero = kitLib?.heroes.get(osmId);
+    // (in the boss yard a hero must not stand in the fight circle: those buildings keep their cut extrusion)
+    if (hero && !(arena && inArena(cx0 / ring0.length, cz0 / ring0.length, 40))) {
+      // every part of a hero skips its extrusion; the main part carries the model, centred on its outer ring
+      if (osmId === hero.id) {
+        const hx = cx0 / ring0.length, hz = cz0 / ring0.length;
+        const hb = kgb(hx, hz);
+        placeHero(hb, hero, hx, hz, GROUND_Y);
+        hb.tagLod(hx, hz, 0, false);
+        heroRings.push(ring0);
+        // the river fountains play in front of the Astrum tower (the real «Premium»-looking hotel on the embankment)
+        if (hero.ids.includes(ASTRUM_TOWER) || (landmark === 'premium' && !kitLib?.heroes.has(ASTRUM_TOWER))) premiumAt = { x: hx, z: hz };
+        buildingCount++;
+      }
+      continue;
+    }
     for (const ring of cutByArena(ring0)) {
       let cx = 0, cz = 0;
       for (const p of ring) {
@@ -723,6 +824,10 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
       const groundTop = minH > 0.5 || !fa.ground || h < 7 ? base : Math.min(h - 2, fa.groundH);
       const capBottom = fa.cap && h - groundTop > 6 ? h - fa.capH : h;
       const nearC = near(cx, cz, 2);
+      const nearKit = arena ? quality.level !== 'low' && Math.hypot(cx - arena.x, cz - arena.z) < arena.r + 70 : nearC.d < kitRadius;
+      const kitChoice = kitLib && nearKit && h >= 4 && !landmark ? kitFor(fa, kind, h) : null;
+      let radius = 0;
+      if (kitChoice) for (const p of ring) radius = Math.max(radius, Math.hypot(p.x - cx, p.z - cz));
       for (let i = 0; i < ring.length; i++) {
         const p = ring[i], q = ring[(i + 1) % ring.length];
         const dx = q.x - p.x, dz = q.z - p.z, len = Math.hypot(dx, dz);
@@ -740,6 +845,25 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
             const sm = track.samples[mid.i];
             const toRoad = (sm.pos.x - (p.x + q.x) / 2) * dir.x + (sm.pos.z - (p.z + q.z) / 2) * dir.z;
             if (toRoad > 0) lamp = { s0: ra.s, s1: rq.s, perp0: Math.abs(mid.lat) - LAMP_OFF, perp1: Math.abs(mid.lat) - LAMP_OFF, spacing: LAMP_SPACING, height: LAMP_H, k: 0.55 };
+          }
+        }
+        let farOnly = false;
+        if (kitChoice && (arena || facesRoute(p, q, dir, h))) {
+          const kb = kgb(cx, cz);
+          const done = layoutWall(kb, kitChoice.kit, {
+            px: p.x, pz: p.z, qx: q.x, qz: q.z, nx: dir.x, nz: dir.z, base, top: h, tint: fa.tint, seed: bseed % 1, wall: i,
+            family: kitChoice.family,
+            turnP: halfTurn(ring[(i + ring.length - 1) % ring.length], p, q),
+            turnQ: halfTurn(p, q, ring[(i + 2) % ring.length]),
+            shops: !!fa.groundMix || kind === K.commercial,
+            entrances: kind === K.residential || kind === K.house,
+          });
+          if (done) {
+            kb.tagLod(cx, cz, radius, true);
+            if (arena) continue;
+            // the same wall, flat, for the distance
+            tagCity(b, 0, 0, NEVER);
+            farOnly = true;
           }
         }
         const eseed = bseed + ((i * 0.0713) % 1) * 0.3;
@@ -763,6 +887,10 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
         const floors = Math.max(1, Math.round((capBottom - groundTop) / fa.floor));
         band(groundTop, capBottom, fa.main, floors);
         if (capBottom < h) band(capBottom, h, fa.cap!, 1);
+        if (farOnly) {
+          tagCity(b, cx, cz, radius);
+          continue;
+        }
         // details on the walls that face the route — they carry the look at eye level
         if (detailWalls && len > 7 && nearC.d < 70 && nearC.i >= 0) {
           const rp = track!.samples[nearC.i].pos;
@@ -986,14 +1114,24 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
   if (premiumAt && world.water.length) {
     const rings = world.water.flatMap(([, , polys]) => polys.map((poly) => poly.map(decode)));
     const wet = (x: number, z: number) => rings.some((r) => inside({ x, z }, r[0]) && !r.slice(1).some((hole) => inside({ x, z }, hole)));
-    const f = { x: 0.69, z: 0.72 };
+    // the nearest stretch of river from the tower, looking round in 24 directions
+    let f = { x: 0.69, z: 0.72 };
     let d0 = -1, d1 = -1;
-    for (let d = 20; d < 260; d += 2) {
-      const w = wet(premiumAt.x + f.x * d, premiumAt.z + f.z * d);
-      if (w && d0 < 0) d0 = d;
-      if (!w && d0 >= 0) {
-        d1 = d;
-        break;
+    for (let k = 0; k < 24; k++) {
+      const dir = { x: Math.cos((k / 24) * Math.PI * 2), z: Math.sin((k / 24) * Math.PI * 2) };
+      let a0 = -1, a1 = -1;
+      for (let d = 20; d < 260; d += 2) {
+        const w = wet(premiumAt.x + dir.x * d, premiumAt.z + dir.z * d);
+        if (w && a0 < 0) a0 = d;
+        if (!w && a0 >= 0) {
+          a1 = d;
+          break;
+        }
+      }
+      if (a0 >= 0 && a1 - a0 > 12 && (d0 < 0 || a0 < d0)) {
+        d0 = a0;
+        d1 = a1;
+        f = dir;
       }
     }
     if (d0 >= 0 && d1 > d0) {
@@ -1053,7 +1191,8 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
   for (const [name, xdm, zdm, rotDeg] of world.models) {
     const src = lib?.scene.getObjectByName(name);
     const x = xdm / 10, z = zdm / 10, rot = (rotDeg * Math.PI) / 180;
-    if (!src || !inReach(x, z) || inArena(x, z, 12)) continue;
+    // a modelled hero already contains it (the station clock tower is part of the station)
+    if (!src || !inReach(x, z) || inArena(x, z, 12) || heroRings.some((r) => inside({ x, z }, r))) continue;
     const obj = src.clone(true);
     obj.position.set(x, GROUND_Y, z);
     obj.rotation.set(0, rot, 0);
@@ -1130,17 +1269,52 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
   const { material, uniforms } = createCityMaterial(night);
   disposables.push(material);
   let triangles = 0;
+  // with kit facades about, the sectors use the city material that hides a kit building's flat walls up close
+  const sectorMat = cityLod.size ? createFarFacadeMaterial(material, kitLod) : material;
+  if (sectorMat !== material) disposables.push(sectorMat);
+  const farMeshes: THREE.Mesh[] = [];
   for (const [key, b] of sectors) {
     if (!b.vertexCount) continue;
     const geo = b.toGeometry();
     triangles += (geo.index?.count ?? 0) / 3;
-    const mesh = new THREE.Mesh(geo, material);
+    const mesh = new THREE.Mesh(geo, sectorMat);
+    if (sectorMat !== material) {
+      tagCity(b, 0, 0, NEVER);
+      geo.setAttribute('aLodC', new THREE.Float32BufferAttribute(cityLod.get(b)!, 3));
+      farMeshes.push(mesh);
+    }
     mesh.name = `osm:${key}`;
     mesh.matrixAutoUpdate = false;
     // by day the houses throw shadows across the streets (the sun map follows the player's car)
     mesh.castShadow = mesh.receiveShadow = !night && !!quality.shadows;
     group.add(mesh);
     disposables.push(geo);
+  }
+
+  // ── kit facades and heroes: one mesh per sector with the kit material; the flat facades they replace in the
+  // distance, one mesh per sector too. A kit sector with nothing close enough is not drawn at all.
+  const kitMeshes: { mesh: THREE.Mesh; box: THREE.Box3; farSwap: boolean }[] = [];
+  let kitTriangles = 0;
+  if (kitSectors.size) {
+    const kitMat = createKitMaterial(uniforms, kitLod);
+    const kitDepth = createKitDepthMaterial(kitLod);
+    disposables.push(kitMat, kitDepth);
+    for (const [key, kb] of kitSectors) {
+      if (!kb.vertexCount) continue;
+      const farSwap = !kb.lod.some((w, i) => i % 4 === 3 && w === 0);
+      const geo = kb.toGeometry();
+      geo.computeBoundingBox();
+      kitTriangles += (geo.index?.count ?? 0) / 3;
+      const mesh = new THREE.Mesh(geo, kitMat);
+      mesh.name = `osm:kit:${key}`;
+      mesh.matrixAutoUpdate = false;
+      mesh.castShadow = mesh.receiveShadow = !night && !!quality.shadows;
+      mesh.customDepthMaterial = kitDepth;
+      group.add(mesh);
+      disposables.push(geo);
+      kitMeshes.push({ mesh, box: geo.boundingBox!, farSwap });
+    }
+    triangles += kitTriangles;
   }
 
   // ── trees (OSM trees + park planting) and parked cars along side streets near the route
@@ -1270,12 +1444,43 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     group,
     lamps: night ? [...lamps, ...pinkLights] : [],
     walls,
-    stats: { sectors: sectors.size, buildings: buildingCount, triangles, lamps: lamps.length },
+    stats: { sectors: sectors.size, buildings: buildingCount, triangles, kitTriangles, lamps: lamps.length },
     update(t: number, camX = 0, camZ = 0) {
       uniforms.time.value = t;
+      if ((camX || camZ) && kitMeshes.length && !arena) {
+        kitLod.eye.value.set(camX, camZ);
+        const near = kitLod.near.value;
+        for (const k of kitMeshes) {
+          if (!k.farSwap) continue;
+          const dx = Math.max(k.box.min.x - camX, 0, camX - k.box.max.x), dz = Math.max(k.box.min.z - camZ, 0, camZ - k.box.max.z);
+          k.mesh.visible = Math.hypot(dx, dz) < near + 4;
+        }
+      }
       if (camX || camZ) treeRig?.setCamera(camX, camZ);
       waterTex?.offset.set(t * 0.012, t * 0.007);
       if (fountainTime) fountainTime.value = t;
+    },
+    lodStats() {
+      const out = { kitDrawn: 0, kitCollapsed: 0, farDrawn: 0, farCollapsed: 0 };
+      const { x: ex, y: ez } = kitLod.eye.value;
+      const near = kitLod.near.value;
+      const scan = (mesh: THREE.Mesh, attr: string, stride: number, kit: boolean) => {
+        if (!mesh.visible) return;
+        const g = mesh.geometry as THREE.BufferGeometry;
+        const L = g.getAttribute(attr).array as Float32Array;
+        const I = g.index!.array;
+        for (let t = 0; t < I.length; t += 3) {
+          const o = I[t] * stride;
+          if (!kit && L[o + 2] === NEVER) continue;
+          const nearB = Math.hypot(L[o] - ex, L[o + 1] - ez) - L[o + 2] <= near;
+          const drawn = kit ? L[o + 3] < 0.5 || nearB : !nearB;
+          if (kit) drawn ? out.kitDrawn++ : out.kitCollapsed++;
+          else drawn ? out.farDrawn++ : out.farCollapsed++;
+        }
+      };
+      for (const k of kitMeshes) scan(k.mesh, 'aLod', 4, true);
+      for (const m of farMeshes) scan(m, 'aLodC', 3, false);
+      return out;
     },
     dispose() {
       for (const d of disposables) d.dispose();

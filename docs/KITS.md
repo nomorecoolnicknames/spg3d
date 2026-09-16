@@ -34,6 +34,7 @@ Materials are identified **by name only** (lowercase, exact). The Principled BSD
 | `dark`  | door recesses, openings, voids, shadows             | as is, never lit                                          |
 | `sign`  | shop sign panels and light boxes                    | emissive at night                                        |
 | `gold`  | gilded domes, spires, stars (heroes only)           | metallic, bright                                         |
+| `glass2`| dark opaque glass: spandrels, back-painted curtain wall | reflective like glass, never lit, not tinted          |
 
 Keep colours realistic (plaster `#d9cdb4`, red brick `#8e4a38`, silicate brick `#c9c2b5`, panel concrete
 `#bdb9ae`, glass `#3b4a57`, frames `#e8e6e0` or `#5a4632`, metal `#4d535a`, roof `#4a4c50`).

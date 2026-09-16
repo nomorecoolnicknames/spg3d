@@ -1,5 +1,6 @@
 import type { OsmWorld } from '@/game/world/osm/types';
 import { loadLandmarks } from '@/game/assets';
+import { loadKitLibrary } from '@/game/world/osm/Kits';
 
 /**
  * Real-place world data (scripts/osm-map.mjs) is a few hundred KB per map, so each file is its own
@@ -18,7 +19,8 @@ export async function loadMapWorld(id: string): Promise<OsmWorld> {
   const load = WORLDS[`./${id}.world.json`];
   if (!load) throw new Error(`no map data for ${id}`);
   const world = await load();
-  if (world.models.length) await loadLandmarks();
+  // landmark models, the Blender facade kits and this map's hero buildings come with the map
+  await Promise.all([world.models.length ? loadLandmarks() : Promise.resolve(undefined), loadKitLibrary(id)]);
   cache.set(id, world);
   return world;
 }
