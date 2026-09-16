@@ -49,7 +49,8 @@ export function RaceHUD({ hud }: { hud: RaceHUDState }) {
       const id = ++idRef.current;
       setDrift({ pts: e.points, combo: e.combo, id });
       window.setTimeout(() => setDrift((d) => (d && d.id === id ? null : d)), 1400);
-    } else if (e.type === 'finish') push(S.race.finish, 'big', 3000);
+    } else if (e.type === 'speed-trap') push(`${S.race.trap} ${e.kmh} ${S.race.kmh}`, e.best ? 'good' : 'info', 1800);
+    else if (e.type === 'finish') push(S.race.finish, 'big', 3000);
   });
   const track = race ? TRACK_BY_ID[race.trackId] : null;
   return (

@@ -284,6 +284,7 @@ export function Results() {
               <span>{S.results.forPlace}</span><b>{money(r.reward.place)}</b>
               <span>{S.results.forDrift} · {r.driftScore.toLocaleString('ru-RU')}</span><b>{money(r.reward.drift)}</b>
               <span>{S.results.forClean}</span><b>{money(r.reward.cleanLap)}</b>
+              {r.reward.trap > 0 && <><span>{S.results.forTrap} · {r.reward.trapKmh} {S.race.kmh}</span><b>{money(r.reward.trap)}</b></>}
               {r.reward.record > 0 && <><span>{S.results.forRecord}</span><b>{money(r.reward.record)}</b></>}
               <span>{S.results.total}</span><b className="tot">{money(r.reward.total)}</b>
             </div>

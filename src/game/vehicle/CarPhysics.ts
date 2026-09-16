@@ -49,6 +49,8 @@ export class CarPhysics {
   accel = 0;
   /** slip angle of the body (rad, signed): how far the car is sideways */
   beta = 0;
+  /** 0..1 how deep the car sits in the slipstream of the one ahead (the race sets it) */
+  draft = 0;
   private shiftTimer = 0;
   private lastGear = 1;
   readonly wheelbase: number;
@@ -267,7 +269,7 @@ export class CarPhysics {
     const fyR = CarPhysics.tyre(alphaR, capR * kR * rearLift);
 
     // --- rigid-body equations in the car frame ---
-    const fDrag = this.dragK * this.vx * Math.abs(this.vx) + 0.013 * m * G * sgnV * Math.min(1, v);
+    const fDrag = this.dragK * (1 - 0.42 * this.draft) * this.vx * Math.abs(this.vx) + 0.013 * m * G * sgnV * Math.min(1, v);
     const fSlope = -m * G * Math.sin(surf.slopeAlong);
     const fCoast = throttle < 0.05 && !reversing ? -0.05 * m * this.vx : 0;
     // the front tyre's force is turned by the steering angle: its drag component is the cost of understeer

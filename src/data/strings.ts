@@ -85,6 +85,8 @@ export const S = {
     toBoss: 'На арену',
   },
   race: {
+    trap: 'Радар',
+    kmh: 'км/ч',
     flyOn: 'ПОЛЁТ: W/S — вперёд/назад, A/D — поворот, Space — вверх, Shift — вниз, F — выкл',
     flyOff: 'Полёт выключен — машина на трассе',
     lap: 'Круг',
@@ -134,6 +136,7 @@ export const S = {
     forPlace: 'За место',
     forDrift: 'За дрифт',
     forClean: 'Чистый круг',
+    forTrap: 'Радар',
     forRecord: 'Рекорд трассы',
     total: 'Итого',
     newRecord: 'Новый рекорд трассы',

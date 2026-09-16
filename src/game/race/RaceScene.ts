@@ -116,6 +116,8 @@ export class RaceScene implements SceneController {
   private driftOffT = 0;
   private driftScore = 0;
   private cleanLaps = 0;
+  private trapProgress = -1;
+  private trapBest = 0;
   private lastPosition = 0;
   private wrongWay = false;
   private nitroWas = false;
@@ -213,11 +215,11 @@ export class RaceScene implements SceneController {
     }
     // spectators behind the barriers
     if (q.level !== 'low') {
-      this.crowd = buildCrowd(this.track, { count: q.level === 'high' ? 420 : 240, shadows: q.shadows });
+      this.crowd = buildCrowd(this.track, { count: q.level === 'high' ? 420 : 150, shadows: q.shadows });
       this.scene.add(this.crowd.group);
     }
     // city traffic to dodge (?traffic=0 turns it off for QA frame comparisons)
-    const trafficCount = q.level === 'low' ? 0 : q.level === 'medium' ? 5 : 9;
+    const trafficCount = q.level === 'low' ? 0 : q.level === 'medium' ? 4 : 9;
     if (spec.theme === 'city' && trafficCount && new URLSearchParams(location.search).get('traffic') !== '0') {
       this.traffic = new Traffic(this.track, { count: trafficCount, shadows: q.shadows, night: env.headlights, lod: q.level === 'high' ? 2 : 3 });
       this.scene.add(this.traffic.group);
@@ -797,6 +799,48 @@ export class RaceScene implements SceneController {
     }
     this.skids.tick(dt);
     this.traffic?.update(dt, this.player.progress, this.player.car);
+    this.updateDraft();
+    this.updateTraps();
+  }
+
+  /** slipstream: sitting behind a car ahead cuts the drag, so a tow really pulls you down the straight */
+  private updateDraft(): void {
+    const n = this.track.count;
+    for (const r of this.racers) {
+      let best = 0;
+      for (const o of this.racers) {
+        if (o === r) continue;
+        let ahead = o.progress - r.progress;
+        if (ahead > n / 2) ahead -= n;
+        if (ahead < -n / 2) ahead += n;
+        const m = ahead * this.track.spacing;
+        if (m > 3 && m < 32 && Math.abs(o.lat - r.lat) < 3.2 && r.car.vx > 24) best = Math.max(best, 1 - m / 32);
+      }
+      r.car.draft += (best - r.car.draft) * 0.15;
+    }
+  }
+
+  /** speed radars: the fastest pass through each of them pays out at the end of the race */
+  private updateTraps(): void {
+    if (!this.started || this.player.finished) return;
+    const n = this.track.count;
+    const prev = this.trapProgress;
+    const now = this.player.progress;
+    this.trapProgress = now;
+    if (prev < 0) return;
+    let delta = now - prev;
+    if (delta < -n / 2) delta += n;
+    if (delta <= 0 || delta > n / 4) return;
+    for (const t of this.track.speedTraps) {
+      let d = t - prev;
+      if (d < -n / 2) d += n;
+      if (d >= 0 && d <= delta) {
+        const kmh = Math.round(this.player.car.speed * 3.6);
+        if (kmh > this.trapBest) this.trapBest = kmh;
+        this.cb.onEvent({ type: 'speed-trap', kmh, best: kmh >= this.trapBest });
+        audio.play('ui-click', { gain: 0.35 });
+      }
+    }
   }
 
   private flyStep(r: Racer, dt: number): void {
@@ -941,9 +985,10 @@ export class RaceScene implements SceneController {
     const placePrize = this.params.timeAttack ? 400 : PLACE_PRIZE[player.place - 1] ?? 100;
     const drift = Math.round(this.driftScore / 8);
     const clean = this.cleanLaps * 400;
+    const trap = this.trapBest > 0 ? this.trapBest * 3 : 0;
     const newRecord = player.bestLap != null && (this.bestRecordLap == null || player.bestLap < this.bestRecordLap);
     const record = newRecord ? 1500 : 0;
-    const total = placePrize + drift + clean + record;
+    const total = placePrize + drift + clean + record + trap;
     this.cb.onFinish({
       kind: 'race',
       trackId: this.params.trackId,
@@ -951,7 +996,7 @@ export class RaceScene implements SceneController {
       entries,
       player,
       driftScore: Math.round(this.driftScore),
-      reward: { place: placePrize, drift, cleanLap: clean, record, total },
+      reward: { place: placePrize, drift, cleanLap: clean, record, trap, trapKmh: this.trapBest, total },
       newRecord,
       career: this.params.career,
       timeAttack: !!this.params.timeAttack,

@@ -296,6 +296,10 @@ export interface RewardBreakdown {
   drift: number;
   cleanLap: number;
   record: number;
+  /** money for the quickest pass through a speed radar */
+  trap: number;
+  /** that speed, km/h */
+  trapKmh: number;
   total: number;
 }
 
@@ -327,6 +331,7 @@ export type GameEvent =
   | { type: 'finish' }
   | { type: 'message'; text: string; tone?: 'info' | 'warn' | 'good' }
   | { type: 'drift-end'; points: number; combo: number }
+  | { type: 'speed-trap'; kmh: number; best: boolean }
   | { type: 'overtake'; position: number }
   | { type: 'boss-phase'; phase: number }
   | { type: 'boss-dead' }

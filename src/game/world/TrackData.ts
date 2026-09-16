@@ -51,6 +51,8 @@ export class TrackData {
   readonly spacing: number;
   readonly curve: THREE.CatmullRomCurve3;
   readonly bounds: { minX: number; maxX: number; minZ: number; maxZ: number; span: number };
+  /** sample indices of the two speed radars on the lap */
+  speedTraps: number[] = [];
 
   constructor(readonly spec: TrackSpec) {
     this.halfW = spec.roadWidth / 2;
@@ -151,6 +153,20 @@ export class TrackData {
     this.smoothField('lineOffset', Math.round(18 / this.spacing), 3);
     for (const s of this.samples) s.lineOffset = THREE.MathUtils.clamp(s.lineOffset, -maxOff, maxOff);
     this.computeSpeedProfile(10.5 * this.spec.env.grip, 9.5, 5.5);
+    this.speedTraps = this.pickSpeedTraps();
+  }
+
+  /** two radars a lap, on the quickest stretches and at least a quarter of a lap apart */
+  private pickSpeedTraps(): number[] {
+    const order = this.samples.map((s, i) => ({ i, v: s.lineSpeed })).sort((a, b) => b.v - a.v);
+    const out: number[] = [];
+    const apart = this.count * 0.25;
+    for (const c of order) {
+      if (out.length >= 2) break;
+      if (out.some((o) => Math.abs(((o - c.i + this.count / 2 + this.count) % this.count) - this.count / 2) < apart)) continue;
+      out.push(c.i);
+    }
+    return out;
   }
 
   /** Curvature-limited speeds with backward braking pass and forward acceleration pass. */

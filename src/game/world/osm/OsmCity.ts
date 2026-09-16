@@ -491,6 +491,19 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
       b.box(l.x + ux * 2.2, l.z + uz * 2.2, l.y + LAMP_H - 0.24, 0.38, 0.95, 0.18, heading + Math.PI / 2, { ...all(head), top: { cell: 'metalVent', tile: [0.2, 0.2] } });
       lamps.push({ x: l.x + ux * 2.9, y: l.y + LAMP_H - 0.35, z: l.z + uz * 2.9, color: style === 'waw' ? '#ffd9a8' : '#ffc58a', range: 26 });
     }
+    // speed radars on the two quickest stretches (TrackData.speedTraps): a grey post with a camera box
+    for (const ti of track.speedTraps) {
+      const sm = track.samples[ti % track.count];
+      const side = -1;
+      const px = sm.pos.x + sm.left.x * side * (HALF + 2.4), pz = sm.pos.z + sm.left.z * side * (HALF + 2.4);
+      const heading = Math.atan2(sm.tan.x, sm.tan.z);
+      const b = gb(px, pz);
+      const grey = { cell: 'metalVent' as CellName, tile: [0.3, 1] as [number, number] };
+      b.box(px, pz, sm.pos.y + CURB, 0.22, 0.22, 5.0, heading, { front: grey, back: grey, left: grey, right: grey });
+      const camX = px - sm.left.x * side * 0.8, camZ = pz - sm.left.z * side * 0.8;
+      b.box(camX, camZ, sm.pos.y + CURB + 4.3, 0.9, 0.5, 0.5, heading, { ...all({ cell: 'concrete' as CellName, tile: [0.4, 0.4] as [number, number] }), top: { cell: 'metalVent' as CellName, tile: [0.3, 0.3] as [number, number] } });
+      b.box(camX, camZ, sm.pos.y + CURB + 3.5, 0.7, 0.08, 0.5, heading, all({ cell: 'adStop' as CellName, tile: [1, 1] as [number, number] }));
+    }
     // Shchyolkovo: benches and litter bins at the back of the pavement, halfway between the lamps
     if (style === 'shch') {
       const wood = { cell: 'woodWall' as CellName, tile: [0.3, 0.3] as [number, number] };
@@ -749,7 +762,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
         band(groundTop, capBottom, fa.main, floors);
         if (capBottom < h) band(capBottom, h, fa.cap!, 1);
         // details on the walls that face the route — they carry the look at eye level
-        if (detailWalls && len > 7 && nearC.d < 95 && nearC.i >= 0) {
+        if (detailWalls && len > 7 && nearC.d < 70 && nearC.i >= 0) {
           const rp = track!.samples[nearC.i].pos;
           if (dir.x * (rp.x - p.x) + dir.z * (rp.z - p.z) > 0) facadeDetails(b, p, q, dir, len, h, groundTop, fa.floor, kind, eseed);
         }
@@ -1130,7 +1143,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
 
   // ── trees (OSM trees + park planting) and parked cars along side streets near the route
   {
-    const cap = quality.level === 'high' ? 1400 : quality.level === 'medium' ? 650 : 300;
+    const cap = quality.level === 'high' ? 1400 : quality.level === 'medium' ? 520 : 300;
     const spots: { x: number; y: number; z: number; s: number; d: number }[] = [];
     const clear = HALF + PAVE + 1.5;
     for (let k = 0; k + 1 < world.trees.length; k += 2) {
