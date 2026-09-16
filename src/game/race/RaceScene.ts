@@ -204,7 +204,7 @@ export class RaceScene implements SceneController {
     this.props = osm ?? (spec.theme === 'city' ? buildCity(this.track, q) : buildProps(this.track, this.mesh.terrainHeight, { shadows: q.shadows, level: q.level }));
     const worldMs = Math.round(performance.now() - worldT0);
     // QA: how long the world took to build (phones are a few times slower than the headless desktop)
-    window.__spg.knobs.worldStats = () => ({ ms: worldMs, ...(osm?.stats ?? {}) });
+    window.__spg.knobs.worldStats = () => ({ ms: worldMs, ...(osm?.stats ?? {}), ...(osm?.lodStats() ?? {}) });
     this.scene.add(this.props.group);
     if (spec.theme === 'desert' && spec.features) this.features = buildCanyonFeatures(this.track, this.mesh.terrainHeight, q);
     if (spec.theme === 'snow' && spec.features) this.features = buildAlpineFeatures(this.track, this.mesh.terrainHeight, q);
