@@ -9,6 +9,8 @@ import type { TrackData } from './TrackData';
  */
 export interface CrowdRig {
   group: THREE.Group;
+  /** sway and jump (seconds) */
+  update(t: number): void;
   dispose(): void;
 }
 
@@ -22,7 +24,7 @@ export function buildCrowd(track: TrackData, opts: { count: number; shadows: boo
   gltf?.scene.traverse((o) => {
     if (o instanceof THREE.Mesh) poses.push(o);
   });
-  if (!poses.length) return { group, dispose: () => {} };
+  if (!poses.length) return { group, update: () => {}, dispose: () => {} };
 
   let seed = 20260916;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
@@ -64,6 +66,27 @@ export function buildCrowd(track: TrackData, opts: { count: number; shadows: boo
   const col = new THREE.Color();
   const up = new THREE.Vector3(0, 1, 0);
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0 });
+  // a crowd that does not move reads as a shop-window dummy: every person sways, and half of them bounce,
+  // each on its own phase taken from where it stands (vertex shader, no per-frame work on the CPU)
+  const time = { value: 0 };
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.spgCrowdTime = time;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float spgCrowdTime;')
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+	{
+		float ph = fract(sin(instanceMatrix[3][0] * 12.9898 + instanceMatrix[3][2] * 78.233) * 43758.5453);
+		float t = spgCrowdTime * (1.7 + ph * 1.1) + ph * 6.283;
+		float jump = step(0.55, ph) * max(0.0, sin(t)) * 0.13;
+		transformed.y += jump;
+		transformed.x += sin(t * 0.55) * 0.03 * transformed.y;
+		transformed.z += cos(t * 0.37 + ph) * 0.02 * transformed.y;
+	}`,
+      );
+  };
+  mat.customProgramCacheKey = () => 'spg-crowd';
   // one instanced mesh per pose per zone: only the stand you are driving past is drawn
   const groups: { pose: number; zone: number }[] = [];
   for (let zi = 0; zi < zones.length; zi++) for (let pi = 0; pi < poses.length; pi++) groups.push({ pose: pi, zone: zi });
@@ -86,6 +109,9 @@ export function buildCrowd(track: TrackData, opts: { count: number; shadows: boo
 
   return {
     group,
+    update(t: number) {
+      time.value = t;
+    },
     dispose() {
       mat.dispose();
       group.clear();
