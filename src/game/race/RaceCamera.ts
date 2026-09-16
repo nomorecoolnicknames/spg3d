@@ -102,8 +102,8 @@ export class RaceCamera {
     // keep the chase camera above the ground line of the car
     if (this.mode === 0 && this.pos.y < car.y + 1.0) this.pos.y = car.y + 1.0;
     this.shake = Math.max(0, this.shake - dt * 2.2);
-    // impact shake plus a constant rumble that grows with speed and with how hard the tyres are working
-    const sh = this.shake * 0.25 + ratio * 0.012 + car.slip * 0.02;
+    // impact shake only: a constant high-frequency rumble made the whole picture (and the car in it) judder
+    const sh = this.shake * 0.25;
     this.camera.position.copy(this.pos).add(this.tmpT.set(Math.sin(t * 61) * sh, Math.sin(t * 47) * sh * 0.6, Math.cos(t * 53) * sh));
     this.camera.lookAt(this.look);
     if (this.mode === 0) this.camera.rotateZ(-car.vy * 0.004 + car.roll * 0.3);

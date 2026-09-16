@@ -363,6 +363,26 @@ export class RaceScene implements SceneController {
       this.cam.update(r.car, 1, this.elapsed);
       return idx;
     };
+    // QA (qa/motion-check.mjs): how smoothly the cars and the camera move on screen
+    window.__spg.knobs.motionStats = (reset?: unknown) => {
+      // per label: median, 95th and 99th percentile and the maximum of |second difference| in m/s², frames counted
+      const out: Record<string, unknown> = Object.fromEntries(
+        [...this.motionSamples].map(([k, v]) => {
+          const a = [...v].sort((x, y) => x - y);
+          const at = (q: number) => Math.round(a[Math.min(a.length - 1, Math.floor(a.length * q))] ?? 0);
+          return [k, { p50: at(0.5), p95: at(0.95), p99: at(0.99), max: at(1), n: a.length }];
+        }),
+      );
+      out.contacts = Object.fromEntries(this.motionContacts);
+      // the biggest spikes, and whether the body had a hard contact within the last 0.1 s
+      out.spikes = [...this.motionSpikes].sort((x, y) => y.a - x.a).slice(0, 12);
+      if (reset) {
+        this.motionSamples.clear();
+        this.motionContacts.clear();
+        this.motionSpikes.length = 0;
+      }
+      return out;
+    };
     // QA: look at the world from a fixed point (landmark shots); call without arguments to release
     window.__spg.knobs.viewFrom = (...a: unknown[]) => {
       this.viewOverride = a.length >= 6 ? (a.slice(0, 6).map(Number) as [number, number, number, number, number, number]) : null;
@@ -473,11 +493,17 @@ export class RaceScene implements SceneController {
     // (QA runs with a large maxDt/timeScale and needs the old catch-up budget)
     const maxSteps = this.vp.maxDt > 0.1 || this.vp.timeScale !== 1 ? 240 : 8;
     while (this.acc >= PHYS_DT && steps < maxSteps) {
+      for (const r of this.racers) r.car.savePose();
+      this.traffic?.savePoses();
       this.stepAll(PHYS_DT);
       this.acc -= PHYS_DT;
       steps++;
     }
     if (steps === maxSteps) this.acc = 0;
+    // everything drawn this frame sees every car between its last two steps (restored at the end of update)
+    const alpha = this.acc / PHYS_DT;
+    for (const r of this.racers) r.car.beginRender(alpha);
+    this.traffic?.beginRender(alpha);
 
     // finish sequence
     if (this.finishT >= 0 && !this.resultsSent) {
@@ -496,6 +522,7 @@ export class RaceScene implements SceneController {
       this.cam.camera.position.set(x, y, z);
       this.cam.camera.lookAt(tx, ty, tz);
     } else this.cam.update(this.player.car, dt, this.elapsed);
+    this.probeMotion(dt);
     const pp = this.player.car;
     this.sun.position.set(pp.x, pp.y, pp.z).addScaledVector(this.tmp.set(...this.track.spec.env.sunDir).normalize(), 220);
     this.sun.target.position.set(pp.x, pp.y, pp.z);
@@ -542,6 +569,8 @@ export class RaceScene implements SceneController {
       this.hudT = 0;
       this.sendHUD();
     }
+    for (const r of this.racers) r.car.endRender();
+    this.traffic?.endRender();
   }
 
   private stepAll(dt: number): void {
@@ -656,18 +685,28 @@ export class RaceScene implements SceneController {
         this.wrongWay = r.wrongWayT > 1.2;
       }
     }
-    // car-car collisions
-    for (let i = 0; i < this.racers.length; i++) {
-      for (let j = i + 1; j < this.racers.length; j++) {
-        const a = this.racers[i], b = this.racers[j];
-        const imp = CarPhysics.collide(a.car, b.car);
-        if (imp > 2 && (a.isPlayer || b.isPlayer)) {
-          this.cam.shake = Math.min(1, this.cam.shake + imp * 0.05);
-          audio.play('hit-car', { gain: Math.min(1, 0.25 + imp * 0.06) });
-          const mid = this.tmp.set((a.car.x + b.car.x) / 2, a.car.y + 0.5, (a.car.z + b.car.z) / 2);
-          this.sparks.burst(mid, this.tmp2.set(0, 0, 0), 10, 4);
-        }
+    // car-car collisions: racers with each other and with the traffic, all as real bodies
+    const contact = (a: CarPhysics, b: CarPhysics, withPlayer: boolean, kind: string) => {
+      const imp = CarPhysics.collide(a, b);
+      if (imp > 2) {
+        // QA (motionStats): hard contacts by kind, and when each body last had one
+        this.motionContacts.set(kind, (this.motionContacts.get(kind) ?? 0) + 1);
+        this.lastContact.set(a, this.elapsed);
+        this.lastContact.set(b, this.elapsed);
       }
+      if (imp > 2 && withPlayer) {
+        this.cam.shake = Math.min(1, this.cam.shake + imp * 0.05);
+        audio.play('hit-car', { gain: Math.min(1, 0.25 + imp * 0.06) });
+        const mid = this.tmp.set((a.x + b.x) / 2, a.y + 0.5, (a.z + b.z) / 2);
+        this.sparks.burst(mid, this.tmp2.set(0, 0, 0), 10, 4);
+      }
+    };
+    for (let i = 0; i < this.racers.length; i++) {
+      for (let j = i + 1; j < this.racers.length; j++) contact(this.racers[i].car, this.racers[j].car, this.racers[i].isPlayer || this.racers[j].isPlayer, 'racer-racer');
+    }
+    if (this.traffic) {
+      const bodies = this.traffic.bodies();
+      for (const r of this.racers) for (const b of bodies) contact(r.car, b, r.isPlayer, r.isPlayer ? 'player-traffic' : 'ai-traffic');
     }
     // drift scoring + nitro recharge + fx (player)
     this.updateDrift(dt);
@@ -799,9 +838,57 @@ export class RaceScene implements SceneController {
       } else this.skids.add(null, null, 0, key);
     }
     this.skids.tick(dt);
-    this.traffic?.update(dt, this.player.progress, this.player.car);
+    this.traffic?.update(dt, this.player.progress, this.racers);
     this.updateDraft();
     this.updateTraps();
+  }
+
+  /**
+   * QA motion probe: the largest frame-to-frame acceleration of what is on screen (player car body, the
+   * camera, every traffic car and every AI car), from second differences of their rendered positions. Smooth
+   * driving stays in the tens of m/s²; a teleport or a snap of 1 m shows up as thousands.
+   */
+  /** last two rendered positions and how many frames have been seen (second differences need three) */
+  private motionPrev = new Map<object, { p: [number, number, number, number, number, number]; n: number; gen?: number }>();
+  private motionSamples = new Map<string, number[]>();
+  private motionContacts = new Map<string, number>();
+  private motionSpikes: { label: string; a: number; t: number; contact: boolean; v: number }[] = [];
+  private lastContact = new WeakMap<CarPhysics, number>();
+  private probeMotion(dt: number): void {
+    if (dt <= 0) return;
+    const probe = (key: object, label: string, x: number, y: number, z: number, body: CarPhysics) => {
+      const prev = this.motionPrev.get(key);
+      if (!prev) {
+        this.motionPrev.set(key, { p: [x, y, z, 0, 0, 0], n: 1, gen: (key as { generation?: number }).generation });
+        return;
+      }
+      const q = prev.p;
+      if (prev.n >= 2) {
+        const ax = (x - 2 * q[0] + q[3]) / (dt * dt), ay = (y - 2 * q[1] + q[4]) / (dt * dt), az = (z - 2 * q[2] + q[5]) / (dt * dt);
+        let list = this.motionSamples.get(label);
+        if (!list) this.motionSamples.set(label, (list = []));
+        const acc = Math.hypot(ax, ay, az);
+        if (list.length < 200000) list.push(acc);
+        if (acc > 300 && this.motionSpikes.length < 400) {
+          const lc = this.lastContact.get(body);
+          this.motionSpikes.push({ label, a: Math.round(acc), t: Math.round(this.elapsed * 100) / 100, contact: lc !== undefined && this.elapsed - lc < 0.1, v: Math.round(body.vx) });
+        }
+      }
+      prev.p = [x, y, z, q[0], q[1], q[2]];
+      prev.n++;
+    };
+    const pr = this.player.vis.root.position;
+    probe(this.player, 'player', pr.x, pr.y, pr.z, this.player.car);
+    const cp = this.cam.camera.position;
+    probe(this.cam, 'camera', cp.x, cp.y, cp.z, this.player.car);
+    for (const r of this.racers) if (!r.isPlayer) probe(r, 'ai', r.vis.root.position.x, r.vis.root.position.y, r.vis.root.position.z, r.car);
+    if (this.traffic) {
+      for (const t of this.traffic.cars) {
+        if (!t.alive || this.motionPrev.get(t)?.gen !== t.generation) this.motionPrev.delete(t);
+        if (!t.alive) continue;
+        probe(t, 'traffic', t.vis.root.position.x, t.vis.root.position.y, t.vis.root.position.z, t.car);
+      }
+    }
   }
 
   /** slipstream: sitting behind a car ahead cuts the drag, so a tow really pulls you down the straight */
@@ -905,10 +992,17 @@ export class RaceScene implements SceneController {
   private updateGhost(dt: number): void {
     if (!this.ghost || !this.ghostRec || !this.started || this.player.finished) return;
     const t = this.raceTime - this.player.lapStart;
-    const slot = Math.min(this.ghostN - 1, Math.max(0, Math.floor(t * 20)));
+    // recorded at 20 Hz: draw between the two samples around t, not on the last one (that stepped 20 times a second)
+    const ft = Math.max(0, t * 20);
+    const slot = Math.min(this.ghostN - 1, Math.floor(ft));
+    const next = Math.min(this.ghostN - 1, slot + 1);
+    const f = next > slot ? ft - slot : 0;
     const rec = this.ghostRec;
-    this.ghost.root.position.set(rec[slot * 4], rec[slot * 4 + 1], rec[slot * 4 + 2]);
-    this.ghost.root.rotation.set(0, rec[slot * 4 + 3], 0);
+    const lerp = (k: number) => rec[slot * 4 + k] + (rec[next * 4 + k] - rec[slot * 4 + k]) * f;
+    let dh = rec[next * 4 + 3] - rec[slot * 4 + 3];
+    dh -= Math.round(dh / (Math.PI * 2)) * Math.PI * 2;
+    this.ghost.root.position.set(lerp(0), lerp(1), lerp(2));
+    this.ghost.root.rotation.set(0, rec[slot * 4 + 3] + dh * f, 0);
     this.ghost.root.visible = t < this.ghostLapTime;
     void dt;
   }
@@ -1048,6 +1142,7 @@ export class RaceScene implements SceneController {
     delete window.__spg.knobs.skipCountdown;
     delete window.__spg.knobs.finishNow;
     delete window.__spg.knobs.viewFrom;
+    delete window.__spg.knobs.motionStats;
     delete window.__spg.knobs.worldStats;
     this.scene.clear();
   }

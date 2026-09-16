@@ -88,6 +88,11 @@ export class BossScene implements SceneController {
   private reload = 1;
   private mechPos = new THREE.Vector3(0, 0, -ARENA_RADIUS * 0.3);
   private mechYaw = 0;
+  /**
+   * Render interpolation (as in the race): the fight is simulated at 120 Hz and drawn between the last two steps,
+   * so the fighter, the mech and the camera do not move in uneven jumps on a 60/90/120 Hz screen.
+   */
+  private pose = { valid: false, prev: [0, 0, 0, 0, 0, 0, 0, 0], sim: [0, 0, 0, 0, 0, 0, 0, 0] };
   private mechSpeed = 0;
   private volleyT = 2.5;
   private volleyQueue = 0;
@@ -244,6 +249,7 @@ export class BossScene implements SceneController {
     this.playerPos.set(0, 0, ARENA_RADIUS * 0.72);
     this.playerYaw = Math.PI;
     this.camYaw = Math.PI;
+    this.pose.valid = false;
     this.bossHP = this.phase === 3 ? 33 : this.phase === 2 ? 66 : 100;
     for (const m of this.minions) this.killMinion(m, false);
     for (const r of this.rockets) this.scene.remove(r.mesh);
@@ -316,12 +322,27 @@ export class BossScene implements SceneController {
     let steps = 0;
     const maxSteps = this.vp.maxDt > 0.1 || this.vp.timeScale !== 1 ? 240 : 8;
     while (this.acc >= PHYS_DT && steps < maxSteps) {
+      this.savePose(this.pose.prev);
+      this.pose.valid = true;
       this.step(PHYS_DT, foot);
       this.acc -= PHYS_DT;
       steps++;
     }
     if (steps === maxSteps) this.acc = 0;
-    // visuals
+    // visuals, between the last two steps (the simulated pose is put back at the end of the frame)
+    this.savePose(this.pose.sim);
+    if (this.pose.valid) {
+      const a = Math.min(1, this.acc / PHYS_DT), p = this.pose.prev, q = this.pose.sim;
+      const yaw = (i: number) => {
+        let d = q[i] - p[i];
+        d -= Math.round(d / (Math.PI * 2)) * Math.PI * 2;
+        return p[i] + d * a;
+      };
+      this.playerPos.set(p[0] + (q[0] - p[0]) * a, p[1] + (q[1] - p[1]) * a, p[2] + (q[2] - p[2]) * a);
+      this.playerYaw = yaw(3);
+      this.mechPos.set(p[4] + (q[4] - p[4]) * a, p[5] + (q[5] - p[5]) * a, p[6] + (q[6] - p[6]) * a);
+      this.mechYaw = yaw(7);
+    }
     this.fighter.root.position.copy(this.playerPos);
     this.fighter.root.rotation.y = this.playerYaw;
     this.fighter.update(dt);
@@ -349,6 +370,22 @@ export class BossScene implements SceneController {
     }
     if (this.post) this.post.grade.bloom = (BOSS_ENV.grade?.bloom ?? DEFAULT_GRADE.bloom) + (this.laserState === 'fire' ? 0.25 : 0);
     this.hudTick(dt);
+    const q = this.pose.sim;
+    this.playerPos.set(q[0], q[1], q[2]);
+    this.playerYaw = q[3];
+    this.mechPos.set(q[4], q[5], q[6]);
+    this.mechYaw = q[7];
+  }
+
+  private savePose(o: number[]): void {
+    o[0] = this.playerPos.x;
+    o[1] = this.playerPos.y;
+    o[2] = this.playerPos.z;
+    o[3] = this.playerYaw;
+    o[4] = this.mechPos.x;
+    o[5] = this.mechPos.y;
+    o[6] = this.mechPos.z;
+    o[7] = this.mechYaw;
   }
 
   private hudTick(dt: number): void {

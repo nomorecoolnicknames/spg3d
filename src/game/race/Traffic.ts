@@ -6,23 +6,35 @@ import { createCarVisual, type CarVisual } from '../vehicle/CarVisual';
 import type { TrackData } from '../world/TrackData';
 
 /**
- * City traffic on the race route: ordinary cars rolling along their own lane — the ones going your way keep
- * right, the oncoming ones come at you on the left. They are kinematic (they follow the route and slow down
- * for corners and for each other), which keeps them cheap and predictable; a real hit hands the car over to
- * CarPhysics so it spins away, and the racing AI sees them as cars to overtake.
+ * City traffic on the race route: ordinary cars in their own lane — the ones going your way keep right, the
+ * oncoming ones come at you on the left. Every traffic car is a real CarPhysics body driven by a calm driver
+ * (keep the lane, ease off for corners and for whatever is in front), so it moves smoothly, has the same
+ * footprint as every other car, and collisions with the player and the racers push both ways. A car that got
+ * knocked about stays where it ended up and is recycled once it is out of sight.
+ *
+ * (It used to be kinematic: placed on the nearest route sample every frame — jumping 1.5 m at a time — and
+ * snapped back into its lane after every contact, so it juddered and hit like a wall.)
  */
 export interface TrafficCar {
   car: CarPhysics;
   vis: CarVisual;
+  /** route sample the car is on (hint for projection) */
+  idx: number;
   /** sample index along the route (float) */
   progress: number;
   /** +1 with the race, −1 against it */
   dir: 1 | -1;
+  /** lane offset it tries to keep (m, left positive) */
+  lane: number;
   lat: number;
-  speed: number;
-  /** seconds left of the physics-driven spin after a hit */
-  spun: number;
+  /** cruising speed, m/s */
+  cruise: number;
+  /** seconds it has been knocked out of its lane or stopped */
+  lost: number;
   alive: boolean;
+  steer: number;
+  /** bumped on every respawn (QA motion probe: a respawn is not a jump) */
+  generation: number;
 }
 
 const COLOURS = ['#8a8f96', '#2b2e33', '#e8e6e0', '#1e3a5f', '#4a5a3c', '#9b7a45', '#6b1f22', '#c8ccd2'];
@@ -31,6 +43,7 @@ export class Traffic {
   readonly group = new THREE.Group();
   readonly cars: TrafficCar[] = [];
   private t = 0;
+  private respawnTimer = 0;
 
   constructor(
     private track: TrackData,
@@ -49,104 +62,158 @@ export class Traffic {
         opaqueGlass: true,
       });
       vis.setHeadlights(opts.night);
+      vis.root.visible = false;
       this.group.add(vis.root);
-      this.cars.push({ car, vis, progress: 0, dir: 1, lat: 0, speed: 14, spun: 0, alive: false });
+      this.cars.push({ car, vis, idx: 0, progress: 0, dir: 1, lane: 0, lat: 0, cruise: 14, lost: 0, alive: false, steer: 0, generation: 0 });
     }
   }
 
-  /** put a car back on the road ahead of or behind the player, out of sight */
-  private respawn(t: TrafficCar, playerProgress: number, i: number): void {
+  /** put a car on the road ahead of the player, out of sight, rolling at its cruising speed */
+  private spawn(t: TrafficCar, playerProgress: number, i: number): void {
     const n = this.track.count;
     const lanes = Math.max(2.2, this.track.halfW * 0.45);
     t.dir = i % 3 === 0 ? -1 : 1;
-    // ahead of the player for the ones coming towards us, behind for the ones we catch up with
-    const aheadM = t.dir === -1 ? 170 + Math.random() * 190 : 60 + Math.random() * 220;
-    t.progress = (((playerProgress + aheadM / this.track.spacing) % n) + n) % n;
-    t.lat = t.dir === 1 ? -lanes : lanes;
-    t.speed = t.dir === 1 ? 11 + Math.random() * 6 : 13 + Math.random() * 7;
-    t.spun = 0;
+    // oncoming cars start far ahead and come towards us; the ones going our way start a little closer
+    const aheadM = t.dir === -1 ? 190 + Math.random() * 170 : 90 + Math.random() * 200;
+    const si = Math.round(((playerProgress + aheadM / this.track.spacing) % n + n) % n);
+    const sm = this.track.samples[si];
+    t.lane = t.dir === 1 ? -lanes : lanes;
+    t.cruise = t.dir === 1 ? 11 + Math.random() * 6 : 13 + Math.random() * 6;
+    t.car.place(sm.pos.x + sm.left.x * t.lane, sm.pos.z + sm.left.z * t.lane, sm.pos.y, this.track.headingAt(si) + (t.dir === -1 ? Math.PI : 0));
+    t.car.vx = Math.min(t.cruise, Math.sqrt(5.5 / Math.max(1e-4, Math.abs(sm.curv))));
+    t.idx = si;
+    t.progress = si;
+    t.lat = t.lane;
+    t.lost = 0;
+    t.steer = 0;
     t.alive = true;
-    t.car.place(0, 0, 0, 0);
+    t.generation++;
+    t.vis.root.visible = true;
   }
 
-  /** the AI sees traffic as slow cars on the route */
+  savePoses(): void {
+    for (const t of this.cars) if (t.alive) t.car.savePose();
+  }
+
+  /** draw every car between its last two simulation steps (see CarPhysics.beginRender) */
+  beginRender(alpha: number): void {
+    for (const t of this.cars) {
+      if (!t.alive) continue;
+      const c = t.car;
+      c.beginRender(alpha);
+      t.vis.root.position.set(c.x, c.y, c.z);
+      t.vis.root.rotation.set(0, c.heading, 0);
+      t.vis.root.rotateX(c.pitch);
+      t.vis.root.rotateZ(c.roll);
+      t.vis.setWheels(c.wheelSpin, c.steerAngle);
+      t.vis.tick(Math.max(0, c.vx) * 3.6);
+    }
+  }
+
+  endRender(): void {
+    for (const t of this.cars) if (t.alive) t.car.endRender();
+  }
+
+  /** the racing AI sees traffic as cars on the route (speed is signed: oncoming cars move against it) */
   forEachObstacle(fn: (progress: number, lat: number, speed: number) => void): void {
-    for (const t of this.cars) if (t.alive) fn(t.progress, t.lat, t.speed * t.dir);
+    for (const t of this.cars) if (t.alive) fn(t.progress, t.lat, t.car.vx * t.dir);
   }
 
-  update(dt: number, playerProgress: number, player: CarPhysics): void {
+  /** every live traffic car body, for collisions with the racers */
+  bodies(): CarPhysics[] {
+    const out: CarPhysics[] = [];
+    for (const t of this.cars) if (t.alive) out.push(t.car);
+    return out;
+  }
+
+  update(dt: number, playerProgress: number, racers: readonly { progress: number; lat: number; car: CarPhysics }[]): void {
     this.t += dt;
+    this.respawnTimer -= dt;
     const n = this.track.count;
     const spacing = this.track.spacing;
     for (let i = 0; i < this.cars.length; i++) {
       const t = this.cars[i];
       if (!t.alive) {
-        this.respawn(t, playerProgress, i);
+        // stagger spawns so a whole column does not appear at once
+        if (this.respawnTimer <= 0) {
+          this.spawn(t, playerProgress, i);
+          this.respawnTimer = 0.35;
+        }
         continue;
       }
       let gap = t.progress - playerProgress;
       if (gap > n / 2) gap -= n;
       if (gap < -n / 2) gap += n;
       const gapM = gap * spacing;
-      if (gapM > 460 || gapM < -320) {
-        this.respawn(t, playerProgress, i);
+      const knocked = t.lost > 4;
+      if (gapM > 480 || gapM < -260 || (knocked && Math.abs(gapM) > 90)) {
+        t.alive = false;
+        t.vis.root.visible = false;
         continue;
       }
-      if (t.spun > 0) {
-        // knocked about: physics takes over for a moment
-        t.spun -= dt;
-        const idx = ((Math.round(t.progress) % n) + n) % n;
-        const sm = this.track.samples[idx];
-        const slope = sm.slope * (t.car.forwardX * sm.tan.x + t.car.forwardZ * sm.tan.z);
-        t.car.step({ steer: 0, throttle: 0, brake: 0.6, handbrake: false, nitro: false }, dt, { grip: 1, slopeAlong: slope }, true);
-        const p = this.track.project(t.car.x, t.car.z, idx, 10);
-        t.progress = p.idx;
-        t.lat = p.lat;
-        t.speed = Math.max(0, t.car.vx);
-        this.place(t, t.car.x, t.car.y, t.car.z, t.car.heading);
-        if (t.spun <= 0 && t.car.speed < 4) t.alive = false;
-        continue;
+      const c = t.car;
+      const v = Math.max(0, c.vx);
+      // --- driver: pure pursuit on its lane a little ahead ---
+      const look = Math.max(6, Math.min(26, 5 + v * 0.8));
+      const li = ((t.idx + t.dir * Math.round(look / spacing)) % n + n) % n;
+      const ls = this.track.samples[li];
+      const tx = ls.pos.x + ls.left.x * t.lane - c.x, tz = ls.pos.z + ls.left.z * t.lane - c.z;
+      let diff = Math.atan2(tx, tz) - c.heading;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      const kappa = (2 * Math.sin(diff)) / Math.max(3, Math.hypot(tx, tz));
+      const steerWant = Math.max(-1, Math.min(1, Math.atan(kappa * c.wheelbase) / Math.max(0.05, c.maxSteer(v))));
+      t.steer += (steerWant - t.steer) * Math.min(1, dt * 8);
+      // --- speed: cruise, corners ahead, and whatever is in front in the same lane ---
+      let want = t.cruise;
+      for (let k = 0; k <= 40; k += 4) {
+        const s = this.track.samples[((t.idx + t.dir * Math.round(k / spacing)) % n + n) % n];
+        want = Math.min(want, Math.sqrt(5.5 / Math.max(1e-4, Math.abs(s.curv))) + k * 0.12);
       }
-      // keep the lane, ease off for corners and for whatever is in front
-      const idx = ((Math.round(t.progress) % n) + n) % n;
-      const sm = this.track.samples[idx];
-      const curveLimit = Math.sqrt(Math.max(4, 5.5 / Math.max(1e-4, Math.abs(sm.curv))));
-      let want = Math.min(t.dir === 1 ? 17 : 19, curveLimit);
-      for (const o of this.cars) {
-        if (o === t || !o.alive || o.dir !== t.dir || Math.abs(o.lat - t.lat) > 2) continue;
-        let d = (o.progress - t.progress) * t.dir;
+      const ahead = (progress: number, lat: number, speedAlong: number) => {
+        let d = (progress - t.progress) * t.dir;
         if (d > n / 2) d -= n;
         if (d < -n / 2) d += n;
-        const dm = d * spacing;
-        if (dm > 0 && dm < 26) want = Math.min(want, Math.max(3, o.speed - (26 - dm) * 0.35));
+        const m = d * spacing;
+        if (m > 0.5 && m < 30 && Math.abs(lat - t.lat) < 2.6) want = Math.min(want, Math.max(0, speedAlong - (30 - m) * 0.45));
+      };
+      for (const o of this.cars) if (o !== t && o.alive) ahead(o.progress, o.lat, o.car.vx * (o.dir === t.dir ? 1 : -1));
+      for (const r of racers) ahead(r.progress, r.lat, r.car.vx * t.dir);
+      if (knocked) want = 0;
+      const throttle = v < want - 0.4 ? Math.min(0.6, (want - v) * 0.25 + 0.15) : 0;
+      // (no brake below walking pace: CarPhysics reads brake at a standstill as reverse)
+      const brake = v > want + 0.8 && v > 1 ? Math.min(1, (v - want) * 0.2 + 0.1) : 0;
+      const sm = this.track.samples[t.idx];
+      c.step({ steer: t.steer, throttle, brake, handbrake: false, nitro: false }, dt, { grip: this.track.spec.env.grip, slopeAlong: sm.slope * (c.forwardX * sm.tan.x + c.forwardZ * sm.tan.z) }, true);
+      // --- keep it on the road between the barriers, like the racers ---
+      const p = this.track.project(c.x, c.z, t.idx, 12);
+      const s = this.track.samples[p.idx];
+      const maxLat = this.track.barrierFace - c.extentAlong(s.left.x, s.left.z);
+      if (Math.abs(p.lat) > maxLat) {
+        const sgn = Math.sign(p.lat);
+        c.x -= s.left.x * (p.lat - sgn * maxLat);
+        c.z -= s.left.z * (p.lat - sgn * maxLat);
+        c.hitWall(-s.left.x * sgn, -s.left.z * sgn);
+        p.lat = sgn * maxLat;
       }
-      // and for the player coming up behind in the same lane
-      if (t.dir === 1 && gapM < 0 && gapM > -30 && Math.abs(player.vx) > t.speed + 4) want = Math.min(want, t.speed + 2);
-      t.speed += Math.max(-9 * dt, Math.min(4 * dt, want - t.speed));
-      t.progress = (((t.progress + (t.dir * t.speed * dt) / spacing) % n) + n) % n;
-      const i2 = ((Math.round(t.progress) % n) + n) % n;
-      const s2 = this.track.samples[i2];
-      const x = s2.pos.x + s2.left.x * t.lat, z = s2.pos.z + s2.left.z * t.lat;
-      const heading = this.track.headingAt(i2) + (t.dir === -1 ? Math.PI : 0);
-      t.car.place(x, z, s2.pos.y, heading);
-      // the heading already points the way it drives, so its own forward speed is positive either way
-      t.car.vx = t.speed;
-      this.place(t, x, s2.pos.y, z, heading);
-      t.vis.setWheels(this.t * t.speed * 2.2, 0);
-      // contact with the player: hand the traffic car to physics so it spins away
-      const hit = CarPhysics.collide(player, t.car);
-      if (hit > 2.5) {
-        t.spun = 3.5;
-        t.car.vy += (Math.random() - 0.5) * 4;
-        t.car.yawRate += (Math.random() - 0.5) * 1.6;
+      c.y = p.y;
+      t.idx = p.idx;
+      t.progress = p.progress;
+      t.lat = p.lat;
+      // out of its lane, sideways or stopped: after a while it is written off and recycled out of sight
+      const offLane = Math.abs(p.lat - t.lane) > 3 || Math.abs(c.beta) > 0.5 || v < 2;
+      t.lost = offLane ? t.lost + dt : Math.max(0, t.lost - dt * 2);
+      // visual
+    }
+    // traffic against itself (the racers are handled by the race, together with the player)
+    for (let i = 0; i < this.cars.length; i++) {
+      const a = this.cars[i];
+      if (!a.alive) continue;
+      for (let j = i + 1; j < this.cars.length; j++) {
+        const b = this.cars[j];
+        if (b.alive) CarPhysics.collide(a.car, b.car);
       }
     }
-  }
-
-  private place(t: TrafficCar, x: number, y: number, z: number, heading: number): void {
-    t.vis.root.position.set(x, y, z);
-    t.vis.root.rotation.set(0, heading, 0);
-    t.vis.tick(Math.abs(t.speed) * 3.6);
   }
 
   dispose(): void {

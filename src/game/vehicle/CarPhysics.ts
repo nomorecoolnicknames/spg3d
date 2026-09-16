@@ -128,7 +128,61 @@ export class CarPhysics {
     return -Math.sin(this.heading);
   }
 
+  /**
+   * Render interpolation. The simulation runs at a fixed 120 Hz, the screen at whatever the phone gives (60, 90,
+   * 120 Hz, never exactly), so a frame holds 0, 1, 2 or 3 steps and a car drawn at its latest step moves in
+   * uneven jumps — at 30 m/s one step more or less is 25 cm. The scene saves the pose before every step and
+   * draws each car between that and the latest pose by the leftover fraction of a step.
+   */
+  private posePrev = [0, 0, 0, 0, 0, 0];
+  private poseSim = [0, 0, 0, 0, 0, 0];
+  private poseValid = false;
+
+  savePose(): void {
+    const p = this.posePrev;
+    p[0] = this.x;
+    p[1] = this.y;
+    p[2] = this.z;
+    p[3] = this.heading;
+    p[4] = this.pitch;
+    p[5] = this.roll;
+    this.poseValid = true;
+  }
+
+  /** swap in the pose `alpha` of the way from the previous step to the latest one (until endRender) */
+  beginRender(alpha: number): void {
+    const s = this.poseSim, p = this.posePrev;
+    s[0] = this.x;
+    s[1] = this.y;
+    s[2] = this.z;
+    s[3] = this.heading;
+    s[4] = this.pitch;
+    s[5] = this.roll;
+    if (!this.poseValid) return;
+    const a = Math.max(0, Math.min(1, alpha));
+    this.x = p[0] + (s[0] - p[0]) * a;
+    this.y = p[1] + (s[1] - p[1]) * a;
+    this.z = p[2] + (s[2] - p[2]) * a;
+    let dh = s[3] - p[3];
+    dh -= Math.round(dh / (Math.PI * 2)) * Math.PI * 2;
+    this.heading = p[3] + dh * a;
+    this.pitch = p[4] + (s[4] - p[4]) * a;
+    this.roll = p[5] + (s[5] - p[5]) * a;
+  }
+
+  endRender(): void {
+    const s = this.poseSim;
+    this.x = s[0];
+    this.y = s[1];
+    this.z = s[2];
+    this.heading = s[3];
+    this.pitch = s[4];
+    this.roll = s[5];
+  }
+
   place(x: number, z: number, y: number, heading: number): void {
+    // a teleport is not interpolated across
+    this.poseValid = false;
     this.x = x;
     this.z = z;
     this.y = y;
