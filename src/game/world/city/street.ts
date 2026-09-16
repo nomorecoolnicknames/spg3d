@@ -165,32 +165,41 @@ export function trees(points: { x: number; y: number; z: number; s: number }[], 
 
   const leafMat = new THREE.MeshStandardMaterial({ map: leafTexture(), vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.9, metalness: 0 });
   const trunkMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
-  const count = Math.max(1, points.length);
-  const leaves = new THREE.InstancedMesh(leavesGeo, leafMat, count);
-  const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, count);
+  // leaf-shaped shadows: the depth pass has to alpha-test the cards too
+  const leafDepth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: leafMat.map, alphaTest: 0.5, side: THREE.DoubleSide });
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const tint = new THREE.Color();
   const linden = new THREE.Color('#ffffff'), birch = new THREE.Color('#e6f0b0');
-  points.forEach((p, i) => {
-    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.x * 0.37 + p.z * 0.11);
-    m.compose(new THREE.Vector3(p.x, p.y, p.z), q, new THREE.Vector3(p.s, p.s * (0.9 + ((i * 7) % 5) * 0.05), p.s));
-    leaves.setMatrixAt(i, m);
-    trunks.setMatrixAt(i, m);
-    leaves.setColorAt(i, tint.copy(linden).lerp(birch, ((i * 13) % 7) / 9));
-  });
-  leaves.count = trunks.count = points.length;
-  leaves.name = 'city:trees';
-  trunks.name = 'city:trunks';
-  leaves.computeBoundingSphere();
-  trunks.computeBoundingSphere();
-  // leaf-shaped shadows: the depth pass has to alpha-test the cards too
-  const leafDepth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: leafMat.map, alphaTest: 0.5, side: THREE.DoubleSide });
-  leaves.customDepthMaterial = leafDepth;
-  leaves.castShadow = trunks.castShadow = shadows;
-  leaves.receiveShadow = trunks.receiveShadow = shadows;
   const group = new THREE.Group();
-  group.add(leaves, trunks);
+  // bucketed into 190 m cells: one instanced mesh per cell, so the camera culls the trees behind you
+  const CELL = 190;
+  const cells = new Map<string, { x: number; y: number; z: number; s: number }[]>();
+  for (const p of points) {
+    const k = `${Math.floor(p.x / CELL)},${Math.floor(p.z / CELL)}`;
+    const list = cells.get(k);
+    if (list) list.push(p);
+    else cells.set(k, [p]);
+  }
+  for (const [key, list] of cells) {
+    const leaves = new THREE.InstancedMesh(leavesGeo, leafMat, list.length);
+    const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, list.length);
+    list.forEach((p, i) => {
+      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.x * 0.37 + p.z * 0.11);
+      m.compose(new THREE.Vector3(p.x, p.y, p.z), q, new THREE.Vector3(p.s, p.s * (0.9 + ((i * 7) % 5) * 0.05), p.s));
+      leaves.setMatrixAt(i, m);
+      trunks.setMatrixAt(i, m);
+      leaves.setColorAt(i, tint.copy(linden).lerp(birch, ((i * 13) % 7) / 9));
+    });
+    leaves.name = `city:trees:${key}`;
+    trunks.name = `city:trunks:${key}`;
+    leaves.computeBoundingSphere();
+    trunks.computeBoundingSphere();
+    leaves.customDepthMaterial = leafDepth;
+    leaves.castShadow = trunks.castShadow = shadows;
+    leaves.receiveShadow = trunks.receiveShadow = shadows;
+    group.add(leaves, trunks);
+  }
   return {
     mesh: group,
     dispose() {
