@@ -111,7 +111,10 @@ too). A kit may have several modules per role. `w` of every non-corner module eq
 - script `scripts/blender/heroes/<map>.py`, run as
   `blender -b --factory-startup -P scripts/blender/heroes/<map>.py -- src/assets/heroes/<map>.glb`
 - `src/assets/heroes/<map>.glb` and `src/assets/heroes/<map>.json` (manifest)
-- `docs/heroes/<map>-<osmId>.png` — one preview per building (3/4 view, ≤ 1280×720)
+- `docs/heroes/<map>-<osmId>.png` — one preview per building (3/4 view, ≤ 960×540, palette PNG)
+- after the export the GLB is compressed (the game decodes meshopt; a map's heroes go from 3–5 MB to under 1 MB):
+  `npx gltf-transform meshopt src/assets/heroes/<map>.glb src/assets/heroes/<map>.glb --level medium`.
+  A hero root may be a mesh itself: the game keeps the root's own transform, where the dequantization lands.
 
 ### Placement
 

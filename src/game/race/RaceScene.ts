@@ -345,6 +345,17 @@ export class RaceScene implements SceneController {
       const nearest = { roadHit, nan, idx0: Array.from(ri.slice(0, 6)), idxCount: ri.length, bs: bs ? [+bs.center.x.toFixed(1), +bs.center.y.toFixed(1), +bs.center.z.toFixed(1), +bs.radius.toFixed(1)] : null, roadMatSide: (this.mesh.road.material as THREE.Material).side, dist: Math.sqrt(best), v: [rp[bi], rp[bi + 1], rp[bi + 2]], count: rp.length / 3, car: [c.x, c.y, c.z], sample: [s.pos.x, s.pos.y, s.pos.z], left: [s.left.x, s.left.z], first: [rp[0], rp[1], rp[2]] };
       return { nearest, hits, wheels, wheelSpin: c.wheelSpin, carY: c.y, sampleY: s.pos.y, terrainY: this.mesh.terrainHeight(c.x, c.z), roadVisible: this.mesh.road.visible, roadBoxY: [box.min.y, box.max.y], roadTris: (this.mesh.road.geometry.index?.count ?? 0) / 3, groupChildren: this.mesh.group.children.length, camY: this.cam.camera.position.y, mat: (() => { const m = this.mesh.road.material as THREE.MeshStandardMaterial; const img = m.map?.image as HTMLCanvasElement | undefined; return { hasMap: !!m.map, imgW: img?.width, color: m.color.getHexString(), rough: m.roughness, metal: m.metalness, visible: m.visible, opacity: m.opacity, transparent: m.transparent, uv: !!this.mesh.road.geometry.attributes.uv, uvSample: Array.from((this.mesh.road.geometry.attributes.uv.array as Float32Array).slice(0, 8)) }; })() };
     };
+    // QA: the world meshes whose name starts with a prefix — visibility, vertices, bounding sphere
+    window.__spg.knobs.meshes = (prefix: unknown) => {
+      const out: { name: string; visible: boolean; verts: number; sphere: number[] }[] = [];
+      this.props.group.traverse((o) => {
+        if (!(o instanceof THREE.Mesh) || !o.name.startsWith(String(prefix))) return;
+        const g = o.geometry as THREE.BufferGeometry;
+        const bs = g.boundingSphere;
+        out.push({ name: o.name, visible: o.visible, verts: g.getAttribute('position').count, sphere: bs ? [bs.center.x, bs.center.y, bs.center.z, bs.radius].map((x) => Math.round(x)) : [] });
+      });
+      return out;
+    };
     window.__spg.knobs.hide = (name: unknown) => {
       const o = this.mesh.group.getObjectByName(String(name));
       if (o) o.visible = !o.visible;
@@ -1144,6 +1155,7 @@ export class RaceScene implements SceneController {
     delete window.__spg.knobs.viewFrom;
     delete window.__spg.knobs.motionStats;
     delete window.__spg.knobs.worldStats;
+    delete window.__spg.knobs.meshes;
     this.scene.clear();
   }
 }

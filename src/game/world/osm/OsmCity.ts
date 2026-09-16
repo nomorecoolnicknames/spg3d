@@ -40,7 +40,7 @@ export interface OsmCityRig {
   lamps: Lamp[];
   /** arena mode: walls within 14 m of the rim that face the yard (for wall dressing) */
   walls: YardWall[];
-  stats: { sectors: number; buildings: number; triangles: number; kitTriangles: number; lamps: number };
+  stats: { sectors: number; buildings: number; triangles: number; kitTriangles: number; heroes: number; lamps: number };
 }
 
 const PAVE = 5;
@@ -718,16 +718,19 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     return b;
   };
   const heroRings: P2[][] = [];
+  let heroCount = 0;
   /**
    * Is a wall seen from the route? Yes if it faces the nearest stretch of the route (or runs alongside it), or if
    * the street it looks onto is the route further out. Back walls and courtyard sides keep their flat facade, and
-   * so do low buildings in the second row (more than 50 m from the route), which the first row hides.
+   * so does everything behind the first row of houses unless it towers over it (the geometry adds up to millions
+   * of triangles on the dense maps otherwise).
    */
+  const kitRow = quality.level === 'high' ? { d: 55, tallH: 25, tallD: 100 } : { d: 38, tallH: 30, tallD: 70 };
   const facesRoute = (p: P2, q: P2, dir: { x: number; z: number }, h: number): boolean => {
     if (!track) return true;
     const mx = (p.x + q.x) / 2, mz = (p.z + q.z) / 2;
-    const n0 = near(mx, mz, 3);
-    if (h < 18 && n0.d > 50) return false;
+    const n0 = near(mx, mz, 4);
+    if (n0.d > (h >= kitRow.tallH ? kitRow.tallD : kitRow.d)) return false;
     if (n0.i >= 0) {
       const sp = track.samples[n0.i].pos;
       const dx = sp.x - mx, dz = sp.z - mz, d = Math.hypot(dx, dz) || 1;
@@ -793,6 +796,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
         const hb = kgb(hx, hz);
         placeHero(hb, hero, hx, hz, GROUND_Y);
         hb.tagLod(hx, hz, 0, false);
+        heroCount++;
         heroRings.push(ring0);
         // the river fountains play in front of the Astrum tower (the real «Premium»-looking hotel on the embankment)
         if (hero.ids.includes(ASTRUM_TOWER) || (landmark === 'premium' && !kitLib?.heroes.has(ASTRUM_TOWER))) premiumAt = { x: hx, z: hz };
@@ -1301,7 +1305,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     disposables.push(kitMat, kitDepth);
     for (const [key, kb] of kitSectors) {
       if (!kb.vertexCount) continue;
-      const farSwap = !kb.lod.some((w, i) => i % 4 === 3 && w === 0);
+      const farSwap = !kb.hasFixed;
       const geo = kb.toGeometry();
       geo.computeBoundingBox();
       kitTriangles += (geo.index?.count ?? 0) / 3;
@@ -1444,7 +1448,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     group,
     lamps: night ? [...lamps, ...pinkLights] : [],
     walls,
-    stats: { sectors: sectors.size, buildings: buildingCount, triangles, kitTriangles, lamps: lamps.length },
+    stats: { sectors: sectors.size, buildings: buildingCount, triangles, kitTriangles, heroes: heroCount, lamps: lamps.length },
     update(t: number, camX = 0, camZ = 0) {
       uniforms.time.value = t;
       if ((camX || camZ) && kitMeshes.length && !arena) {
@@ -1473,12 +1477,12 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
           const o = I[t] * stride;
           if (!kit && L[o + 2] === NEVER) continue;
           const nearB = Math.hypot(L[o] - ex, L[o + 1] - ez) - L[o + 2] <= near;
-          const drawn = kit ? L[o + 3] < 0.5 || nearB : !nearB;
+          const drawn = kit ? L[o + 2] < 0 || nearB : !nearB;
           if (kit) drawn ? out.kitDrawn++ : out.kitCollapsed++;
           else drawn ? out.farDrawn++ : out.farCollapsed++;
         }
       };
-      for (const k of kitMeshes) scan(k.mesh, 'aLod', 4, true);
+      for (const k of kitMeshes) scan(k.mesh, 'aLod', 3, true);
       for (const m of farMeshes) scan(m, 'aLodC', 3, false);
       return out;
     },

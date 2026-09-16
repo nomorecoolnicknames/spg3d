@@ -95,10 +95,15 @@ function loadGlb(url: string): Promise<THREE.Group | null> {
   });
 }
 
-/** bake every mesh under `root` into module space (the root's frame) with albedo and kind per vertex */
+/**
+ * Bake every mesh under `root` into module space with albedo and kind per vertex. Module space is the frame the
+ * root sits in (roots are authored at the origin): the root's own transform is kept, because a root that is itself
+ * a mesh carries the dequantization scale there once the GLB is meshopt-compressed.
+ */
 function bakePiece(root: THREE.Object3D, name: string, role: string, w: number, h: number, weight: number): KitPiece {
-  root.updateMatrixWorld(true);
-  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  root.updateWorldMatrix(true, true);
+  const inv = new THREE.Matrix4();
+  if (root.parent) inv.copy(root.parent.matrixWorld).invert();
   const pos: number[] = [], nrm: number[] = [], col: number[] = [], kind: number[] = [], idx: number[] = [];
   const m = new THREE.Matrix4();
   const nm = new THREE.Matrix3();
@@ -210,18 +215,46 @@ export function getKitLibrary(map: string): KitLibrary | undefined {
   return libraries.get(map);
 }
 
-/** growing vertex buffers for one sector's kit geometry */
+/** a typed array that grows by doubling (a sector of kit geometry is millions of numbers: no JS arrays) */
+class Grow<T extends Float32Array | Int8Array | Uint8Array | Uint16Array | Uint32Array> {
+  n = 0;
+  constructor(public a: T) {}
+  reserve(k: number): T {
+    if (this.n + k > this.a.length) {
+      const b = new (this.a.constructor as new (len: number) => T)(Math.max(this.a.length * 2, this.n + k));
+      b.set(this.a);
+      this.a = b;
+    }
+    return this.a;
+  }
+  /** an exact-size copy of what was written */
+  done(): T {
+    return this.a.slice(0, this.n) as T;
+  }
+}
+
+/**
+ * Growing vertex buffers for one cell of kit geometry, in a compact format (33 bytes a vertex): position float ×3,
+ * normal int8 ×3, albedo uint8 ×3 (linear), material kind uint8, window seed uint16, level of detail float ×3
+ * (building centre x/z and radius; a negative radius never gives way to the flat facade — heroes).
+ */
 export class KitBuilder {
-  pos: number[] = [];
-  nrm: number[] = [];
-  col: number[] = [];
-  kind: number[] = [];
-  seed: number[] = [];
-  lod: number[] = [];
-  idx: number[] = [];
+  private pos = new Grow(new Float32Array(1 << 14));
+  private nrm = new Grow(new Int8Array(1 << 14));
+  private col = new Grow(new Uint8Array(1 << 14));
+  private kind = new Grow(new Uint8Array(1 << 12));
+  private seed = new Grow(new Uint16Array(1 << 12));
+  private lod = new Grow(new Float32Array(1 << 14));
+  private idx = new Grow(new Uint32Array(1 << 14));
+  /** some vertices never swap to the flat facade (a hero is in this cell) */
+  hasFixed = false;
 
   get vertexCount(): number {
-    return this.pos.length / 3;
+    return this.pos.n / 3;
+  }
+
+  get triangleCount(): number {
+    return this.idx.n / 3;
   }
 
   /**
@@ -229,7 +262,17 @@ export class KitBuilder {
    * gives way to the flat facade in the distance (heroes never do).
    */
   tagLod(cx: number, cz: number, r: number, farSwap: boolean): void {
-    while (this.lod.length < this.vertexCount * 4) this.lod.push(cx, cz, r, farSwap ? 1 : 0);
+    const k = this.vertexCount * 3 - this.lod.n;
+    if (k <= 0) return;
+    const a = this.lod.reserve(k);
+    const rr = farSwap ? Math.max(0, r) : -1;
+    for (let i = this.lod.n; i < this.lod.n + k; i += 3) {
+      a[i] = cx;
+      a[i + 1] = cz;
+      a[i + 2] = rr;
+    }
+    this.lod.n += k;
+    if (!farSwap) this.hasFixed = true;
   }
 
   /**
@@ -241,41 +284,61 @@ export class KitBuilder {
     const nm = new THREE.Matrix3().getNormalMatrix(m).elements;
     const base = this.vertexCount;
     const P = piece.pos, N = piece.nrm, C = piece.col, K = piece.kind;
-    for (let i = 0; i < P.length / 3; i++) {
+    const nv = P.length / 3;
+    const pos = this.pos.reserve(nv * 3), nrm = this.nrm.reserve(nv * 3), col = this.col.reserve(nv * 3);
+    const kind = this.kind.reserve(nv), sd = this.seed.reserve(nv);
+    const seed16 = Math.round(Math.max(0, Math.min(1, seed)) * 65535);
+    for (let i = 0; i < nv; i++) {
       const y = P[i * 3 + 1], z = P[i * 3 + 2];
       const x = bendX ? bendX(P[i * 3], z) : P[i * 3];
-      this.pos.push(e[0] * x + e[4] * y + e[8] * z + e[12], e[1] * x + e[5] * y + e[9] * z + e[13], e[2] * x + e[6] * y + e[10] * z + e[14]);
+      const o = this.pos.n + i * 3;
+      pos[o] = e[0] * x + e[4] * y + e[8] * z + e[12];
+      pos[o + 1] = e[1] * x + e[5] * y + e[9] * z + e[13];
+      pos[o + 2] = e[2] * x + e[6] * y + e[10] * z + e[14];
       const nx = N[i * 3], ny = N[i * 3 + 1], nz = N[i * 3 + 2];
       let ox = nm[0] * nx + nm[3] * ny + nm[6] * nz, oy = nm[1] * nx + nm[4] * ny + nm[7] * nz, oz = nm[2] * nx + nm[5] * ny + nm[8] * nz;
       const l = Math.hypot(ox, oy, oz) || 1;
       ox /= l;
       oy /= l;
       oz /= l;
-      this.nrm.push(ox, oy, oz);
+      nrm[o] = Math.round(ox * 127);
+      nrm[o + 1] = Math.round(oy * 127);
+      nrm[o + 2] = Math.round(oz * 127);
       const k = K[i];
-      if (TINTED.has(k)) this.col.push(C[i * 3] * tint[0], C[i * 3 + 1] * tint[1], C[i * 3 + 2] * tint[2]);
-      else this.col.push(C[i * 3], C[i * 3 + 1], C[i * 3 + 2]);
-      this.kind.push(k);
-      this.seed.push(seed);
+      const tinted = TINTED.has(k);
+      for (let c = 0; c < 3; c++) col[o + c] = Math.round(Math.max(0, Math.min(1, C[i * 3 + c] * (tinted ? tint[c] : 1))) * 255);
+      kind[this.kind.n + i] = k;
+      sd[this.seed.n + i] = seed16;
     }
+    this.pos.n += nv * 3;
+    this.nrm.n += nv * 3;
+    this.col.n += nv * 3;
+    this.kind.n += nv;
+    this.seed.n += nv;
     // a mirrored transform would flip the winding
     const flip = m.determinant() < 0;
-    for (let t = 0; t < piece.idx.length; t += 3) {
-      if (flip) this.idx.push(base + piece.idx[t], base + piece.idx[t + 2], base + piece.idx[t + 1]);
-      else this.idx.push(base + piece.idx[t], base + piece.idx[t + 1], base + piece.idx[t + 2]);
+    const I = piece.idx;
+    const idx = this.idx.reserve(I.length);
+    const o = this.idx.n;
+    for (let t = 0; t < I.length; t += 3) {
+      idx[o + t] = base + I[t];
+      idx[o + t + 1] = base + (flip ? I[t + 2] : I[t + 1]);
+      idx[o + t + 2] = base + (flip ? I[t + 1] : I[t + 2]);
     }
+    this.idx.n += I.length;
   }
 
   toGeometry(): THREE.BufferGeometry {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nrm, 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(this.col, 3));
-    g.setAttribute('aKind', new THREE.Float32BufferAttribute(this.kind, 1));
-    g.setAttribute('aSeed', new THREE.Float32BufferAttribute(this.seed, 1));
     this.tagLod(0, 0, 0, false);
-    g.setAttribute('aLod', new THREE.Float32BufferAttribute(this.lod, 4));
-    g.setIndex(this.vertexCount > 65535 ? new THREE.Uint32BufferAttribute(this.idx, 1) : new THREE.Uint16BufferAttribute(this.idx, 1));
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(this.pos.done(), 3));
+    g.setAttribute('normal', new THREE.BufferAttribute(this.nrm.done(), 3, true));
+    g.setAttribute('color', new THREE.BufferAttribute(this.col.done(), 3, true));
+    g.setAttribute('aKind', new THREE.BufferAttribute(this.kind.done(), 1));
+    g.setAttribute('aSeed', new THREE.BufferAttribute(this.seed.done(), 1, true));
+    g.setAttribute('aLod', new THREE.BufferAttribute(this.lod.done(), 3));
+    const idx = this.idx.done();
+    g.setIndex(this.vertexCount > 65535 ? new THREE.BufferAttribute(idx, 1) : new THREE.BufferAttribute(Uint16Array.from(idx), 1));
     g.computeBoundingSphere();
     return g;
   }
@@ -301,8 +364,8 @@ export function createKitDepthMaterial(lod: KitLod): THREE.MeshDepthMaterial {
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, { kitNear: lod.near, kitEye: lod.eye });
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', `#include <common>\nattribute vec4 aLod;\n${LOD_DECL}`)
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n\tif (aLod.w > 0.5 && distance(aLod.xy, kitEye) - aLod.z > kitNear) transformed = vec3(0.0);');
+      .replace('#include <common>', `#include <common>\nattribute vec3 aLod;\n${LOD_DECL}`)
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n\tif (aLod.z >= 0.0 && distance(aLod.xy, kitEye) - aLod.z > kitNear) transformed = vec3(0.0);');
   };
   mat.customProgramCacheKey = () => 'spg-kit-depth';
   return mat;
@@ -332,8 +395,8 @@ export function createKitMaterial(city: CityMaterialUniforms, lod: KitLod): THRE
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, lampUniforms, { litRatio: city.litRatio, windowGain: city.windowGain, signGain: city.signGain, lampGain: city.lampGain, kitNear: lod.near, kitEye: lod.eye });
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', `#include <common>\nattribute float aKind;\nattribute float aSeed;\nattribute vec4 aLod;\n${LOD_DECL}\nvarying float vKind;\nvarying float vSeed;\nvarying vec3 vKitWorld;`)
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvKind = aKind;\n\tvSeed = aSeed;\n\tif (aLod.w > 0.5 && distance(aLod.xy, kitEye) - aLod.z > kitNear) transformed = vec3(0.0);')
+      .replace('#include <common>', `#include <common>\nattribute float aKind;\nattribute float aSeed;\nattribute vec3 aLod;\n${LOD_DECL}\nvarying float vKind;\nvarying float vSeed;\nvarying vec3 vKitWorld;`)
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvKind = aKind;\n\tvSeed = aSeed;\n\tif (aLod.z >= 0.0 && distance(aLod.xy, kitEye) - aLod.z > kitNear) transformed = vec3(0.0);')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n\tvKitWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader
       .replace(
@@ -366,7 +429,9 @@ bool kitIs(float k) { return abs(vKind - k) < 0.5; }`,
 	}
 	if (kitIs(${KIND.glass.toFixed(1)})) {
 		// a flat is a bay × floor: every piece carries its own seed, so windows light one module at a time
-		float lit = step(1.0 - litRatio, kitHash(vec2(vSeed * 7.13, floor(vKitWorld.y / 3.0))));
+		// (the cell also runs along the wall, so a hero — one seed for the whole building — is not lit in bands)
+		float kitBay = floor(vKitWorld.x / 3.2) * 0.37 + floor(vKitWorld.z / 3.2) * 0.61;
+		float lit = step(1.0 - litRatio, kitHash(vec2(vSeed * 7.13 + kitBay, floor(vKitWorld.y / 3.0))));
 		vec3 warm = mix(vec3(1.0, 0.78, 0.48), vec3(0.75, 0.85, 1.0), step(0.8, kitHash(vec2(vSeed, 3.7))));
 		totalEmissiveRadiance += warm * lit * windowGain * 0.9;
 	}
