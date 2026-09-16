@@ -14,18 +14,18 @@ each module edge, so neighbours join into a full mullion) and a horizontal line 
 recess is closed at the module edges, so a neighbour of another depth never shows a slot into the void.
 
   curtain     unitised curtain wall: full-height glass, protruding mullions, stack transom at the slab
-  spandrel    vision glass between dark spandrel bands (below the sill, above the ceiling) with transoms
+  spandrel    vision glass between opaque glass spandrel bands (below the sill, above the ceiling), transoms
   ribbon      1990s ribbon window recessed in a continuous cladding band, metal sill flashing
   fins        curtain wall with deep vertical metal fins every 1.6 m
   punched     stone/composite cladding with a deep punched window, frame, mullion, transom, metal sill
   blank       cladding panels with V-groove joints (gables, short walls)
-  g_lobby     glass lobby with thick mullions, stone kerb and fascia, clerestory transom
+  g_lobby     glass lobby with thick mullions, stone kerb, opaque glass fascia, clerestory transom
   g_glass     recessed shop/office glazing between stone piers under a stone band
   g_entry     glass lobby with a framed sliding-door recess, a thin metal canopy on tie rods, name sign
-  g_shop      mall retail front: shop window and door, canopy, sign light box on a dark fascia
+  g_shop      mall retail front: shop window and door, canopy, sign light box on an opaque glass fascia
   cap         top-floor slab band, clad parapet with joints, metal coping
   cap_screen  low parapet and coping with a louvred rooftop plant screen above it
-  corner      aluminium corner strip on a dark backing
+  corner      aluminium corner strip with shadow gaps
 """
 import math
 import os
@@ -70,8 +70,9 @@ def srgb(hexstr):
 MATERIALS = {
     # name:  sRGB colour, metallic, roughness
     'wall':  ('#c9c6bf', 0.0, 0.75),   # stone / composite cladding, tinted per building
-    'wall2': ('#3a3f46', 0.0, 0.5),    # dark spandrels, fascias, kerbs
+    'wall2': ('#8f8c86', 0.0, 0.7),    # secondary stone, tinted per building: kerbs, plinths, piers, recess linings
     'glass': ('#2e3e4c', 0.0, 0.05),   # dark blue-grey tinted glass
+    'glass2': ('#2f3a44', 0.3, 0.1),   # opaque back-painted glass, not tinted: spandrels, glass fascias
     'frame': ('#b4b8bc', 0.3, 0.45),   # light grey aluminium mullions
     'metal': ('#6a7077', 0.6, 0.45),   # anodised aluminium: fins, canopies, copings, louvres
     'roof':  ('#4a4c50', 0.0, 0.9),
@@ -228,9 +229,9 @@ def curtain():
 def spandrel():
     m = module('spandrel', 'floor', W, FLOOR, 3)
     sill, head = 0.9, 3.45
-    m.fy(0, W, 0, sill, 0, 'wall2')
+    m.fy(0, W, 0, sill, 0, 'glass2')
     m.fy(0, W, sill, head, 0, 'glass')
-    m.fy(0, W, head, FLOOR, 0, 'wall2')
+    m.fy(0, W, head, FLOOR, 0, 'glass2')
     mullions(m, 0.06)
     m.box(0, W, -0.06, 0, 0, 0.05, 'frame', '-y +z -z')              # stack joint inside the band
     m.box(0, W, -0.10, 0, sill - 0.08, sill, 'frame', '-y +z -z')
@@ -274,7 +275,7 @@ def punched():
     m.fy(2 * j, x0, z0, z1, 0, 'wall')
     m.fy(x1, W, z0, z1, 0, 'wall')
     for axis, c, span, half in (('x', j, FLOOR, j), ('z', j, W, j), ('z', z0 - k, W, k), ('z', z1 + k, W, k)):
-        m.groove(axis, c, 0, span, 'wall2', half)
+        m.groove(axis, c, 0, span, 'dark', half)
     m.fx(0, d, z0, z1, x0, 'wall', 1)                                   # deep reveals
     m.fx(0, d, z0, z1, x1, 'wall', -1)
     m.fz(x0, x1, 0, d, z0, 'wall', 1)
@@ -297,9 +298,9 @@ def blank():
         for za, zb in ((2 * j, mid - j), (mid + j, FLOOR)):
             m.fy(xa, xb, za, zb, 0, 'wall')
     for c in (j, W / 2):
-        m.groove('x', c, 0, FLOOR, 'wall2')
+        m.groove('x', c, 0, FLOOR, 'dark')
     for c in (j, mid):
-        m.groove('z', c, 0, W, 'wall2')
+        m.groove('z', c, 0, W, 'dark')
 
 
 # ───────────────────────── ground floor ─────────────────────────
@@ -309,7 +310,7 @@ KERB, FASCIA = 0.12, 4.3
 
 
 def lobby_frame(m, centre=True):
-    m.box(0, W, -0.06, GY, FASCIA, GROUND, 'wall2', '-y -z +z')
+    m.box(0, W, -0.06, GY, FASCIA, GROUND, 'glass2', '-y -z +z')
     for xc in (0, W / 2, W) if centre else (0, W):
         m.mullion(xc, 0.09, -0.22, GY, 0, GROUND, 'frame')
         m.fz(max(xc - 0.09, 0), min(xc + 0.09, W), -0.22, -0.06, GROUND, 'frame', 1)
@@ -387,7 +388,7 @@ def g_shop():
     for xc in (0, W):
         m.mullion(xc, p, -0.06, sy, 0, GROUND, 'wall2')
         m.fz(max(xc - p, 0), min(xc + p, W), -0.06, 0, GROUND, 'wall2', 1)
-    m.fy(p, W - p, head, GROUND, 0, 'wall2')
+    m.fy(p, W - p, head, GROUND, 0, 'glass2')
     m.fz(p, W - p, 0, sy, head, 'wall2', -1)
     m.fy(p, door, 0, 0.3, 0, 'wall2')
     m.fz(p, door, 0, sy, 0.3, 'wall2', 1)
@@ -413,7 +414,7 @@ def cap():
     m.fy(2 * j, W / 2 - j, 0.18, top, 0, 'wall')
     m.fy(W / 2 + j, W, 0.18, top, 0, 'wall')
     for c in (j, W / 2):
-        m.groove('x', c, 0.18, top, 'wall2')
+        m.groove('x', c, 0.18, top, 'dark')
     m.fx(0, 0.45, 0.18, top, 0, 'wall', -1)
     m.fx(0, 0.45, 0.18, top, W, 'wall', 1)
     m.box(0, W, -0.07, 0.45, top, CAP, 'metal', '-y +z -z -x +x')       # coping
@@ -438,7 +439,7 @@ def cap_screen():
 
 def corner():
     m = module('corner', 'corner', CORNER, FLOOR, 1)
-    m.fy(0, CORNER, 0, FLOOR, 0, 'wall2')
+    m.fy(0, CORNER, 0, FLOOR, 0, 'dark')
     m.box(0.03, CORNER - 0.03, -0.12, 0, 0, FLOOR, 'frame', '-y -x +x')
 
 
