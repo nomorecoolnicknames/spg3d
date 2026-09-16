@@ -58,7 +58,8 @@ export class RacerAI {
     const v = Math.max(0, car.vx);
     const idx = ((Math.floor(ctx.progress) % n) + n) % n;
 
-    // --- avoidance: look for a car ahead within 14 m in roughly the same lane ---
+    // --- avoidance: look for a car ahead in roughly the same lane, as far as ~1.3 s of closing speed ---
+    // (an oncoming car closes at both speeds: at 14 m it used to be a quarter of a second away)
     this.avoidT -= dt;
     let blockedSlow = false;
     for (let oi = 0; oi < ctx.others.length; oi++) {
@@ -68,7 +69,8 @@ export class RacerAI {
       if (ahead > n / 2) ahead -= n;
       if (ahead < -n / 2) ahead += n;
       const aheadM = ahead * t.spacing;
-      if (aheadM > 0.5 && aheadM < 14 + v * 0.25) {
+      const closing = Math.max(0, v - o.speed);
+      if (aheadM > 0.5 && aheadM < Math.min(75, Math.max(14 + v * 0.25, closing * 1.3))) {
         const dLat = o.lat - ctx.lat;
         if (Math.abs(dLat) < 2.8) {
           if (this.avoidT <= 0) {
@@ -78,7 +80,7 @@ export class RacerAI {
             this.avoid = Math.max(-room, Math.min(room, o.lat + side * 4.0));
             this.avoidT = 1.6;
           }
-          if (o.speed < v - 2 && aheadM < 7) blockedSlow = true;
+          if (o.speed < v - 2 && aheadM < 5 + closing * 0.45) blockedSlow = true;
           if (aheadM < 4 && Math.abs(dLat) < 1.6) this.nose = o.lat - ctx.lat;
         }
       }
