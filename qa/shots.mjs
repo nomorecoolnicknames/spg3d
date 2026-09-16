@@ -375,7 +375,10 @@ async function scLeak(page, base) {
   for (let i = 0; i < 2; i++) {
     await gotoScreen(page, 'race', { track: 'shchyolkovo', laps: 1, opp: 3, auto: true });
     await page.evaluate(() => window.__spg.setAutopilot(true));
-    await sleep(6000);
+    // leave only once the race is really running: a cold first load (kits, heroes) takes longer than a fixed
+    // wait, and leaving early measured a menu that had never cached the race's shared resources
+    await page.waitForFunction(() => window.__spg.snapshot()?.hud?.started, null, { timeout: 300_000 }).catch(() => {});
+    await sleep(3000);
     await gotoScreen(page, 'menu');
     await sleep(1500);
     const s = await snap(page);
