@@ -20,6 +20,8 @@ import xbotUrl from '@/assets/Xbot.glb';
 import xbotLodUrl from '@/assets/Xbot-lod.glb';
 import deadpoolUrl from '@/assets/deadpool.glb';
 import zombieUrl from '@/assets/zombie.glb';
+import crowdUrl from '@/assets/crowd.glb';
+import streetUrl from '@/assets/street.glb';
 import landmarksUrl from '@/assets/landmarks/landmarks.glb';
 import envNeon from '@/assets/env/neon.hdr?url';
 import envCanyon from '@/assets/env/canyon.hdr?url';
@@ -54,6 +56,9 @@ const MODEL_URLS: Record<string, string> = {
   // the boss-fight hero (scripts/blender/deadpool.py) and the minions (Quaternius «Zombie», CC0)
   deadpool: deadpoolUrl,
   zombie: zombieUrl,
+  // trackside spectators and street furniture (scripts/blender)
+  crowd: crowdUrl,
+  street: streetUrl,
 };
 const HD_URLS: Record<string, string> = {
   BMW_2018: bmw2018Hd,

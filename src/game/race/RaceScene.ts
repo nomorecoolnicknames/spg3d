@@ -21,6 +21,8 @@ import { buildAlpineFeatures } from '../world/features/Alpine';
 import { RacerAI, type AIContext, type AIOther } from '../ai/RacerAI';
 import { RaceCamera } from './RaceCamera';
 import { Smoke, Sparks, SkidMarks } from './Fx';
+import { Traffic } from './Traffic';
+import { buildCrowd, type CrowdRig } from '../world/Crowd';
 import { input } from '../input/Input';
 import { audio } from '../audio';
 import type { EngineVoice } from '../audio/api';
@@ -136,6 +138,8 @@ export class RaceScene implements SceneController {
   private flyProbe = 0;
   private viewOverride: [number, number, number, number, number, number] | null = null;
   private aiCtx: AIContext = { progress: 0, lat: 0, others: this.aiOthers, selfIndex: -1, canDrive: false };
+  private traffic: Traffic | null = null;
+  private crowd: CrowdRig | null = null;
 
   constructor(
     public params: RaceParams,
@@ -206,6 +210,17 @@ export class RaceScene implements SceneController {
     if (lamps.length && new URLSearchParams(location.search).get('lamps') !== '0') {
       this.lampField = new LampField(lamps);
       if (this.lampField.halos) this.scene.add(this.lampField.halos);
+    }
+    // spectators behind the barriers
+    if (q.level !== 'low') {
+      this.crowd = buildCrowd(this.track, { count: q.level === 'high' ? 420 : 240, shadows: q.shadows });
+      this.scene.add(this.crowd.group);
+    }
+    // city traffic to dodge (?traffic=0 turns it off for QA frame comparisons)
+    const trafficCount = q.level === 'low' ? 0 : q.level === 'medium' ? 5 : 9;
+    if (spec.theme === 'city' && trafficCount && new URLSearchParams(location.search).get('traffic') !== '0') {
+      this.traffic = new Traffic(this.track, { count: trafficCount, shadows: q.shadows, night: env.headlights, lod: q.level === 'high' ? 2 : 3 });
+      this.scene.add(this.traffic.group);
     }
     // ?weather=0: no rain/snow particles (QA frame comparisons)
     if ((env.rain || env.snow) && new URLSearchParams(location.search).get('weather') !== '0') {
@@ -540,6 +555,14 @@ export class RaceScene implements SceneController {
       snap.isPlayer = o.isPlayer;
     }
     others.length = this.racers.length;
+    // the AI treats traffic as slow cars on the route: same avoidance, same overtaking
+    this.traffic?.forEachObstacle((progress, lat, speed) => {
+      const snap = (others[others.length] ??= { progress: 0, lat: 0, speed: 0, isPlayer: false });
+      snap.progress = progress;
+      snap.lat = lat;
+      snap.speed = Math.abs(speed);
+      snap.isPlayer = false;
+    });
     for (let ri = 0; ri < this.racers.length; ri++) {
       const r = this.racers[ri];
       // inputs
@@ -773,6 +796,7 @@ export class RaceScene implements SceneController {
       } else this.skids.add(null, null, 0, key);
     }
     this.skids.tick(dt);
+    this.traffic?.update(dt, this.player.progress, this.player.car);
   }
 
   private flyStep(r: Racer, dt: number): void {
@@ -960,6 +984,8 @@ export class RaceScene implements SceneController {
       r.vis.dispose();
     }
     this.ghost?.dispose();
+    this.traffic?.dispose();
+    this.crowd?.dispose();
     this.mesh.dispose();
     this.sky.dispose();
     this.weather?.dispose();
