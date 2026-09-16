@@ -512,7 +512,7 @@ export class RaceScene implements SceneController {
       this.lampFocus.multiplyScalar(22).add(cam.position);
       this.lampField.update(this.lampFocus);
     }
-    this.props.update(this.elapsed);
+    this.props.update(this.elapsed, this.cam.camera.position.x, this.cam.camera.position.z);
     this.features?.update(this.elapsed);
     this.weather?.update(dt, this.cam.camera.position, this.tmp2.set(pp.forwardX * pp.vx, 0, pp.forwardZ * pp.vx));
     this.smoke.update(dt);

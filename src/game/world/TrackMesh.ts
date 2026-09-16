@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { TrackData } from './TrackData';
 import { createRoadMaterial } from './RoadMaterial';
+import { getGLTF } from '../assets';
 import { barrierTexture, checkerTexture, curbTexture, groundTexture, railingTexture, reseed, rnd } from './textures';
 
 export interface TrackMesh {
@@ -135,33 +136,47 @@ export function buildTrackMesh(track: TrackData, quality: { shadows: boolean; lo
   group.add(new THREE.Mesh(startGeo, startMat));
   disposables.push(startGeo, startMat);
   {
+    // start/finish gantry: the Blender parts (src/assets/gantry.glb) — two lattice towers, a truss beam
+    // repeated across the road and banner boards with the start lights under it
     const s0 = track.samples[2];
     const heading = Math.atan2(s0.tan.x, s0.tan.z);
     const gantry = new THREE.Group();
-    const postMat = new THREE.MeshStandardMaterial({ color: '#22242c', roughness: 0.5, metalness: 0.7 });
-    const beamMat = new THREE.MeshStandardMaterial({ color: '#15161c', roughness: 0.5, metalness: 0.6 });
-    const pg = new THREE.BoxGeometry(0.5, 7.5, 0.5);
-    const bg = new THREE.BoxGeometry(halfW * 2 + 6, 1.3, 1.2);
-    for (const side of [-1, 1]) {
-      const p = new THREE.Mesh(pg, postMat);
-      p.position.set(side * (halfW + 2.5), 3.75, 0);
-      p.castShadow = quality.shadows;
-      gantry.add(p);
-    }
-    const beam = new THREE.Mesh(bg, beamMat);
-    beam.position.set(0, 7.2, 0);
-    beam.castShadow = quality.shadows;
-    gantry.add(beam);
-    // lights strip under the beam
-    const lg = new THREE.BoxGeometry(halfW * 2 + 5, 0.18, 0.3);
-    const lm = new THREE.MeshBasicMaterial({ color: env.neonA, toneMapped: false });
-    const lights = new THREE.Mesh(lg, lm);
-    lights.position.set(0, 6.5, 0.5);
-    gantry.add(lights);
     gantry.position.copy(s0.pos);
     gantry.rotation.y = heading;
+    const lib = getGLTF('gantry');
+    const put = (rootName: string, places: { x: number; y: number; z: number; ry?: number }[]) => {
+      const root = lib?.scene.getObjectByName(rootName);
+      if (!root || !places.length) return;
+      root.updateWorldMatrix(true, true);
+      const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+      const local = new THREE.Matrix4();
+      const m4 = new THREE.Matrix4();
+      const q = new THREE.Quaternion();
+      const up = new THREE.Vector3(0, 1, 0);
+      root.traverse((o) => {
+        if (!(o instanceof THREE.Mesh)) return;
+        local.multiplyMatrices(inv, o.matrixWorld);
+        const inst = new THREE.InstancedMesh(o.geometry, o.material as THREE.Material, places.length);
+        places.forEach((pl, i) => {
+          q.setFromAxisAngle(up, pl.ry ?? 0);
+          m4.compose(new THREE.Vector3(pl.x, pl.y, pl.z), q, new THREE.Vector3(1, 1, 1)).multiply(local);
+          inst.setMatrixAt(i, m4);
+        });
+        inst.castShadow = quality.shadows;
+        inst.receiveShadow = true;
+        inst.name = `gantry:${rootName}`;
+        gantry.add(inst);
+      });
+    };
+    const span = halfW * 2 + 5;
+    const beams = Math.max(2, Math.round(span / 2));
+    const beamPlaces = Array.from({ length: beams }, (_, i) => ({ x: -span / 2 + 1 + i * (span / beams), y: 7.1, z: 0 }));
+    const boards = Math.max(2, Math.round(span / 2.2));
+    const boardPlaces = Array.from({ length: boards }, (_, i) => ({ x: -span / 2 + 1 + i * (span / boards), y: 6.0, z: 0 }));
+    put('gantry_tower', [{ x: -(halfW + 2.2), y: 0, z: 0 }, { x: halfW + 2.2, y: 0, z: 0 }]);
+    put('gantry_beam', beamPlaces);
+    put('gantry_board', boardPlaces);
     group.add(gantry);
-    disposables.push(pg, bg, lg, postMat, beamMat, lm);
   }
 
   // ---- terrain heightfield (the city has its own ground) ----

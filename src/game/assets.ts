@@ -22,6 +22,7 @@ import deadpoolUrl from '@/assets/deadpool.glb';
 import zombieUrl from '@/assets/zombie.glb';
 import crowdUrl from '@/assets/crowd.glb';
 import streetUrl from '@/assets/street.glb';
+import gantryUrl from '@/assets/gantry.glb';
 import landmarksUrl from '@/assets/landmarks/landmarks.glb';
 import envNeon from '@/assets/env/neon.hdr?url';
 import envCanyon from '@/assets/env/canyon.hdr?url';
@@ -59,6 +60,7 @@ const MODEL_URLS: Record<string, string> = {
   // trackside spectators and street furniture (scripts/blender)
   crowd: crowdUrl,
   street: streetUrl,
+  gantry: gantryUrl,
 };
 const HD_URLS: Record<string, string> = {
   BMW_2018: bmw2018Hd,

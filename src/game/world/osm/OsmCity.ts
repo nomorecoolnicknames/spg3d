@@ -31,7 +31,8 @@ export interface YardWall {
 
 export interface OsmCityRig {
   group: THREE.Group;
-  update(t: number): void;
+  /** t = elapsed seconds; the camera position lets distant tree cells switch off */
+  update(t: number, camX?: number, camZ?: number): void;
   dispose(): void;
   lamps: Lamp[];
   /** arena mode: walls within 14 m of the rim that face the yard (for wall dressing) */
@@ -197,6 +198,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
   const LAMP_OFF = HALF + 3.3;
   const waterY = WATER_Y[style];
   let waterTex: THREE.Texture | null = null;
+  let treeRig: { setCamera(x: number, z: number): void } | null = null;
   const group = new THREE.Group();
   group.name = `osm:${world.id}`;
   const disposables: { dispose(): void }[] = [];
@@ -1233,6 +1235,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     }
     spots.sort((a, b) => a.d - b.d);
     const t = trees(spots.slice(0, cap), !night && !!quality.shadows);
+    treeRig = t;
     group.add(t.mesh);
     disposables.push(t);
 
@@ -1268,8 +1271,9 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
     lamps: night ? [...lamps, ...pinkLights] : [],
     walls,
     stats: { sectors: sectors.size, buildings: buildingCount, triangles, lamps: lamps.length },
-    update(t: number) {
+    update(t: number, camX = 0, camZ = 0) {
       uniforms.time.value = t;
+      if (camX || camZ) treeRig?.setCamera(camX, camZ);
       waterTex?.offset.set(t * 0.012, t * 0.007);
       if (fountainTime) fountainTime.value = t;
     },

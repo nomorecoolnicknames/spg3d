@@ -17,7 +17,7 @@ import { CITY_BOUNDS, GRID, OVERPASS, PAVEMENT, RAIL_Z, ROAD_WIDTH, SQUARE, TUNN
  */
 export interface CityRig {
   group: THREE.Group;
-  update(t: number): void;
+  update(t: number, camX?: number, camZ?: number): void;
   dispose(): void;
   stats: { sectors: number; buildings: number; triangles: number; lamps: number };
   lamps: Lamp[];

@@ -94,7 +94,7 @@ function leafTexture(): THREE.CanvasTexture {
  * like a volume, darker underneath) on a trunk with three limbs; two instanced meshes for all trees.
  * Per tree: rotation, scale and a tint between linden-green and birch-yellow.
  */
-export function trees(points: { x: number; y: number; z: number; s: number }[], shadows = false): { mesh: THREE.Object3D; dispose(): void } {
+export function trees(points: { x: number; y: number; z: number; s: number }[], shadows = false): { mesh: THREE.Object3D; setCamera(x: number, z: number): void; dispose(): void } {
   let seed = 4242;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
   const C = new THREE.Vector3(0, 6.3, 0);
@@ -181,6 +181,7 @@ export function trees(points: { x: number; y: number; z: number; s: number }[], 
     if (list) list.push(p);
     else cells.set(k, [p]);
   }
+  const buckets: { meshes: THREE.Object3D[]; x: number; z: number }[] = [];
   for (const [key, list] of cells) {
     const leaves = new THREE.InstancedMesh(leavesGeo, leafMat, list.length);
     const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, list.length);
@@ -199,9 +200,22 @@ export function trees(points: { x: number; y: number; z: number; s: number }[], 
     leaves.castShadow = trunks.castShadow = shadows;
     leaves.receiveShadow = trunks.receiveShadow = shadows;
     group.add(leaves, trunks);
+    let cx = 0, cz = 0;
+    for (const p of list) {
+      cx += p.x;
+      cz += p.z;
+    }
+    buckets.push({ meshes: [leaves, trunks], x: cx / list.length, z: cz / list.length });
   }
   return {
     mesh: group,
+    /** hide the cells further away than the trees can be told apart (a long straight had them all in view) */
+    setCamera(x: number, z: number) {
+      for (const b of buckets) {
+        const vis = (b.x - x) * (b.x - x) + (b.z - z) * (b.z - z) < 330 * 330;
+        if (b.meshes[0].visible !== vis) for (const m of b.meshes) m.visible = vis;
+      }
+    },
     dispose() {
       leavesGeo.dispose();
       trunkGeo.dispose();
