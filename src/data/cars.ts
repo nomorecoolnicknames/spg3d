@@ -22,6 +22,8 @@ export const CARS: CarSpec[] = [
     unlockWins: 0,
     colors: ['#2b5bd7', '#111116', '#c8102e', '#e8e8ee', '#1f9d6a', '#f2b01c'],
     paintMaterials: ['m_carpaint_max'],
+    // planted premium sedan: quick turn-in, stable rear, forgiving — the starter car
+    dyn: { latG: 1.5, balance: -0.02, weightFront: 0.53, inertia: 1.0, downforce: 0.15, stability: 6, steerLock: 0.5, steerMargin: 0.11, brakeBias: 0.62, betaHold: 0.09, betaGrip: 8, betaMax: 0.5 },
     length: 4.98,
   },
   {
@@ -41,6 +43,8 @@ export const CARS: CarSpec[] = [
     unlockWins: 0,
     colors: ['#d4af37', '#1f1f24', '#c8102e', '#e5e5ea', '#2e86de', '#9b59b6'],
     paintMaterials: ['paint'],
+    // the drift car: loose rear, long slides, slower to settle
+    dyn: { latG: 1.5, balance: 0.045, weightFront: 0.51, inertia: 0.95, downforce: 0.12, stability: 5, steerLock: 0.56, steerMargin: 0.15, brakeBias: 0.6, betaHold: 0.14, betaGrip: 5.5, betaMax: 0.85 },
     length: 4.52,
     wheelNodes: ['WHEEL_FL', 'WHEEL_FR', 'WHEEL_RL', 'WHEEL_RR'],
   },
@@ -61,6 +65,8 @@ export const CARS: CarSpec[] = [
     unlockWins: 1,
     colors: ['#ffde00', '#e63946', '#f1faee', '#1d3557', '#6d597a', '#14213d'],
     paintMaterials: ['meshpart3mtl'],
+    // mid-engine group B: light, darty, rotates on the throttle
+    dyn: { latG: 1.62, balance: 0.03, weightFront: 0.42, inertia: 0.78, downforce: 0.2, stability: 5, steerLock: 0.58, steerMargin: 0.14, brakeBias: 0.58, betaHold: 0.13, betaGrip: 5.5, betaMax: 0.72 },
     length: 3.92,
   },
   {
@@ -80,6 +86,8 @@ export const CARS: CarSpec[] = [
     unlockWins: 1,
     colors: ['#4a5aa0', '#111317', '#c8102e', '#e8e8ee', '#2a2f3a', '#ffd400'],
     paintMaterials: ['paint_material'],
+    // heavy and glued: slower to change direction, huge grip, hard to upset
+    dyn: { latG: 1.66, balance: -0.04, weightFront: 0.52, inertia: 1.18, downforce: 0.3, stability: 6.5, steerLock: 0.48, steerMargin: 0.1, brakeBias: 0.64, betaHold: 0.08, betaGrip: 8.5, betaMax: 0.45 },
     length: 4.87,
   },
   {
@@ -99,6 +107,8 @@ export const CARS: CarSpec[] = [
     unlockWins: 2,
     colors: ['#0047ab', '#e8e8ee', '#c8102e', '#f2f2f2', '#ffd400', '#101014'],
     paintMaterials: ['paint1mtl'],
+    // Le Mans car with no aids: enormous grip, nervous once it goes
+    dyn: { latG: 1.78, balance: 0.02, weightFront: 0.42, inertia: 0.85, downforce: 0.8, stability: 4, steerLock: 0.5, steerMargin: 0.14, brakeBias: 0.6, betaHold: 0.14, betaGrip: 5, betaMax: 0.68 },
     length: 4.18,
   },
   {
@@ -120,6 +130,8 @@ export const CARS: CarSpec[] = [
     paintMaterials: ['paint_material', 'coloured_material'],
     // «LightA» covers half the nose: only the emissive strips are lamps
     lampMaterials: { head: ['lightemissivea'], tail: ['lighta_material'] },
+    // downforce monster: the faster it goes, the harder it sticks
+    dyn: { latG: 1.95, balance: -0.03, weightFront: 0.45, inertia: 0.9, downforce: 1.9, stability: 5.5, steerLock: 0.46, steerMargin: 0.11, brakeBias: 0.62, betaHold: 0.1, betaGrip: 7, betaMax: 0.5 },
     length: 4.76,
   },
 ];

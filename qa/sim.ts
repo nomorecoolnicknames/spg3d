@@ -54,6 +54,11 @@ function run(trackIdx: number, carIdx: number, nCars: number): Sim[] {
         canDrive: true,
       };
       const inp = s.ai.drive(s.car, ctx, DT);
+      if (s.ai.wantsRespawn) {
+        s.ai.wantsRespawn = false;
+        const smp0 = track.samples[Math.floor(s.progress) % track.count];
+        s.car.place(smp0.pos.x + smp0.left.x * smp0.lineOffset, smp0.pos.z + smp0.left.z * smp0.lineOffset, smp0.pos.y, track.headingAt(Math.floor(s.progress) % track.count));
+      }
       const p = track.project(s.car.x, s.car.z, s.idx);
       const smp = track.samples[p.idx];
       const slopeAlong = smp.slope * (s.car.forwardX * smp.tan.x + s.car.forwardZ * smp.tan.z) / Math.max(1e-3, Math.hypot(smp.tan.x, smp.tan.z));
@@ -97,7 +102,7 @@ for (let ti = 0; ti < TRACKS.length; ti++) {
   const minV = Math.min(...track.samples.map((s) => s.lineSpeed));
   const maxC = Math.max(...track.samples.map((s) => Math.abs(s.curv)));
   console.log(`\n== ${TRACKS[ti].name}: length ${track.length.toFixed(0)} m, samples ${track.count}, minLineSpeed ${minV.toFixed(1)} m/s, minRadius ${(1 / maxC).toFixed(1)} m`);
-  const sims = run(ti, 0, 6);
+  const sims = run(ti, 0, Number(process.env.NCARS ?? 6));
   for (const s of sims) {
     console.log(
       `${s.name.padEnd(8)} laps=[${s.laps.map((l) => l.toFixed(1)).join(', ')}] max=${(s.maxSpeed * 3.6).toFixed(0)}km/h walls=${s.wallHits} spins=${s.spins} stuck=${(s.stuck * DT).toFixed(1)}s drift=${s.driftTime.toFixed(1)}s`,
@@ -184,6 +189,41 @@ for (const spec of CARS) {
     }
     console.log(`== straight 180 km/h ±0.1 steer noise: max yaw ${maxYaw.toFixed(3)} rad/s, drift ${drift.toFixed(2)} s, heading ${car.heading.toFixed(3)} rad`);
   }
+}
+
+// steering feel: response time and linearity at 80 km/h for every car
+{
+  const surf = { grip: 1, slopeAlong: 0 };
+  console.log('\n== steering feel 80 km/h (t90 = time to 90 % of steady yaw; lin = yaw at half steer / yaw at full)');
+  for (const spec of CARS) {
+    const yawFor = (steer: number) => {
+      const car = new CarPhysics(spec);
+      car.place(0, 0, 0, 0);
+      car.vx = 80 / 3.6;
+      let steady = 0, t90 = -1, v1 = 0, beta = 0;
+      const hist: number[] = [];
+      for (let t = 0; t < 2.5; t += DT) {
+        car.step({ steer, throttle: 0.3, brake: 0, handbrake: false, nitro: false }, DT, surf, true);
+        hist.push(car.yawRate);
+        beta = Math.max(beta, Math.abs(Math.atan2(car.vy, Math.max(1, car.vx))));
+        if (t >= 2.4) v1 = car.vx;
+      }
+      steady = hist[hist.length - 1];
+      for (let i = 0; i < hist.length; i++) if (Math.abs(hist[i]) >= Math.abs(steady) * 0.9) { t90 = i * DT; break; }
+      return { steady, t90, v1, beta };
+    };
+    const full = yawFor(1), half = yawFor(0.5);
+    console.log(`${spec.id.padEnd(8)} yaw ${full.steady.toFixed(2)} rad/s (${(full.steady * 80 / 3.6 / 9.81).toFixed(2)} g) t90 ${full.t90.toFixed(2)}s lin ${(half.steady / full.steady).toFixed(2)} slip ${(full.beta * 57.3).toFixed(1)}° speed 80 → ${(full.v1 * 3.6).toFixed(0)} km/h`);
+  }
+  // trail braking: brake + full steer at 100 km/h for 1 s — how much more does the nose turn than on the throttle?
+  const turnIn = (brake: number) => {
+    const car = new CarPhysics(CARS[0]);
+    car.place(0, 0, 0, 0);
+    car.vx = 100 / 3.6;
+    for (let t = 0; t < 1; t += DT) car.step({ steer: 1, throttle: brake ? 0 : 0.5, brake, handbrake: false, nitro: false }, DT, surf, true);
+    return car.heading;
+  };
+  console.log(`== m5cs turn-in 1 s at 100 km/h: on throttle ${turnIn(0).toFixed(2)} rad, trail braking ${turnIn(0.5).toFixed(2)} rad`);
 }
 
 // single-car trace on the first track (set TRACE=1)

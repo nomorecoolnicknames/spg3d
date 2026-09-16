@@ -54,6 +54,36 @@ export interface CarSpec {
   offsetY?: number;
   /** explicit wheel node names (front-left, front-right, rear-left, rear-right) if the model has them */
   wheelNodes?: [string, string, string, string];
+  /** chassis tuning for CarPhysics; anything left out is derived from grip / handling / driftiness */
+  dyn?: CarDynamics;
+}
+
+/** Per-car chassis character (see CarPhysics: slip-angle tyres, load transfer, arcade stability). */
+export interface CarDynamics {
+  /** peak lateral acceleration on dry asphalt, g (1.25 sedan … 1.7 hypercar, before downforce) */
+  latG?: number;
+  /** grip split: + = the front bites more (loose rear), − = understeer */
+  balance?: number;
+  /** static share of the weight on the front axle */
+  weightFront?: number;
+  /** yaw inertia multiplier (low = darts into corners) */
+  inertia?: number;
+  /** downforce in newtons per (m/s)² */
+  downforce?: number;
+  /** how hard the car is kept pointing where it is going (arcade forgiveness, 1/s) */
+  stability?: number;
+  /** steering-rack lock at low speed, rad */
+  steerLock?: number;
+  /** how much steering beyond the neutral (Ackermann) angle the rack allows at speed, rad — the looser the car, the more */
+  steerMargin?: number;
+  /** share of the braking on the front axle */
+  brakeBias?: number;
+  /** largest slide angle the car will hold, rad */
+  betaMax?: number;
+  /** slip angle the car carries without help, rad (past it the arcade grip assist pulls the slide back) */
+  betaHold?: number;
+  /** how hard that assist pulls, 1/s */
+  betaGrip?: number;
 }
 
 export type UpgradeKey = 'engine' | 'tires' | 'nitro' | 'susp';

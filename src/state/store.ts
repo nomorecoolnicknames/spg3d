@@ -217,6 +217,13 @@ export function effectiveCar(carId: string): CarSpec {
     grip: c.grip * (1 + u.tires * 0.04),
     nitro: c.nitro * (1 + u.nitro * 0.08),
     handling: c.handling * (1 + u.susp * 0.04),
+    // tyres raise the grip the chassis model works with, suspension sharpens and steadies it
+    dyn: c.dyn && {
+      ...c.dyn,
+      latG: c.dyn.latG === undefined ? undefined : c.dyn.latG * (1 + u.tires * 0.04),
+      stability: c.dyn.stability === undefined ? undefined : c.dyn.stability * (1 + u.susp * 0.03),
+      inertia: c.dyn.inertia === undefined ? undefined : c.dyn.inertia * (1 - u.susp * 0.02),
+    },
   };
 }
 
