@@ -1,0 +1,32 @@
+[
+  {
+    "file": "day-sky.hdr",
+    "source": "https://polyhaven.com/a/kloppenheim_03_puresky",
+    "authors": {
+      "Greg Zaal": "Original",
+      "Jarod Guest": "Sky Edits"
+    },
+    "license": "CC0-1.0",
+    "download": {
+      "size": 5324445,
+      "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloppenheim_03_puresky_2k.hdr",
+      "md5": "06abf490739e537e9339d619a2a3c941"
+    },
+    "sha256": "cf28b37889826b2c9af5059b67110d11fff159d6cef31226ba117034e27c7287"
+  },
+  {
+    "file": "overcast-sky.hdr",
+    "source": "https://polyhaven.com/a/overcast_soil_puresky",
+    "authors": {
+      "Jarod Guest": "Sky Edits",
+      "Sergej Majboroda": "Original"
+    },
+    "license": "CC0-1.0",
+    "download": {
+      "size": 4568000,
+      "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/overcast_soil_puresky_2k.hdr",
+      "md5": "877caf0680d7269037995f6567a67103"
+    },
+    "sha256": "5414e1ac0c35e451d28595b2a2cba05e2ca301fdeb755b0a469408443093dafc"
+  }
+]

@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { INTERIOR_GLSL, roomTexture } from '../WindowInterior';
+import { cellSurface, patchSurfaces } from '../SurfaceMaterial';
 import { cityAtlas, type CellName } from './atlas';
 
 /** street-space coordinates of a quad for lamp lighting (see aLamp) */
@@ -28,14 +30,26 @@ export interface LampSpace {
  *   aSeed   per-building random, drives which windows are lit
  * Everything a sector contains merges into one BufferGeometry → one draw call.
  */
+// Aperture rectangles in the facade painter's 256px module coordinates (glass, without its frame).
+const WINDOW_RECTS: Record<string, [number, number, number, number]> = {
+  panelWin: [63, 75, 130, 110], panelWinB: [63, 75, 130, 110], panelStripe: [63, 65, 130, 108],
+  panelLoggia: [27, 43, 202, 100], panelLoggiaB: [27, 43, 202, 100],
+  plWin: [77, 63, 102, 140], plWinPed: [77, 63, 102, 140],
+  stalWin: [77, 63, 102, 140], stalWinPed: [77, 63, 102, 140], stalWinPink: [77, 63, 102, 140],
+  brickWin: [75, 65, 106, 120], redWin: [75, 65, 106, 120], brickSmallWin: [101, 89, 54, 66],
+  towerWin: [25, 35, 206, 160], wareWin: [15, 75, 226, 60],
+  glassBlue: [0, 0, 256, 256], glassDark: [0, 0, 256, 256],
+};
 export class GeoBuilder {
   pos: number[] = [];
   nrm: number[] = [];
   uv: number[] = [];
+  aperture: number[] = [];
   cell: number[] = [];
   lamp: number[] = [];
   lampH: number[] = [];
   seed: number[] = [];
+  surface: number[] = [];
   tintArr: number[] = [];
   idx: number[] = [];
   /** albedo multiplier for the quads added next (plaster colours of real buildings); glass stays untinted */
@@ -61,6 +75,7 @@ export class GeoBuilder {
     lamp?: LampSpace,
   ): void {
     const c = cityAtlas().cell(cellName);
+    const aperture = (WINDOW_RECTS[cellName] ?? [0, 0, 0, 0]).map(x => x / 256);
     const ax = p1.x - p0.x, ay = p1.y - p0.y, az = p1.z - p0.z;
     const bx = p3.x - p0.x, by = p3.y - p0.y, bz = p3.z - p0.z;
     let nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
@@ -82,6 +97,7 @@ export class GeoBuilder {
       this.nrm.push(nx, ny, nz);
       this.uv.push(tuv[i][0], tuv[i][1]);
       this.cell.push(c[0], c[1], c[2], c[3]);
+      this.aperture.push(...aperture);
       if (lamp) {
         this.lamp.push(i === 0 || i === 3 ? lamp.s0 : lamp.s1, i < 2 ? lamp.perp0 : lamp.perp1, lamp.spacing, lamp.k);
         this.lampH.push(lamp.height);
@@ -90,6 +106,7 @@ export class GeoBuilder {
         this.lampH.push(0);
       }
       this.seed.push(seed);
+      this.surface.push(cellSurface(cellName));
       this.tintArr.push(this.tint[0], this.tint[1], this.tint[2]);
     }
     this.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
@@ -101,15 +118,18 @@ export class GeoBuilder {
    */
   flatPoly(pts: { x: number; z: number }[], tris: number[][], y: number, cellName: CellName, tile: number, seed = 0): void {
     const c = cityAtlas().cell(cellName);
+    const aperture = (WINDOW_RECTS[cellName] ?? [0, 0, 0, 0]).map(x => x / 256);
     const base = this.vertexCount;
     for (const p of pts) {
       this.pos.push(p.x, y, p.z);
       this.nrm.push(0, 1, 0);
       this.uv.push(p.x / tile, -p.z / tile);
       this.cell.push(c[0], c[1], c[2], c[3]);
+      this.aperture.push(...aperture);
       this.lamp.push(0, 0, 1, 0);
       this.lampH.push(0);
       this.seed.push(seed);
+      this.surface.push(cellSurface(cellName));
       this.tintArr.push(this.tint[0], this.tint[1], this.tint[2]);
     }
     // ShapeUtils returns clockwise triangles in x/z-as-x/y; seen from above (+y) they must be flipped
@@ -174,6 +194,8 @@ export class GeoBuilder {
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
     g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nrm, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
+    g.setAttribute('aWindow', new THREE.Float32BufferAttribute(this.aperture, 4));
+    g.setAttribute('aSurface', new THREE.Uint8BufferAttribute(this.surface, 1));
     g.setAttribute('aCell', new THREE.Float32BufferAttribute(this.cell, 4));
     g.setAttribute('aLamp', new THREE.Float32BufferAttribute(this.lamp, 4));
     g.setAttribute('aLampH', new THREE.Float32BufferAttribute(this.lampH, 1));
@@ -187,6 +209,8 @@ export class GeoBuilder {
 }
 
 export interface CityMaterialUniforms {
+  wetness: { value: number };
+  snow: { value: number };
   /** fraction of windows lit (0 by day) */
   litRatio: { value: number };
   /** window light strength */
@@ -199,9 +223,11 @@ export interface CityMaterialUniforms {
   time: { value: number };
 }
 
-export function createCityMaterial(night: boolean): { material: THREE.MeshStandardMaterial; uniforms: CityMaterialUniforms } {
+export function createCityMaterial(night: boolean, wet = false, snow = false): { material: THREE.MeshStandardMaterial; uniforms: CityMaterialUniforms } {
   const atlas = cityAtlas();
   const uniforms: CityMaterialUniforms = {
+    wetness: { value: wet ? 1 : 0 },
+    snow: { value: snow ? 1 : 0 },
     litRatio: { value: night ? 0.3 : 0 },
     windowGain: { value: night ? 0.9 : 0 },
     signGain: { value: night ? 1.2 : 0.3 },
@@ -211,11 +237,13 @@ export function createCityMaterial(night: boolean): { material: THREE.MeshStanda
   };
   const mat = new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0, envMapIntensity: 0.45 });
   mat.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, uniforms, { tAtlas: { value: atlas.albedo }, tEmis: { value: atlas.emissive } });
+    Object.assign(sh.uniforms, { roomAtlas: { value: roomTexture } }, uniforms, { tAtlas: { value: atlas.albedo }, tEmis: { value: atlas.emissive } });
     sh.vertexShader = sh.vertexShader
       .replace(
         '#include <common>',
         `#include <common>
+attribute vec4 aWindow;
+varying vec4 vWindow;
 attribute vec4 aCell;
 attribute vec4 aLamp;
 attribute float aLampH;
@@ -231,6 +259,7 @@ varying float vSeed;`,
       .replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
+	vWindow = aWindow;
 	vCell = aCell;
 	vTile = uv;
 	vLamp = aLamp;
@@ -242,6 +271,8 @@ varying float vSeed;`,
       .replace(
         '#include <common>',
         `#include <common>
+${INTERIOR_GLSL}
+varying vec4 vWindow;
 uniform sampler2D tAtlas, tEmis;
 uniform float litRatio, windowGain, signGain, lampGain, time;
 uniform vec3 lampColor;
@@ -265,6 +296,9 @@ vec4 cityEmis;`,
 	vec2 gdy = dFdy(vTile) * vCell.zw;
 	vec4 alb = textureGrad(tAtlas, auv, gdx, gdy);
 	cityEmis = textureGrad(tEmis, auv, gdx, gdy);
+	// Ground/roof cells have no lamps or windows. Their tiny mip levels must not inherit light masks
+	// from neighbouring facade cells in the legacy canvas atlas (particularly visible on white snow).
+	if (vSurface >= 6.0 && abs(normalize(vSurfaceNormal).y) > 0.8) cityEmis = vec4(0.0);
 	diffuseColor.rgb *= alb.rgb * mix(vTint, vec3(1.0), cityEmis.r);`,
       )
       .replace(
@@ -293,7 +327,15 @@ vec4 cityEmis;`,
 		float farW = smoothstep(0.25, 0.6, length(fwidth(vTile)));
 		win = mix(win, litRatio * 0.75, farW);
 		wc = mix(wc, vec3(1.0, 0.8, 0.55), farW);
-		totalEmissiveRadiance += cityEmis.r * win * windowGain * mix(1.0, 0.45, office) * wc;
+        vec3 windowLight = win * windowGain * mix(1.0, 0.45, office) * wc;
+        if (vWindow.z > 0.0) {
+          vec2 interiorUV = (cf - vWindow.xy) / vWindow.zw;
+          interiorUV.y = 1.0 - interiorUV.y;
+          vec3 room = roomSample(interiorUV, -vViewPosition, wid, vWindow.z / max(vWindow.w, 0.01));
+          float daylight = 1.0 - min(1.0, windowGain);
+          windowLight = mix(room * (daylight * 0.42 + windowGain * (0.035 + win * 3.0)), windowLight * 0.3, farW);
+        }
+        totalEmissiveRadiance += cityEmis.r * windowLight;
 		totalEmissiveRadiance += cityEmis.g * signGain * diffuseColor.rgb * 2.0;
 		if (vLamp.w > 0.0) {
 			// nearest lamp along the street: horizontal offset, height difference, distance from the lamp line
@@ -306,6 +348,8 @@ vec4 cityEmis;`,
 	}`,
       );
   };
-  mat.customProgramCacheKey = () => 'spg-city';
+  const compile = mat.onBeforeCompile;
+  mat.onBeforeCompile = (sh, renderer) => { compile(sh, renderer); patchSurfaces(sh, 'city', uniforms.wetness, uniforms.snow); };
+  mat.customProgramCacheKey = () => 'spg-city-interior-v2';
   return { material: mat, uniforms };
 }

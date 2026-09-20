@@ -21,6 +21,7 @@ export class ShowcaseScene implements SceneController {
   private ring!: THREE.Mesh;
   private pmrem: THREE.Texture | null = null;
   private floorTex: THREE.Texture | null = null;
+  private keyShadow: THREE.LightShadow | null = null;
   private disposables: (THREE.Material | THREE.BufferGeometry)[] = [];
   private fade = 1;
   private camTarget = new THREE.Vector3();
@@ -68,6 +69,7 @@ export class ShowcaseScene implements SceneController {
     key.castShadow = true;
     key.shadow.mapSize.set(1024, 1024);
     key.shadow.bias = -0.0004;
+    this.keyShadow = key.shadow;
     const rim = new THREE.SpotLight('#2ee6ff', 500, 40, 0.6, 0.6, 1.6);
     rim.position.set(-7, 5, -6);
     const fill = new THREE.SpotLight('#e5233a', 260, 40, 0.8, 0.7, 1.6);
@@ -167,6 +169,7 @@ export class ShowcaseScene implements SceneController {
     for (const d of this.disposables) d.dispose();
     this.pmrem?.dispose();
     this.floorTex?.dispose();
+    this.keyShadow?.dispose();
     this.scene.clear();
   }
 }

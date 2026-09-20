@@ -1,0 +1,43 @@
+{
+  "pass": true,
+  "quality": "medium",
+  "samples": [
+    {
+      "cycle": 0,
+      "screen": "race",
+      "geometries": 191,
+      "textures": 55
+    },
+    {
+      "cycle": 0,
+      "screen": "menu",
+      "geometries": 70,
+      "textures": 32
+    },
+    {
+      "cycle": 1,
+      "screen": "race",
+      "geometries": 191,
+      "textures": 55
+    },
+    {
+      "cycle": 1,
+      "screen": "menu",
+      "geometries": 70,
+      "textures": 32
+    },
+    {
+      "cycle": 2,
+      "screen": "race",
+      "geometries": 191,
+      "textures": 55
+    },
+    {
+      "cycle": 2,
+      "screen": "menu",
+      "geometries": 70,
+      "textures": 32
+    }
+  ],
+  "errors": []
+}

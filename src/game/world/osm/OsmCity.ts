@@ -1270,7 +1270,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
   }
 
   // ── merge sectors
-  const { material, uniforms } = createCityMaterial(night);
+  const { material, uniforms } = createCityMaterial(night, track?.spec.env.wet ?? false, track?.spec.env.snow ?? false);
   disposables.push(material);
   let triangles = 0;
   // with kit facades about, the sectors use the city material that hides a kit building's flat walls up close
@@ -1412,7 +1412,7 @@ export function buildOsmCity(track: TrackData | null, world: OsmWorld, quality: 
       }
     }
     spots.sort((a, b) => a.d - b.d);
-    const t = trees(spots.slice(0, cap), !night && !!quality.shadows);
+    const t = trees(spots.slice(0, cap), !night && !!quality.shadows, quality.level, track?.spec.env.snow ?? false);
     treeRig = t;
     group.add(t.mesh);
     disposables.push(t);

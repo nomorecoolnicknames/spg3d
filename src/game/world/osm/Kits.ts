@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { glassPanes, INTERIOR_GLSL, roomTexture } from '../WindowInterior';
+import { kitSurface, patchSurfaces } from '../SurfaceMaterial';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { LAMP_GLSL, lampUniforms } from '../../render/LampField';
@@ -28,6 +30,8 @@ export interface KitPiece {
   nrm: Float32Array;
   col: Float32Array;
   kind: Float32Array;
+  surface: Uint8Array;
+  pane: Float32Array;
   idx: Uint32Array;
 }
 
@@ -100,11 +104,11 @@ function loadGlb(url: string): Promise<THREE.Group | null> {
  * root sits in (roots are authored at the origin): the root's own transform is kept, because a root that is itself
  * a mesh carries the dequantization scale there once the GLB is meshopt-compressed.
  */
-function bakePiece(root: THREE.Object3D, name: string, role: string, w: number, h: number, weight: number): KitPiece {
+function bakePiece(root: THREE.Object3D, name: string, role: string, w: number, h: number, weight: number, style = ''): KitPiece {
   root.updateWorldMatrix(true, true);
   const inv = new THREE.Matrix4();
   if (root.parent) inv.copy(root.parent.matrixWorld).invert();
-  const pos: number[] = [], nrm: number[] = [], col: number[] = [], kind: number[] = [], idx: number[] = [];
+  const pos: number[] = [], nrm: number[] = [], col: number[] = [], kind: number[] = [], surface: number[] = [], idx: number[] = [];
   const m = new THREE.Matrix4();
   const nm = new THREE.Matrix3();
   const v = new THREE.Vector3();
@@ -136,13 +140,14 @@ function bakePiece(root: THREE.Object3D, name: string, role: string, w: number, 
         const cr = C ? C.getX(i) : 1, cg = C ? C.getY(i) : 1, cb = C ? C.getZ(i) : 1;
         col.push(base.r * cr, base.g * cg, base.b * cb);
         kind.push(k);
+        surface.push(kitSurface(k, style, base.r * cr, base.g * cg, base.b * cb));
         remap.set(i, out);
         return out;
       };
       for (let t = grp.start; t < grp.start + grp.count; t++) idx.push(vert(g.index ? g.index.getX(t) : t));
     }
   });
-  return { name, role, w, h, weight, pos: new Float32Array(pos), nrm: new Float32Array(nrm), col: new Float32Array(col), kind: new Float32Array(kind), idx: new Uint32Array(idx) };
+  return { name, role, w, h, weight, pos: new Float32Array(pos), nrm: new Float32Array(nrm), col: new Float32Array(col), kind: new Float32Array(kind), surface: new Uint8Array(surface), pane: glassPanes(new Float32Array(pos), new Float32Array(nrm), new Float32Array(kind), new Uint32Array(idx)), idx: new Uint32Array(idx) };
 }
 
 let kitsLoad: Promise<Map<string, Kit>> | null = null;
@@ -161,7 +166,7 @@ function loadKits(): Promise<Map<string, Kit>> {
       for (const [mod, info] of Object.entries(man.modules)) {
         const root = scene.getObjectByName(`${man.kit}__${mod}`);
         if (!root) continue;
-        const piece = bakePiece(root, mod, info.role, info.w, info.h, info.weight ?? 1);
+        const piece = bakePiece(root, mod, info.role, info.w, info.h, info.weight ?? 1, man.kit);
         if (!piece.idx.length) continue;
         kit.pieces.set(mod, piece);
         const list = kit.roles.get(info.role) ?? [];
@@ -243,6 +248,8 @@ export class KitBuilder {
   private nrm = new Grow(new Int8Array(1 << 14));
   private col = new Grow(new Uint8Array(1 << 14));
   private kind = new Grow(new Uint8Array(1 << 12));
+  private surface = new Grow(new Uint8Array(1 << 12));
+  private pane = new Grow(new Float32Array(1 << 14));
   private seed = new Grow(new Uint16Array(1 << 12));
   private lod = new Grow(new Float32Array(1 << 14));
   private idx = new Grow(new Uint32Array(1 << 14));
@@ -286,6 +293,9 @@ export class KitBuilder {
     const P = piece.pos, N = piece.nrm, C = piece.col, K = piece.kind;
     const nv = P.length / 3;
     const pos = this.pos.reserve(nv * 3), nrm = this.nrm.reserve(nv * 3), col = this.col.reserve(nv * 3);
+    const surface = this.surface.reserve(nv);
+    this.pane.reserve(nv * 4).set(piece.pane, this.pane.n);
+    this.pane.n += nv * 4;
     const kind = this.kind.reserve(nv), sd = this.seed.reserve(nv);
     const seed16 = Math.round(Math.max(0, Math.min(1, seed)) * 65535);
     for (let i = 0; i < nv; i++) {
@@ -308,12 +318,14 @@ export class KitBuilder {
       const tinted = TINTED.has(k);
       for (let c = 0; c < 3; c++) col[o + c] = Math.round(Math.max(0, Math.min(1, C[i * 3 + c] * (tinted ? tint[c] : 1))) * 255);
       kind[this.kind.n + i] = k;
+      surface[this.surface.n + i] = piece.surface[i];
       sd[this.seed.n + i] = seed16;
     }
     this.pos.n += nv * 3;
     this.nrm.n += nv * 3;
     this.col.n += nv * 3;
     this.kind.n += nv;
+    this.surface.n += nv;
     this.seed.n += nv;
     // a mirrored transform would flip the winding
     const flip = m.determinant() < 0;
@@ -334,6 +346,8 @@ export class KitBuilder {
     g.setAttribute('position', new THREE.BufferAttribute(this.pos.done(), 3));
     g.setAttribute('normal', new THREE.BufferAttribute(this.nrm.done(), 3, true));
     g.setAttribute('color', new THREE.BufferAttribute(this.col.done(), 3, true));
+    g.setAttribute('aSurface', new THREE.BufferAttribute(this.surface.done(), 1));
+    g.setAttribute('aPane', new THREE.BufferAttribute(this.pane.done(), 4));
     g.setAttribute('aKind', new THREE.BufferAttribute(this.kind.done(), 1));
     g.setAttribute('aSeed', new THREE.BufferAttribute(this.seed.done(), 1, true));
     g.setAttribute('aLod', new THREE.BufferAttribute(this.lod.done(), 3));
@@ -393,15 +407,17 @@ export function createFarFacadeMaterial(base: THREE.MeshStandardMaterial, lod: K
 export function createKitMaterial(city: CityMaterialUniforms, lod: KitLod): THREE.MeshStandardMaterial {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, envMapIntensity: 0.9 });
   mat.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, lampUniforms, { litRatio: city.litRatio, windowGain: city.windowGain, signGain: city.signGain, lampGain: city.lampGain, kitNear: lod.near, kitEye: lod.eye });
+    Object.assign(sh.uniforms, lampUniforms, { roomAtlas: { value: roomTexture }, litRatio: city.litRatio, windowGain: city.windowGain, signGain: city.signGain, lampGain: city.lampGain, kitNear: lod.near, kitEye: lod.eye });
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', `#include <common>\nattribute float aKind;\nattribute float aSeed;\nattribute vec3 aLod;\n${LOD_DECL}\nvarying float vKind;\nvarying float vSeed;\nvarying vec3 vKitWorld;`)
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvKind = aKind;\n\tvSeed = aSeed;\n\tif (aLod.z >= 0.0 && distance(aLod.xy, kitEye) - aLod.z > kitNear) transformed = vec3(0.0);')
+      .replace('#include <common>', `#include <common>\nattribute vec4 aPane;\nvarying vec4 vPane;\nattribute float aKind;\nattribute float aSeed;\nattribute vec3 aLod;\n${LOD_DECL}\nvarying float vKind;\nvarying float vSeed;\nvarying vec3 vKitWorld;`)
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvPane = aPane;\n\tvKind = aKind;\n\tvSeed = aSeed;\n\tif (aLod.z >= 0.0 && distance(aLod.xy, kitEye) - aLod.z > kitNear) transformed = vec3(0.0);')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n\tvKitWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader
       .replace(
         '#include <common>',
         `#include <common>
+${INTERIOR_GLSL}
+varying vec4 vPane;
 varying float vKind;
 varying float vSeed;
 varying vec3 vKitWorld;
@@ -416,25 +432,18 @@ bool kitIs(float k) { return abs(vKind - k) < 0.5; }`,
       )
       .replace(
         '#include <metalnessmap_fragment>',
-        `float metalnessFactor = kitIs(${KIND.metal.toFixed(1)}) ? 0.75 : kitIs(${KIND.gold.toFixed(1)}) ? 1.0 : kitIs(${KIND.glass.toFixed(1)}) || kitIs(${KIND.glass2.toFixed(1)}) ? 0.3 : 0.0;`,
+        `float metalnessFactor = kitIs(${KIND.metal.toFixed(1)}) ? 0.75 : kitIs(${KIND.gold.toFixed(1)}) ? 1.0 : kitIs(${KIND.glass.toFixed(1)}) || kitIs(${KIND.glass2.toFixed(1)}) ? 0.05 : 0.0;`,
       )
       .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
-	if (kitIs(${KIND.glass.toFixed(1)}) || kitIs(${KIND.glass2.toFixed(1)})) {
-		// by day street-level glass would mirror the dark lower half of the sky map: give it the soft grey-blue of
-		// the street and sky it really reflects, stronger at grazing angles, plus a hint of the room behind
-		float kitFres = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);
-		totalEmissiveRadiance += vec3(0.42, 0.5, 0.6) * (0.05 + 0.3 * kitFres) * (1.0 - min(1.0, windowGain));
-	}
-	if (kitIs(${KIND.glass.toFixed(1)})) {
-		// a flat is a bay × floor: every piece carries its own seed, so windows light one module at a time
-		// (the cell also runs along the wall, so a hero — one seed for the whole building — is not lit in bands)
-		float kitBay = floor(vKitWorld.x / 3.2) * 0.37 + floor(vKitWorld.z / 3.2) * 0.61;
-		float lit = step(1.0 - litRatio, kitHash(vec2(vSeed * 7.13 + kitBay, floor(vKitWorld.y / 3.0))));
-		vec3 warm = mix(vec3(1.0, 0.78, 0.48), vec3(0.75, 0.85, 1.0), step(0.8, kitHash(vec2(vSeed, 3.7))));
-		totalEmissiveRadiance += warm * lit * windowGain * 0.9;
-	}
+	if ((kitIs(${KIND.glass.toFixed(1)}) || kitIs(${KIND.glass2.toFixed(1)})) && vPane.w > 0.0) {
+        vec2 roomID = vec2(floor(vSeed * 65535.0 + 0.5), floor(vPane.z * 4096.0 + 0.5));
+        float lit = step(roomHash(roomID + 3.7), litRatio);
+        vec3 interior = roomSample(vPane.xy, -vViewPosition, roomID, vPane.w);
+        float daylight = 1.0 - min(1.0, windowGain);
+        totalEmissiveRadiance += interior * (daylight * 0.42 + (0.035 + lit * 3.0) * windowGain);
+    }
 	if (kitIs(${KIND.sign.toFixed(1)})) totalEmissiveRadiance += diffuseColor.rgb * signGain * 1.3;`,
       )
       .replace(
@@ -452,7 +461,9 @@ bool kitIs(float k) { return abs(vKind - k) < 0.5; }`,
 	}`,
       );
   };
-  mat.customProgramCacheKey = () => 'spg-kit';
+  const compile = mat.onBeforeCompile;
+  mat.onBeforeCompile = (sh, renderer) => { compile(sh, renderer); patchSurfaces(sh, 'kit', city.wetness, city.snow); };
+  mat.customProgramCacheKey = () => 'spg-kit-interior-v2';
   return mat;
 }
 

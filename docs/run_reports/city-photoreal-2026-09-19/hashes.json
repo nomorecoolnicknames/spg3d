@@ -1,0 +1,12 @@
+{
+  "src/assets/materials/surfaces.json": "d4f8d0267b2e7895d0b31506103de1dc4fbb4fb3dd0669201106a376ea471a9f",
+  "src/assets/materials/surfaces_albedo.webp": "4736ae1005e215df38ff6dcf6620b0852a112e265780ad3593cb7aeec7f0f328",
+  "src/assets/materials/surfaces_nr.png": "146fa707da5a9c118d9317e8648b3ba499813df1a61b233449c95622bb2df505",
+  "src/assets/trees/atlas.json": "8ccdebe4e687c815251361f72c5cc65b0215abf831f176508ab19cb5d7a983de",
+  "src/assets/trees/bark_albedo.webp": "1336cd589a47eab25ddf1166000925739deeae5ebef31192e24073e339eccf74",
+  "src/assets/trees/bark_nr.png": "f8104981e36008013dd18e4ccc8acbfbd806b628ff7ef00ef466c7086ea4ff71",
+  "src/assets/trees/leaves_albedo.png": "3b621469f7366a7d31a53ca20dcf468edcf5d807ddf46b986c1dcc2551f108e0",
+  "src/assets/trees/leaves_normal.png": "0d312581b7077e611b504fade0b944b028f74c157d016fea160d010f1ea660f9",
+  "release/spg3d-city-pbr-web-20260919.zip": "a986b78c9e0584b97f254126cc5793e03b242404bce4cfa61d571c3f3e3f51af",
+  "release/spg3d-city-pbr-web-20260920.zip": "16469207fba5305ce77a18e0ab52305cffc90886a4da3ec3f0ec913675d4d1cf"
+}

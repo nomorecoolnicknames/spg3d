@@ -1,0 +1,44 @@
+{
+  "pass": true,
+  "quality": "medium",
+  "track": "shchyolkovo",
+  "samples": [
+    {
+      "cycle": 0,
+      "screen": "race",
+      "geometries": 190,
+      "textures": 62
+    },
+    {
+      "cycle": 0,
+      "screen": "menu",
+      "geometries": 68,
+      "textures": 40
+    },
+    {
+      "cycle": 1,
+      "screen": "race",
+      "geometries": 194,
+      "textures": 63
+    },
+    {
+      "cycle": 1,
+      "screen": "menu",
+      "geometries": 70,
+      "textures": 40
+    },
+    {
+      "cycle": 2,
+      "screen": "race",
+      "geometries": 194,
+      "textures": 63
+    },
+    {
+      "cycle": 2,
+      "screen": "menu",
+      "geometries": 70,
+      "textures": 40
+    }
+  ],
+  "errors": []
+}

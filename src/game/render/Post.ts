@@ -69,14 +69,46 @@ void main() {
 
 const COMPOSITE = /* glsl */ `
 uniform sampler2D tScene;
+uniform sampler2D tDepth;
+uniform mat4 projectionInverse;
+uniform vec2 sceneTexel;
+uniform float contactAO;
+vec3 viewPoint(vec2 uv, float depth) {
+  vec4 p = projectionInverse * vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+  return p.xyz / p.w;
+}
+// Small, deterministic view-space occlusion. Uses the actual colour pass depth, so facade LOD,
+// alpha-tested leaves and moving cars agree; no override-material ghost geometry or noise history.
+float contactShade(vec2 uv) {
+  float depth = texture2D(tDepth, uv).r;
+  vec3 p = viewPoint(uv, depth);
+  vec3 dx = dFdx(p), dy = dFdy(p);
+  vec3 n = normalize(cross(dx, dy));
+  if (depth >= 0.99999 || -p.z > 100.0) return 1.0;
+  float metresPerPixel = max(length(dx), 0.001);
+  float radiusPx = clamp(0.85 / metresPerPixel, 2.0, 24.0);
+  float sum = 0.0;
+  for (int i = 0; i < 8; i++) {
+    float angle = float(i) * 2.39996323;
+    float ring = 0.35 + float(i) * 0.08;
+    vec2 suv = uv + vec2(cos(angle), sin(angle)) * sceneTexel * radiusPx * ring;
+    float sd = texture2D(tDepth, clamp(suv, sceneTexel, 1.0 - sceneTexel)).r;
+    vec3 v = viewPoint(suv, sd) - p;
+    float d = length(v);
+    float horizon = max(dot(n, v / max(d, 0.001)) - 0.12, 0.0);
+    sum += horizon * (1.0 - smoothstep(0.15, 1.2, d)) * step(sd, 0.99999);
+  }
+  return 1.0 - min(0.38, sum * 0.15) * contactAO;
+}
 uniform sampler2D tBloom;
 uniform sampler2D tBloom2;
 uniform float bloom, useBloom2, exposure, contrast, saturation, vignette, aspect;
 uniform vec3 lift, gain;
 varying vec2 vUv;
 
+
 void main() {
-  vec3 c = texture2D(tScene, vUv).rgb;
+  vec3 c = texture2D(tScene, vUv).rgb * contactShade(vUv);
   vec3 b = texture2D(tBloom, vUv).rgb;
   if (useBloom2 > 0.5) b = b * 0.6 + texture2D(tBloom2, vUv).rgb * 0.8;
   c += b * bloom;
@@ -128,6 +160,9 @@ export class Post {
   ) {
     this.grade = { ...DEFAULT_GRADE, ...grade };
     this.sceneRT = target(1, 1, samples);
+    this.sceneRT.depthBuffer = true;
+    this.sceneRT.depthTexture = new THREE.DepthTexture(1, 1, THREE.UnsignedIntType);
+    this.sceneRT.depthTexture.minFilter = this.sceneRT.depthTexture.magFilter = THREE.NearestFilter;
     this.bloomA = target(1, 1);
     this.bloomB = target(1, 1);
     if (mode === 'full') {
@@ -141,6 +176,10 @@ export class Post {
       fragmentShader: COMPOSITE,
       uniforms: {
         tScene: { value: this.sceneRT.texture },
+        tDepth: { value: this.sceneRT.depthTexture },
+        projectionInverse: { value: new THREE.Matrix4() },
+        sceneTexel: { value: new THREE.Vector2() },
+        contactAO: { value: 1 },
         tBloom: { value: this.bloomA.texture },
         tBloom2: { value: this.bloomC?.texture ?? null },
         bloom: { value: 0 },
@@ -221,6 +260,8 @@ export class Post {
       }
     }
     const cu = this.compMat.uniforms;
+    cu.projectionInverse.value.copy(camera.projectionMatrixInverse);
+    cu.sceneTexel.value.set(1 / this.w, 1 / this.h);
     cu.bloom.value = bloomOn ? gr.bloom : 0;
     cu.exposure.value = gr.exposure;
     cu.contrast.value = gr.contrast;

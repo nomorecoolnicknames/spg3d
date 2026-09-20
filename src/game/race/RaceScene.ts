@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { WetStreetReflection } from '../render/WetStreetReflection';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { createPost, DEFAULT_GRADE, type Post } from '../render/Post';
 import type { SceneController, Viewport } from '../Viewport';
@@ -10,7 +11,7 @@ import { createWeather, type WeatherRig } from '../world/Weather';
 import { buildProps, type PropsRig } from '../world/Props';
 import { CarPhysics } from '../vehicle/CarPhysics';
 import { createCarVisual, type CarVisual } from '../vehicle/CarVisual';
-import { getEnvMap, type EnvName } from '../assets';
+import { getEnvMap, getSkySource, type EnvName } from '../assets';
 import { buildCity } from '../world/city/City';
 import { buildOsmCity } from '../world/osm/OsmCity';
 import { LampField } from '../render/LampField';
@@ -86,6 +87,7 @@ export class RaceScene implements SceneController {
   private track!: TrackData;
   private mesh!: TrackMesh;
   private sky!: SkyRig;
+  private wetStreet: WetStreetReflection | null = null;
   private weather: WeatherRig | null = null;
   private props!: PropsRig;
   private features: PropsRig | null = null;
@@ -173,6 +175,7 @@ export class RaceScene implements SceneController {
       pm.dispose();
       this.scene.environment = this.pmrem;
     }
+    if (!env.headlights) this.scene.environmentRotation.y = Math.PI;
     this.scene.environmentIntensity = env.envIntensity ?? (env.headlights ? 0.35 : 0.8);
 
     // lights
@@ -191,10 +194,10 @@ export class RaceScene implements SceneController {
     this.sun.shadow.normalBias = 0.03;
     this.scene.add(this.sun, this.sun.target);
     this.scene.add(new THREE.HemisphereLight(env.skyBottom, env.groundColor, env.ambient));
-    this.scene.add(new THREE.AmbientLight(env.ambientColor, 0.35));
+    this.scene.add(new THREE.AmbientLight(env.ambientColor, env.headlights ? 0.12 : 0.06));
 
     // world
-    this.sky = createSky(env);
+    this.sky = createSky(env, getSkySource(env.headlights));
     this.scene.add(this.sky.group);
     this.mesh = buildTrackMesh(this.track, { shadows: q.shadows, low: q.level === 'low' });
     this.scene.add(this.mesh.group);
@@ -205,6 +208,23 @@ export class RaceScene implements SceneController {
     const worldMs = Math.round(performance.now() - worldT0);
     // QA: how long the world took to build (phones are a few times slower than the headless desktop)
     window.__spg.knobs.worldStats = () => ({ ms: worldMs, ...(osm?.stats ?? {}), ...(osm?.lodStats() ?? {}) });
+    window.__spg.knobs.surfaceStats = () => {
+      const layers = Array.from({ length: 17 }, () => 0);
+      let meshes = 0, invalid = 0;
+      this.props.group.traverse(o => {
+        if (!(o instanceof THREE.Mesh)) return;
+        const a = o.geometry.getAttribute('aSurface');
+        if (!a) return;
+        meshes++;
+        if (a.count !== o.geometry.getAttribute('position').count) invalid++;
+        for (let i = 0; i < a.count; i++) {
+          const id = a.getX(i);
+          if (!Number.isInteger(id) || id < 0 || id > 16) invalid++;
+          else layers[id]++;
+        }
+      });
+      return { meshes, invalid, layers };
+    };
     this.scene.add(this.props.group);
     if (spec.theme === 'desert' && spec.features) this.features = buildCanyonFeatures(this.track, this.mesh.terrainHeight, q);
     if (spec.theme === 'snow' && spec.features) this.features = buildAlpineFeatures(this.track, this.mesh.terrainHeight, q);
@@ -398,6 +418,38 @@ export class RaceScene implements SceneController {
     window.__spg.knobs.viewFrom = (...a: unknown[]) => {
       this.viewOverride = a.length >= 6 ? (a.slice(0, 6).map(Number) as [number, number, number, number, number, number]) : null;
     };
+    window.__spg.knobs.wetReflections = (enabled: unknown) => { if (this.wetStreet) this.wetStreet.enabled = Boolean(enabled); };
+    window.__spg.knobs.pickFacade = (x: unknown, y: unknown) => {
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera(new THREE.Vector2(Number(x) * 2 - 1, 1 - Number(y) * 2), this.cam.camera);
+      return ray.intersectObject(this.props.group, true).slice(0, 12).map(hit => {
+        const mesh = hit.object as THREE.Mesh, g = mesh.geometry, vertex = hit.face?.a ?? 0;
+        const attrs: Record<string, number[]> = {};
+        for (const name of ['aKind', 'aSurface', 'color', 'normal', 'aLod', 'aLodC', 'aPane']) {
+          const a = g.getAttribute(name);
+          if (a) attrs[name] = Array.from({ length: a.itemSize }, (_, c) => a.getComponent(vertex, c));
+        }
+        return { name: mesh.name, distance: hit.distance, point: hit.point.toArray(), attrs };
+      });
+    };
+    window.__spg.knobs.visualStats = () => {
+      let interiorVertices = 0, invalidPanes = 0, treeInstances = 0;
+      const treeBounds = new THREE.Box3();
+      this.scene.traverse(o => {
+        if (!(o instanceof THREE.Mesh)) return;
+        const g = o.geometry as THREE.BufferGeometry, pane = g.getAttribute('aPane');
+        if (pane) for (let i = 0; i < pane.count; i++) if (pane.getW(i) > 0) {
+          interiorVertices++;
+          if (![pane.getX(i), pane.getY(i), pane.getZ(i), pane.getW(i)].every(Number.isFinite) || pane.getX(i) < -0.001 || pane.getX(i) > 1.001 || pane.getY(i) < -0.001 || pane.getY(i) > 1.001) invalidPanes++;
+        }
+        if (o instanceof THREE.InstancedMesh && o.name.startsWith('city:photo-tree:')) {
+          g.computeBoundingBox();
+          treeBounds.union(g.boundingBox!);
+          treeInstances += o.count;
+        }
+      });
+      return { interiorVertices, invalidPanes, treeInstances, treeHeight: treeBounds.isEmpty() ? 0 : treeBounds.max.y - treeBounds.min.y };
+    };
     window.__spg.knobs.finishNow = () => {
       this.player.lap = this.params.laps;
       this.player.finished = true;
@@ -410,6 +462,8 @@ export class RaceScene implements SceneController {
   private buildComposer(): void {
     this.post?.dispose();
     this.post = createPost(this.vp, this.track.spec.env.grade);
+    this.wetStreet?.dispose();
+    this.wetStreet = this.vp.quality.level === 'high' && this.track.spec.env.wet ? new WetStreetReflection() : null;
     this.post?.setSize(this.vp.width, this.vp.height);
   }
 
@@ -535,8 +589,10 @@ export class RaceScene implements SceneController {
     } else this.cam.update(this.player.car, dt, this.elapsed);
     this.probeMotion(dt);
     const pp = this.player.car;
-    this.sun.position.set(pp.x, pp.y, pp.z).addScaledVector(this.tmp.set(...this.track.spec.env.sunDir).normalize(), 220);
-    this.sun.target.position.set(pp.x, pp.y, pp.z);
+    // Fixed world views need the same local shadow coverage as the driving camera.
+    const sx = this.viewOverride?.[0] ?? pp.x, sy = this.viewOverride?.[1] ?? pp.y, sz = this.viewOverride?.[2] ?? pp.z;
+    this.sun.position.set(sx, sy, sz).addScaledVector(this.tmp.set(...this.track.spec.env.sunDir).normalize(), 220);
+    this.sun.target.position.set(sx, sy, sz);
     this.sky.update(this.elapsed);
     roadTime.value = this.elapsed;
     {
@@ -1111,6 +1167,7 @@ export class RaceScene implements SceneController {
 
   // ---------------------------------------------------------------- render
   render(vp: Viewport): void {
+    this.wetStreet?.render(vp.renderer, this.scene, this.cam.camera, this.mesh.road);
     if (this.post) this.post.render(this.scene, this.cam.camera);
     else vp.renderer.render(this.scene, this.cam.camera);
   }
@@ -1150,11 +1207,16 @@ export class RaceScene implements SceneController {
     this.post?.dispose();
     this.pmrem?.dispose();
     this.sun.shadow.dispose();
+    this.wetStreet?.dispose();
     delete window.__spg.knobs.skipCountdown;
     delete window.__spg.knobs.finishNow;
     delete window.__spg.knobs.viewFrom;
     delete window.__spg.knobs.motionStats;
     delete window.__spg.knobs.worldStats;
+    delete window.__spg.knobs.surfaceStats;
+    delete window.__spg.knobs.visualStats;
+    delete window.__spg.knobs.wetReflections;
+    delete window.__spg.knobs.pickFacade;
     delete window.__spg.knobs.meshes;
     this.scene.clear();
   }

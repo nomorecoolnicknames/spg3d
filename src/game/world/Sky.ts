@@ -8,8 +8,9 @@ export interface SkyRig {
 }
 
 /** Gradient dome with horizon glow, stars, optional aurora and a sun/moon disc with halo. */
-export function createSky(env: TrackEnv, radius = 2400): SkyRig {
+export function createSky(env: TrackEnv, source?: THREE.Texture, radius = 2400): SkyRig {
   const group = new THREE.Group();
+  if (source) return photographicSky(env, source, radius);
   const uniforms = {
     topColor: { value: new THREE.Color(env.skyTop) },
     bottomColor: { value: new THREE.Color(env.skyBottom) },
@@ -117,7 +118,7 @@ export function createSky(env: TrackEnv, radius = 2400): SkyRig {
   group.add(dome);
 
   let stars: THREE.Points | null = null;
-  if (env.stars) {
+  if (env.stars && !env.rain && !env.snow) {
     const geo = new THREE.BufferGeometry();
     const verts: number[] = [];
     const sizes: number[] = [];
@@ -164,4 +165,44 @@ export function createSky(env: TrackEnv, radius = 2400): SkyRig {
       }
     },
   };
+}
+
+/** Photographed sky, shared with daylight IBL. No baked buildings are placed behind the real OSM skyline. */
+function photographicSky(env: TrackEnv, texture: THREE.Texture, radius: number): SkyRig {
+  const night = env.headlights;
+  const material = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { skyPhoto: { value: texture }, night: { value: night ? 1 : 0 },
+      horizon: { value: new THREE.Color(env.horizon) }, fogColor: { value: new THREE.Color(env.fog) } },
+    vertexShader: `varying vec3 skyDir; void main() { skyDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: /* glsl */ `
+      uniform sampler2D skyPhoto;
+      uniform float night;
+      uniform vec3 horizon, fogColor;
+      varying vec3 skyDir;
+      void main() {
+        vec3 d = normalize(skyDir);
+        vec2 uv = vec2(atan(d.z, d.x) / 6.28318530718 + 0.5, asin(clamp(d.y, -1.0, 1.0)) / 3.14159265359 + 0.5);
+        if (night < 0.5) uv.x = fract(uv.x + 0.5);
+        vec3 sky = texture2D(skyPhoto, uv).rgb;
+        if (night > 0.5) {
+          float clouds = dot(sky, vec3(0.2126, 0.7152, 0.0722));
+          // Low cloud scatters the city's light; rain and snow fully obscure stars and the moon.
+          sky = mix(vec3(0.006, 0.009, 0.015), vec3(0.024, 0.027, 0.035), clouds / (clouds + 0.25));
+          sky += horizon * exp(-max(d.y, 0.0) * 4.0) * 0.7;
+          sky = mix(fogColor, sky, smoothstep(-0.08, 0.06, d.y));
+        } else {
+          sky *= 0.65;
+          sky = mix(fogColor, sky, smoothstep(-0.08, 0.025, d.y));
+        }
+        gl_FragColor = vec4(sky, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+  const geometry = new THREE.SphereGeometry(radius, 48, 24);
+  const dome = new THREE.Mesh(geometry, material);
+  dome.frustumCulled = false; dome.renderOrder = -10;
+  const group = new THREE.Group(); group.add(dome);
+  return { group, update() {}, dispose() { geometry.dispose(); material.dispose(); } };
 }

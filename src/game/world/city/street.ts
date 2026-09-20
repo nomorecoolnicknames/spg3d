@@ -1,7 +1,8 @@
 import * as THREE from 'three';
+import { createTreeLod } from './TreeLod';
 import type { CellName } from './atlas';
 import type { GeoBuilder } from './kit';
-import { getGLTF } from '../../assets';
+import { getGLTF, getTexture } from '../../assets';
 import { CARS } from '@/data/cars';
 
 /**
@@ -51,50 +52,12 @@ export function billboard(gb: B, x: number, z: number, y: number, rot: number, a
   b.box(x, z, y + height, 10, 0.4, 4.2, rot, { front: { cell: art, tile: [1, 1] }, back: { cell: art === 'adRival1' ? 'adRival2' : 'adRival1', tile: [1, 1] }, left: { cell: 'metalVent', tile: [0.1, 1] }, right: { cell: 'metalVent', tile: [0.1, 1] }, top: { cell: 'metalVent', tile: [1, 0.1] } });
 }
 
-let leafTex: THREE.CanvasTexture | null = null;
-
-/** a cluster of small leaves on transparent: greens with sunlit tips, a few twigs; alpha-tested on the cards */
-function leafTexture(): THREE.CanvasTexture {
-  if (leafTex) return leafTex;
-  const S = 256;
-  const c = document.createElement('canvas');
-  c.width = S;
-  c.height = S;
-  const ctx = c.getContext('2d')!;
-  let seed = 977;
-  const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
-  ctx.strokeStyle = 'rgba(70,52,34,0.9)';
-  ctx.lineWidth = 2;
-  for (let i = 0; i < 7; i++) {
-    const a = rnd() * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(S / 2, S / 2);
-    ctx.lineTo(S / 2 + Math.cos(a) * S * 0.38, S / 2 + Math.sin(a) * S * 0.38);
-    ctx.stroke();
-  }
-  const greens = ['#2f5424', '#3d6a2b', '#4a7a31', '#5a8b39', '#36602a', '#6f9e45'];
-  for (let i = 0; i < 520; i++) {
-    // denser in the middle, ragged at the rim
-    const r = Math.sqrt(rnd()) * S * 0.47, a = rnd() * Math.PI * 2;
-    const x = S / 2 + Math.cos(a) * r, y = S / 2 + Math.sin(a) * r;
-    const up = 1 - y / S;
-    ctx.fillStyle = greens[Math.min(greens.length - 1, Math.floor(rnd() * 4 + up * 2.2))];
-    ctx.beginPath();
-    ctx.ellipse(x, y, 4 + rnd() * 5, 2.5 + rnd() * 3, rnd() * Math.PI, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  leafTex = new THREE.CanvasTexture(c);
-  leafTex.colorSpace = THREE.SRGBColorSpace;
-  leafTex.anisotropy = 4;
-  return leafTex;
-}
-
 /**
  * Street and park trees: a crown of alpha-tested leaf cards (normals point out of the crown so it shades
  * like a volume, darker underneath) on a trunk with three limbs; two instanced meshes for all trees.
  * Per tree: rotation, scale and a tint between linden-green and birch-yellow.
  */
-export function trees(points: { x: number; y: number; z: number; s: number }[], shadows = false): { mesh: THREE.Object3D; setCamera(x: number, z: number): void; dispose(): void } {
+export function trees(points: { x: number; y: number; z: number; s: number }[], shadows = false, quality: 'low' | 'medium' | 'high' = 'medium', winter = false): { mesh: THREE.Object3D; setCamera(x: number, z: number): void; dispose(): void } {
   let seed = 4242;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
   const C = new THREE.Vector3(0, 6.3, 0);
@@ -115,12 +78,13 @@ export function trees(points: { x: number; y: number; z: number; s: number }[], 
       [centre.clone().add(u).add(v), 1, 1],
       [centre.clone().sub(u).add(v), 0, 1],
     ] as const;
+    const cell = Math.floor(rnd() * 12), cellX = cell % 4, cellY = Math.floor(cell / 4);
     for (const k of [0, 1, 2, 0, 2, 3]) {
       const [p, cu, cv] = corners[k];
       pos.push(p.x, p.y, p.z);
       const out = new THREE.Vector3((p.x - C.x) / RX, (p.y - C.y) / RY, (p.z - C.z) / RX).normalize();
       nrm.push(out.x, out.y, out.z);
-      uv.push(cu, cv);
+      uv.push((cellX + 0.012 + cu * 0.976) / 4, 1 - (cellY + 0.012 + (1 - cv) * 0.976) / 3);
       // self-shadowing: the underside and the core are darker
       const shade = 0.62 + 0.38 * THREE.MathUtils.clamp((p.y - (C.y - RY)) / (2 * RY), 0, 1);
       col.push(shade, shade, shade);
@@ -129,12 +93,13 @@ export function trees(points: { x: number; y: number; z: number; s: number }[], 
   // core cards through the middle, then an outer shell
   for (let k = 0; k < 3; k++) card(C.clone(), 5.2, new THREE.Vector3(Math.cos((k / 3) * Math.PI), 0.15, Math.sin((k / 3) * Math.PI)), rnd() * Math.PI);
   card(C.clone().add(new THREE.Vector3(0, 0.3, 0)), 5.0, new THREE.Vector3(0.1, 1, 0.05), rnd() * Math.PI);
-  for (let k = 0; k < 13; k++) {
-    const y = 1 - (2 * (k + 0.5)) / 13;
+  const crownCards = quality === 'high' ? 60 : quality === 'medium' ? 42 : 26;
+  for (let k = 0; k < crownCards; k++) {
+    const y = 1 - (2 * (k + 0.5)) / crownCards;
     const r = Math.sqrt(1 - y * y), a = k * 2.39996;
     const dir = new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r);
     const p = C.clone().add(new THREE.Vector3(dir.x * RX * 0.62, dir.y * RY * 0.62, dir.z * RX * 0.62));
-    card(p, 3.0 + rnd() * 1.1, dir, rnd() * Math.PI * 2);
+    card(p, 2.7 + rnd() * 0.65, dir, rnd() * Math.PI * 2);
   }
   const leavesGeo = new THREE.BufferGeometry();
   leavesGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -142,7 +107,7 @@ export function trees(points: { x: number; y: number; z: number; s: number }[], 
   leavesGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   leavesGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
 
-  const bark = new THREE.Color('#4a3f36');
+  const bark = new THREE.Color('#ffffff');
   const trunk = new THREE.CylinderGeometry(0.15, 0.26, 5.2, 5);
   trunk.translate(0, 2.6, 0);
   const limbs = [0, 3.1].map((a) => {
@@ -158,13 +123,28 @@ export function trees(points: { x: number; y: number; z: number; s: number }[], 
     const c = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) c.set([bark.r, bark.g, bark.b], i * 3);
     g.setAttribute('color', new THREE.BufferAttribute(c, 3));
-    g.deleteAttribute('uv');
+    const uv = g.getAttribute('uv');
+    for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * 5.2);
     return g.index ? g.toNonIndexed() : g;
   };
   const trunkGeo = mergeTrees([paint(trunk), ...limbs.map(paint)]);
 
-  const leafMat = new THREE.MeshStandardMaterial({ map: leafTexture(), vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.9, metalness: 0 });
-  const trunkMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
+  const leafMat = new THREE.MeshStandardMaterial({ color: '#b0c394', map: getTexture('leaves'), normalMap: getTexture('leavesNormal'), normalScale: new THREE.Vector2(0.4, 0.4), vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.9, metalness: 0 });
+  const trunkMat = new THREE.MeshStandardMaterial({ map: getTexture('bark'), vertexColors: true, roughness: 1, metalness: 0 });
+  trunkMat.onBeforeCompile = sh => {
+    sh.uniforms.barkNR = { value: getTexture('barkNR') };
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D barkNR;')
+      .replace('#include <roughnessmap_fragment>', 'vec3 barkP = texture2D(barkNR, vMapUv).rgb; float roughnessFactor = barkP.b;')
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        vec2 bn = (barkP.rg * 2.0 - 1.0) * 0.55;
+        vec3 dp1 = dFdx(-vViewPosition), dp2 = dFdy(-vViewPosition);
+        vec2 du1 = dFdx(vMapUv), du2 = dFdy(vMapUv);
+        vec3 bt = cross(dp2, normal) * du1.x + cross(normal, dp1) * du2.x;
+        vec3 bb = cross(dp2, normal) * du1.y + cross(normal, dp1) * du2.y;
+        float bs = inversesqrt(max(max(dot(bt, bt), dot(bb, bb)), 1e-8));
+        normal = normalize(normal * sqrt(max(0.01, 1.0 - dot(bn, bn))) + bs * (bt * bn.x + bb * bn.y));`);
+  };
+  trunkMat.customProgramCacheKey = () => 'spg-bark-pbr-v1';
   // leaf-shaped shadows: the depth pass has to alpha-test the cards too
   const leafDepth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: leafMat.map, alphaTest: 0.5, side: THREE.DoubleSide });
   const m = new THREE.Matrix4();
@@ -172,6 +152,12 @@ export function trees(points: { x: number; y: number; z: number; s: number }[], 
   const tint = new THREE.Color();
   const linden = new THREE.Color('#ffffff'), birch = new THREE.Color('#e6f0b0');
   const group = new THREE.Group();
+  const photo = quality === 'low' ? null : createTreeLod(points, quality, shadows, winter);
+  const trunkDepth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+  if (photo) {
+    group.add(photo.group);
+    for (const material of [leafMat, trunkMat, leafDepth, trunkDepth]) photo.patch(material);
+  }
   // bucketed into 190 m cells: one instanced mesh per cell, so the camera culls the trees behind you
   const CELL = 190;
   const cells = new Map<string, { x: number; y: number; z: number; s: number }[]>();
@@ -197,6 +183,8 @@ export function trees(points: { x: number; y: number; z: number; s: number }[], 
     leaves.computeBoundingSphere();
     trunks.computeBoundingSphere();
     leaves.customDepthMaterial = leafDepth;
+    trunks.customDepthMaterial = trunkDepth;
+    leaves.visible = !winter;
     leaves.castShadow = trunks.castShadow = shadows;
     leaves.receiveShadow = trunks.receiveShadow = shadows;
     group.add(leaves, trunks);
@@ -211,14 +199,19 @@ export function trees(points: { x: number; y: number; z: number; s: number }[], 
     mesh: group,
     /** hide the cells further away than the trees can be told apart (a long straight had them all in view) */
     setCamera(x: number, z: number) {
+      photo?.update(x, z);
       for (const b of buckets) {
         const vis = (b.x - x) * (b.x - x) + (b.z - z) * (b.z - z) < 330 * 330;
-        if (b.meshes[0].visible !== vis) for (const m of b.meshes) m.visible = vis;
+        b.meshes[0].visible = vis && !winter;
+        b.meshes[1].visible = vis;
       }
     },
     dispose() {
+      for (const bucket of buckets) for (const mesh of bucket.meshes) if (mesh instanceof THREE.InstancedMesh) mesh.dispose();
       leavesGeo.dispose();
       trunkGeo.dispose();
+      photo?.dispose();
+      trunkDepth.dispose();
       leafMat.dispose();
       leafDepth.dispose();
       trunkMat.dispose();
@@ -229,10 +222,12 @@ export function trees(points: { x: number; y: number; z: number; s: number }[], 
 function mergeTrees(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   let n = 0;
   for (const p of parts) n += p.attributes.position.count;
+  const uv = new Float32Array(n * 2);
   const pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3), col = new Float32Array(n * 3);
   let o = 0;
   for (const p of parts) {
     p.computeVertexNormals();
+    uv.set(p.attributes.uv.array as Float32Array, o * 2);
     pos.set(p.attributes.position.array as Float32Array, o * 3);
     nrm.set(p.attributes.normal.array as Float32Array, o * 3);
     col.set(p.attributes.color.array as Float32Array, o * 3);
@@ -240,6 +235,7 @@ function mergeTrees(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
     p.dispose();
   }
   const g = new THREE.BufferGeometry();
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));

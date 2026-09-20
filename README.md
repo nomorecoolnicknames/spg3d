@@ -75,3 +75,18 @@ scripts/build-apk.sh   # dist → cap sync → gradle assembleRelease → releas
 Требуется JDK 21 (`/home/n8n/tools/jdk-21.0.11+10`) и Android SDK (`/home/n8n/android-sdk`).
 Ключ подписи — `android/keystore/spg3d.jks` (пароль `spg3d2026`), приложение — landscape,
 immersive, `ru.spg3d.game`. Вывод gradle идёт в `/mnt/ramdisk/spg3d-android`.
+
+## Материалы городов (PBR)
+
+Все три города используют общий атлас из 16 материалов: 12 наборов фототекстур Poly Haven (CC0)
+и четыре поверхности, запечённые в Blender. Альбедо, нормали, шероховатость и AO загружаются
+в отдельные слои texture array; масштаб задаётся в метрах. Растительность — Blender-атлас
+ветвей и листьев с картой нормалей и текстурированной корой. На medium/high добавлено
+контактное затенение; мокрые покрытия зависят от погоды трассы.
+
+Проверка: `QA_OUT=/mnt/ramdisk/city-review node qa/city-materials.mjs high` (также `medium`, `low`).
+Источники, воспроизводимая сборка материалов и ограничения:
+[отчёт](docs/run_reports/city-photoreal-2026-09-19/README.md).
+
+Продолжение 20 сентября: интерьерные окна, HDR-небо, ближние деревья по форме CC0-модели, снег и отражения зданий в мокрой дороге (High).
+[Сравнение игровых кадров](docs/run_reports/city-photoreal-2026-09-20/gallery.html) · [проверки, источники и ограничения](docs/run_reports/city-photoreal-2026-09-20/README.md).

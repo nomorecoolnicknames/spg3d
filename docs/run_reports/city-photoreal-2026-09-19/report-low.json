@@ -1,0 +1,215 @@
+[
+  {
+    "track": "shchyolkovo",
+    "quality": "low",
+    "world": {
+      "ms": 1186,
+      "sectors": 88,
+      "buildings": 317,
+      "triangles": 104581,
+      "kitTriangles": 58215,
+      "heroes": 23,
+      "lamps": 137,
+      "kitDrawn": 58215,
+      "kitCollapsed": 0,
+      "farDrawn": 0,
+      "farCollapsed": 0
+    },
+    "surfaces": {
+      "meshes": 107,
+      "invalid": 0,
+      "layers": [
+        27383,
+        36558,
+        0,
+        43970,
+        7653,
+        11408,
+        32874,
+        9216,
+        2183,
+        4533,
+        0,
+        9548,
+        0,
+        7116,
+        1220,
+        8,
+        2400
+      ]
+    },
+    "shots": [
+      {
+        "file": "shchyolkovo-low-0.png",
+        "camera": [
+          112,
+          3.5,
+          -139,
+          102,
+          7,
+          -104
+        ],
+        "drawCalls": 123,
+        "triangles": 111865,
+        "textures": 26
+      },
+      {
+        "file": "shchyolkovo-low-1.png",
+        "camera": [
+          -192,
+          4,
+          55,
+          -184,
+          13,
+          5
+        ],
+        "drawCalls": 49,
+        "triangles": 63809,
+        "textures": 26
+      }
+    ],
+    "errors": []
+  },
+  {
+    "track": "ligovsky",
+    "quality": "low",
+    "world": {
+      "ms": 1141,
+      "sectors": 110,
+      "buildings": 1004,
+      "triangles": 247831,
+      "kitTriangles": 101443,
+      "heroes": 22,
+      "lamps": 155,
+      "kitDrawn": 101443,
+      "kitCollapsed": 0,
+      "farDrawn": 0,
+      "farCollapsed": 0
+    },
+    "surfaces": {
+      "meshes": 130,
+      "invalid": 0,
+      "layers": [
+        50162,
+        21431,
+        0,
+        272592,
+        14140,
+        3048,
+        68015,
+        28161,
+        666,
+        3004,
+        0,
+        5791,
+        0,
+        22368,
+        1473,
+        36,
+        0
+      ]
+    },
+    "shots": [
+      {
+        "file": "ligovsky-low-0.png",
+        "camera": [
+          -88,
+          4,
+          -535,
+          -32,
+          16,
+          -478
+        ],
+        "drawCalls": 52,
+        "triangles": 69576,
+        "textures": 28
+      },
+      {
+        "file": "ligovsky-low-1.png",
+        "camera": [
+          -202,
+          4,
+          -272,
+          -148,
+          14,
+          -252
+        ],
+        "drawCalls": 41,
+        "triangles": 64219,
+        "textures": 28
+      }
+    ],
+    "errors": []
+  },
+  {
+    "track": "warsaw",
+    "quality": "low",
+    "world": {
+      "ms": 1477,
+      "sectors": 110,
+      "buildings": 1209,
+      "triangles": 286430,
+      "kitTriangles": 93512,
+      "heroes": 23,
+      "lamps": 172,
+      "kitDrawn": 93512,
+      "kitCollapsed": 0,
+      "farDrawn": 0,
+      "farCollapsed": 0
+    },
+    "surfaces": {
+      "meshes": 132,
+      "invalid": 0,
+      "layers": [
+        104470,
+        0,
+        0,
+        188374,
+        10599,
+        37008,
+        93983,
+        15544,
+        14630,
+        1716,
+        0,
+        26750,
+        0,
+        17820,
+        12415,
+        4932,
+        0
+      ]
+    },
+    "shots": [
+      {
+        "file": "warsaw-low-0.png",
+        "camera": [
+          320,
+          8,
+          -60,
+          7,
+          90,
+          6
+        ],
+        "drawCalls": 113,
+        "triangles": 262378,
+        "textures": 29
+      },
+      {
+        "file": "warsaw-low-1.png",
+        "camera": [
+          -310,
+          5,
+          265,
+          -400,
+          55,
+          330
+        ],
+        "drawCalls": 41,
+        "triangles": 79073,
+        "textures": 29
+      }
+    ],
+    "errors": []
+  }
+]

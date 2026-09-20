@@ -1,0 +1,233 @@
+[
+  {
+    "track": "shchyolkovo",
+    "quality": "high",
+    "world": {
+      "ms": 1283,
+      "sectors": 88,
+      "buildings": 317,
+      "triangles": 257725,
+      "kitTriangles": 211059,
+      "heroes": 23,
+      "lamps": 137,
+      "kitDrawn": 86405,
+      "kitCollapsed": 80469,
+      "farDrawn": 310,
+      "farCollapsed": 74
+    },
+    "surfaces": {
+      "meshes": 113,
+      "invalid": 0,
+      "layers": [
+        97167,
+        36558,
+        39524,
+        131548,
+        7653,
+        114338,
+        32874,
+        9484,
+        2113,
+        14353,
+        64,
+        9548,
+        0,
+        7116,
+        1220,
+        8,
+        2400
+      ]
+    },
+    "visuals": {
+      "interiorVertices": 37871,
+      "invalidPanes": 0,
+      "treeInstances": 144,
+      "treeHeight": 9.580938340613235
+    },
+    "shots": [
+      {
+        "file": "shchyolkovo-high-0.png",
+        "camera": [
+          112,
+          3.5,
+          -139,
+          102,
+          7,
+          -104
+        ],
+        "drawCalls": 170,
+        "triangles": 793821,
+        "textures": 51
+      },
+      {
+        "file": "shchyolkovo-high-1.png",
+        "camera": [
+          -192,
+          4,
+          55,
+          -184,
+          13,
+          5
+        ],
+        "drawCalls": 90,
+        "triangles": 673899,
+        "textures": 51
+      }
+    ],
+    "errors": []
+  },
+  {
+    "track": "ligovsky",
+    "quality": "high",
+    "world": {
+      "ms": 2403,
+      "sectors": 110,
+      "buildings": 1004,
+      "triangles": 1588189,
+      "kitTriangles": 1435624,
+      "heroes": 22,
+      "lamps": 155,
+      "kitDrawn": 223855,
+      "kitCollapsed": 436754,
+      "farDrawn": 4682,
+      "farCollapsed": 490
+    },
+    "surfaces": {
+      "meshes": 154,
+      "invalid": 0,
+      "layers": [
+        278642,
+        21431,
+        51651,
+        2532106,
+        14140,
+        6948,
+        68015,
+        33061,
+        613,
+        36064,
+        56,
+        5791,
+        0,
+        22368,
+        1473,
+        36,
+        0
+      ]
+    },
+    "visuals": {
+      "interiorVertices": 144378,
+      "invalidPanes": 0,
+      "treeInstances": 0,
+      "treeHeight": 9.580938340613235
+    },
+    "shots": [
+      {
+        "file": "ligovsky-high-0.png",
+        "camera": [
+          -88,
+          4,
+          -535,
+          -32,
+          16,
+          -478
+        ],
+        "drawCalls": 120,
+        "triangles": 273246,
+        "textures": 54
+      },
+      {
+        "file": "ligovsky-high-1.png",
+        "camera": [
+          -145,
+          3.5,
+          -289,
+          -197,
+          13,
+          -260
+        ],
+        "drawCalls": 223,
+        "triangles": 1235575,
+        "textures": 54
+      }
+    ],
+    "errors": []
+  },
+  {
+    "track": "warsaw",
+    "quality": "high",
+    "world": {
+      "ms": 1743,
+      "sectors": 110,
+      "buildings": 1209,
+      "triangles": 777605,
+      "kitTriangles": 584311,
+      "heroes": 23,
+      "lamps": 172,
+      "kitDrawn": 108489,
+      "kitCollapsed": 103650,
+      "farDrawn": 1724,
+      "farCollapsed": 26
+    },
+    "surfaces": {
+      "meshes": 154,
+      "invalid": 0,
+      "layers": [
+        356886,
+        0,
+        0,
+        590528,
+        10599,
+        344343,
+        93983,
+        28156,
+        14452,
+        20468,
+        144,
+        26750,
+        0,
+        17820,
+        12415,
+        4617,
+        0
+      ]
+    },
+    "visuals": {
+      "interiorVertices": 85213,
+      "invalidPanes": 0,
+      "treeInstances": 8,
+      "treeHeight": 8.440485955664505
+    },
+    "shots": [
+      {
+        "file": "warsaw-high-0.png",
+        "camera": [
+          253,
+          5,
+          -90,
+          7,
+          80,
+          6
+        ],
+        "drawCalls": 243,
+        "triangles": 1003439,
+        "textures": 55
+      },
+      {
+        "file": "warsaw-high-1.png",
+        "camera": [
+          -310,
+          5,
+          265,
+          -400,
+          55,
+          330
+        ],
+        "drawCalls": 112,
+        "triangles": 364001,
+        "textures": 55
+      }
+    ],
+    "errors": []
+  }
+]

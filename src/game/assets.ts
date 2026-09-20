@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { loadWindowInteriors } from './world/WindowInterior';
+import { loadCitySurfaces } from './world/SurfaceMaterial';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
@@ -29,13 +31,19 @@ import envCanyon from '@/assets/env/canyon.hdr?url';
 import envAurora from '@/assets/env/aurora.hdr?url';
 import envBoss from '@/assets/env/boss.hdr?url';
 import envGarage from '@/assets/env/garage.hdr?url';
-import envDay from '@/assets/env/day.hdr?url';
+import envDay from '@/assets/env/day-sky.hdr?url';
+import envOvercast from '@/assets/env/overcast-sky.hdr?url';
 import asphaltAlbedoUrl from '@/assets/materials/asphalt_albedo.jpg';
 import asphaltNormalUrl from '@/assets/materials/asphalt_normal.jpg';
 import asphaltRoughUrl from '@/assets/materials/asphalt_rough.jpg';
 import puddlesUrl from '@/assets/materials/puddles.jpg';
 import rockAlbedoUrl from '@/assets/materials/rock_albedo.jpg';
 import rockNormalUrl from '@/assets/materials/rock_normal.jpg';
+import streetTreeUrl from '@/assets/trees/street-tree-v1.glb';
+import leavesUrl from '@/assets/trees/leaves_albedo.png';
+import leavesNormalUrl from '@/assets/trees/leaves_normal.png';
+import barkUrl from '@/assets/trees/bark_albedo.webp';
+import barkNRUrl from '@/assets/trees/bark_nr.png';
 
 /**
  * Central asset registry. Everything heavy is loaded once, progress is byte-based
@@ -60,6 +68,7 @@ const MODEL_URLS: Record<string, string> = {
   // trackside spectators and street furniture (scripts/blender)
   crowd: crowdUrl,
   street: streetUrl,
+  streetTree: streetTreeUrl,
   gantry: gantryUrl,
 };
 const HD_URLS: Record<string, string> = {
@@ -72,8 +81,8 @@ const HD_URLS: Record<string, string> = {
 };
 
 /** CC0 HDRIs (scripts/env-maps.sh) — reflections and image-based light; the visible sky is our own */
-export type EnvName = 'neon' | 'canyon' | 'aurora' | 'boss' | 'garage' | 'day';
-const ENV_URLS: Record<EnvName, string> = { neon: envNeon, canyon: envCanyon, aurora: envAurora, boss: envBoss, garage: envGarage, day: envDay };
+export type EnvName = 'neon' | 'canyon' | 'aurora' | 'boss' | 'garage' | 'day' | 'overcast';
+const ENV_URLS: Record<EnvName, string> = { neon: envNeon, canyon: envCanyon, aurora: envAurora, boss: envBoss, garage: envGarage, day: envDay, overcast: envOvercast };
 
 const gltfs = new Map<string, GLTF>();
 const textures = new Map<string, THREE.Texture>();
@@ -154,14 +163,15 @@ export function loadAllAssets(): Promise<void> {
       }),
   );
   // tiling surface textures (scripts/materials.sh): data textures, repeat-wrapped, mipmapped
-  const surfaces = Object.entries({ asphaltAlbedo: asphaltAlbedoUrl, asphaltNormal: asphaltNormalUrl, asphaltRough: asphaltRoughUrl, puddles: puddlesUrl, rockAlbedo: rockAlbedoUrl, rockNormal: rockNormalUrl }).map(
+  const surfaces = Object.entries({ asphaltAlbedo: asphaltAlbedoUrl, asphaltNormal: asphaltNormalUrl, asphaltRough: asphaltRoughUrl, puddles: puddlesUrl, rockAlbedo: rockAlbedoUrl, rockNormal: rockNormalUrl, leaves: leavesUrl, leavesNormal: leavesNormalUrl, bark: barkUrl, barkNR: barkNRUrl }).map(
     ([key, url]) =>
       new Promise<void>((resolve) => {
         new THREE.TextureLoader().load(
           url,
           (t) => {
             t.wrapS = t.wrapT = THREE.RepeatWrapping;
-            t.colorSpace = THREE.NoColorSpace;
+            t.colorSpace = key === 'leaves' || key === 'bark' ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+            if (key.startsWith('leaves')) t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
             t.anisotropy = 4;
             textures.set(key, t);
             resolve();
@@ -190,7 +200,7 @@ export function loadAllAssets(): Promise<void> {
         );
       }),
   );
-  loadingPromise = Promise.all([...tasks, ...envs, ...surfaces]).then(() => setProgress(1));
+  loadingPromise = Promise.all([...tasks, ...envs, ...surfaces, loadCitySurfaces(), loadWindowInteriors()]).then(() => setProgress(1));
   return loadingPromise;
 }
 
@@ -209,10 +219,13 @@ export function getEnvMap(renderer: THREE.WebGLRenderer, name: EnvName): THREE.T
   const pm = new THREE.PMREMGenerator(renderer);
   const rt = pm.fromEquirectangular(src);
   pm.dispose();
-  src.dispose();
-  envSources.delete(name);
+  if (name !== 'day' && name !== 'overcast') { src.dispose(); envSources.delete(name); }
   envMaps.set(name, rt.texture);
   return rt.texture;
+}
+
+export function getSkySource(night: boolean): THREE.DataTexture | undefined {
+  return envSources.get(night ? 'overcast' : 'day');
 }
 
 let landmarksLoad: Promise<GLTF | undefined> | null = null;

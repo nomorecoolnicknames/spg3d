@@ -29,9 +29,9 @@ export function createWeather(kind: 'rain' | 'snow', count = 1600): WeatherRig {
   geo.setAttribute('aSeed', new THREE.BufferAttribute(seed, 2));
   const uniforms = {
     color: { value: new THREE.Color(kind === 'rain' ? '#9fc4ff' : '#ffffff') },
-    size: { value: kind === 'rain' ? 0.9 : 1.0 },
-    maxPx: { value: kind === 'rain' ? 10 : 7 },
-    stretch: { value: kind === 'rain' ? 6.0 : 1.0 },
+    size: { value: kind === 'rain' ? 0.48 : 0.27 },
+    maxPx: { value: kind === 'rain' ? 7 : 3 },
+    stretch: { value: kind === 'rain' ? 7.0 : 1.0 },
     fogDensity: { value: 0.003 },
     time: { value: 0 },
     origin: { value: new THREE.Vector3() },
@@ -63,7 +63,7 @@ export function createWeather(kind: 'rain' | 'snow', count = 1600): WeatherRig {
       void main() {
         vec2 c = gl_PointCoord - 0.5; c.x *= stretch; float d = length(c);
         if (d > 0.5) discard;
-        gl_FragColor = vec4(color, (1.0 - d * 2.0) * vFade * 0.7);
+        gl_FragColor = vec4(color, (1.0 - d * 2.0) * vFade * 0.38);
       }`,
   });
   const points = new THREE.Points(geo, mat);

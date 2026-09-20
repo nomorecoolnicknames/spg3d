@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import type { TrackEnv } from '../types';
 import { getTexture } from '../assets';
+import { citySurfaceTextures } from './SurfaceMaterial';
+import { wetStreetUniforms } from '../render/WetStreetReflection';
 import { LAMP_GLSL, lampUniforms } from '../render/LampField';
 
 /**
@@ -70,6 +72,7 @@ export function createRoadMaterial(env: TrackEnv, opts: RoadMaterialOptions): TH
     tRough: { value: rough },
     tPuddle: { value: puddles },
     tMarks: { value: markingsTexture() },
+    roadScan: { value: citySurfaceTextures.albedo },
     roadTint: { value: new THREE.Color(env.roadColor) },
     lineColor: { value: new THREE.Color(opts.lineColor) },
     wetness: { value: opts.wetness },
@@ -78,7 +81,7 @@ export function createRoadMaterial(env: TrackEnv, opts: RoadMaterialOptions): TH
   const rain = env.rain && opts.wetness > 0;
   mat.defines = { ...(mat.defines ?? {}), USE_UV: '', ...(useNormal ? { ROAD_NORMAL: '' } : {}), ...(opts.lamps ? { ROAD_LAMPS: '' } : {}), ...(rain ? { ROAD_RAIN: '' } : {}) };
   mat.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, uniforms, lampUniforms, { spgRoadTime: roadTime, spgHeadPos: roadHeadlights.pos, spgHeadDir: roadHeadlights.dir });
+    Object.assign(sh.uniforms, uniforms, lampUniforms, wetStreetUniforms, { spgRoadTime: roadTime, spgHeadPos: roadHeadlights.pos, spgHeadDir: roadHeadlights.dir });
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec2 vRoadW;\nvarying vec3 vRoadP;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n\tvRoadP = (modelMatrix * vec4(transformed, 1.0)).xyz;\n\tvRoadW = vRoadP.xz;');
@@ -90,6 +93,12 @@ varying vec2 vRoadW;
 varying vec3 vRoadP;
 ${LAMP_GLSL}
 uniform sampler2D tAlbedo, tRough, tPuddle, tMarks;
+precision highp sampler2DArray;
+uniform sampler2DArray roadScan;
+uniform sampler2D streetReflection;
+uniform mat4 streetReflectionMatrix;
+uniform vec2 streetReflectionTexel;
+uniform float streetReflectionGain;
 #ifdef ROAD_NORMAL
 uniform sampler2D tNormal;
 #endif
@@ -129,7 +138,9 @@ vec2 rainRipples(vec2 w) {
 	vec4 mk = texture2D(tMarks, vUv);
 	roadPaint = mk.r * smoothstep(0.35, 0.75, mk.g);
 	roadPuddle = smoothstep(0.62, 0.8, texture2D(tPuddle, vRoadW / 46.0).r) * wetness;
-	vec3 base = roadTint * (0.45 + 1.1 * alb);
+	float roadPatch = dot(texture(roadScan, vec3(vRoadW / 7.0, 12.0)).rgb, vec3(0.2126, 0.7152, 0.0722));
+	// A second, metre-scale scan carries repaired seams/cracks; the original scan retains fine aggregate.
+	vec3 base = roadTint * (0.25 + 1.7 * alb) * clamp(roadPatch / 0.12, 0.32, 1.65);
 	base = mix(base, lineColor * (0.75 + 0.25 * alb), roadPaint);
 	base *= mix(1.0 - 0.25 * wetness, 0.45, roadPuddle);
 	diffuseColor.rgb = base;`,
@@ -211,6 +222,22 @@ vec2 rainRipples(vec2 w) {
 #endif`,
       );
   };
-  mat.customProgramCacheKey = () => `spg-road${useNormal ? '-n' : ''}${opts.lamps ? '-l' : ''}${rain ? '-r' : ''}`;
+  const compile = mat.onBeforeCompile;
+  mat.onBeforeCompile = (shader, renderer) => {
+    compile(shader, renderer);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <aomap_fragment>', `#include <aomap_fragment>
+      if (streetReflectionGain > 0.0 && wetness > 0.0 && abs(vRoadP.y) < 0.2) {
+        vec4 mirrorP = streetReflectionMatrix * vec4(vRoadP, 1.0);
+        vec2 mirrorUV = mirrorP.xy / mirrorP.w + roadRipple * 0.002;
+        vec2 blur = streetReflectionTexel * mix(2.8, 0.7, roadPuddle);
+        vec3 reflected = (texture2D(streetReflection, mirrorUV + blur).rgb + texture2D(streetReflection, mirrorUV - blur).rgb
+          + texture2D(streetReflection, mirrorUV + vec2(blur.x, -blur.y)).rgb + texture2D(streetReflection, mirrorUV + vec2(-blur.x, blur.y)).rgb) * 0.25;
+        vec3 V = normalize(cameraPosition - vRoadP);
+        float fresnel = 0.035 + 0.8 * pow(1.0 - clamp(V.y, 0.0, 1.0), 5.0);
+        float border = smoothstep(0.0, 0.015, min(min(mirrorUV.x, mirrorUV.y), min(1.0 - mirrorUV.x, 1.0 - mirrorUV.y)));
+        reflectedLight.indirectSpecular += reflected * fresnel * wetness * mix(0.18, 0.85, roadPuddle) * border * (1.0 - roadPaint * 0.7);
+      }`);
+  };
+  mat.customProgramCacheKey = () => `spg-road-mirror${useNormal ? '-n' : ''}${opts.lamps ? '-l' : ''}${rain ? '-r' : ''}`;
   return mat;
 }

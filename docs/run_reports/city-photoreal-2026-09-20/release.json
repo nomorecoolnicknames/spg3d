@@ -1,0 +1,8 @@
+{
+  "archive": "release/spg3d-city-realism-web-20260920-v2.zip",
+  "bytes": 60305509,
+  "sha256": "30c3d28fc4471ca3d9d1e9faa8dec0175051ebc36bb260fb79bb052618228f24",
+  "files": 140,
+  "build": "build-probe.txt",
+  "frozenDist": "/mnt/ramdisk/spg3d-photo-v2/dist-release-v2"
+}

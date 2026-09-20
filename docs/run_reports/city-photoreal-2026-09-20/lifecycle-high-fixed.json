@@ -1,0 +1,2132 @@
+{
+  "pass": true,
+  "quality": "high",
+  "track": "ligovsky",
+  "samples": [
+    {
+      "cycle": 0,
+      "screen": "race",
+      "geometries": 234,
+      "textures": 83
+    },
+    {
+      "cycle": 0,
+      "screen": "menu",
+      "geometries": 62,
+      "textures": 41,
+      "gpuTextures": [
+        {
+          "id": 1,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9150)\n    at new $p (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9509)\n    at Se (http://localhost:3903/assets/three-CmY5EO_g.js:4108:24688)\n    at new lg (http://localhost:3903/assets/three-CmY5EO_g.js:4108:25273)\n    at new F6 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:8955)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:12921",
+          "uploads": [
+            {
+              "method": "texImage2D",
+              "args": [
+                3553,
+                0,
+                6408,
+                1,
+                1,
+                0,
+                6408,
+                5121
+              ]
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9150)\n    at new $p (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9563)\n    at Se (http://localhost:3903/assets/three-CmY5EO_g.js:4108:24688)\n    at new lg (http://localhost:3903/assets/three-CmY5EO_g.js:4108:25273)\n    at new F6 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:8955)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:12921",
+          "uploads": []
+        },
+        {
+          "id": 3,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9150)\n    at new $p (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9640)\n    at Se (http://localhost:3903/assets/three-CmY5EO_g.js:4108:24688)\n    at new lg (http://localhost:3903/assets/three-CmY5EO_g.js:4108:25273)\n    at new F6 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:8955)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:12921",
+          "uploads": [
+            {
+              "method": "texImage3D",
+              "args": [
+                35866,
+                0,
+                6408,
+                1,
+                1,
+                1,
+                0,
+                6408
+              ]
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9150)\n    at new $p (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9702)\n    at Se (http://localhost:3903/assets/three-CmY5EO_g.js:4108:24688)\n    at new lg (http://localhost:3903/assets/three-CmY5EO_g.js:4108:25273)\n    at new F6 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:8955)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:12921",
+          "uploads": [
+            {
+              "method": "texImage3D",
+              "args": [
+                32879,
+                0,
+                6408,
+                1,
+                1,
+                1,
+                0,
+                6408
+              ]
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at Jp.ke [as setupRenderTarget] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:41437)\n    at lg.setRenderTarget (http://localhost:3903/assets/three-CmY5EO_g.js:4108:47683)\n    at Za._textureToCubeUV (http://localhost:3903/assets/three-CmY5EO_g.js:3671:26922)\n    at Za._fromTexture (http://localhost:3903/assets/three-CmY5EO_g.js:3671:24788)\n    at Za.fromEquirectangular (http://localhost:3903/assets/three-CmY5EO_g.js:3671:23325)\n    at H1 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:6310)\n    at mS.start (http://localhost:3903/assets/index-BZo2Vl0A.js:831:61355)\n    at F6.setController (http://localhost:3903/assets/index-BZo2Vl0A.js:117:9896)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:831:108319",
+          "uploads": [
+            {
+              "method": "texImage2D",
+              "args": [
+                3553,
+                0,
+                34842,
+                384,
+                512,
+                0,
+                6408,
+                5131
+              ]
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                1,
+                33327,
+                16,
+                16
+              ]
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at Jp.ke [as setupRenderTarget] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:41437)\n    at lg.setRenderTarget (http://localhost:3903/assets/three-CmY5EO_g.js:4108:47683)\n    at Za._textureToCubeUV (http://localhost:3903/assets/three-CmY5EO_g.js:3671:26922)\n    at Za._fromTexture (http://localhost:3903/assets/three-CmY5EO_g.js:3671:24788)\n    at Za.fromEquirectangular (http://localhost:3903/assets/three-CmY5EO_g.js:3671:23325)\n    at H1 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:6310)\n    at GM.start (http://localhost:3903/assets/index-BZo2Vl0A.js:814:9960)\n    at F6.setController (http://localhost:3903/assets/index-BZo2Vl0A.js:117:9896)\n    at p (http://localhost:3903/assets/index-BZo2Vl0A.js:831:107781)",
+          "uploads": [
+            {
+              "method": "texImage2D",
+              "args": [
+                3553,
+                0,
+                34842,
+                384,
+                512,
+                0,
+                6408,
+                5131
+              ]
+            }
+          ]
+        },
+        {
+          "id": 25,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 28,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 44,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                12,
+                35907,
+                2048,
+                2048
+              ]
+            }
+          ]
+        },
+        {
+          "id": 46,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                1,
+                34842,
+                2048,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 47,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 48,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 49,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                9,
+                32856,
+                256,
+                256
+              ]
+            }
+          ]
+        },
+        {
+          "id": 50,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                256,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.j [as setTexture2DArray] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24452)\n    at tp.Df [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5441)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": []
+        },
+        {
+          "id": 52,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 56,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.j [as setTexture2DArray] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24452)\n    at tp.Df [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5441)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": []
+        },
+        {
+          "id": 57,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.j [as setTexture2DArray] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24452)\n    at tp.Df [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5441)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": []
+        },
+        {
+          "id": 58,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                12.321928094887362,
+                35907,
+                2048,
+                2560
+              ]
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                12.321928094887362,
+                32856,
+                2048,
+                2560
+              ]
+            }
+          ]
+        },
+        {
+          "id": 60,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                768
+              ]
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                384
+              ]
+            }
+          ]
+        },
+        {
+          "id": 62,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 63,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                35907,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 64,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 65,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 66,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 67,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 68,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 69,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 70,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 71,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 72,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 73,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 74,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 84,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 86,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                7,
+                35907,
+                64,
+                64
+              ]
+            }
+          ]
+        },
+        {
+          "id": 97,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at Jp.ke [as setupRenderTarget] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:41437)\n    at lg.setRenderTarget (http://localhost:3903/assets/three-CmY5EO_g.js:4108:47683)\n    at Kp.render (http://localhost:3903/assets/three-CmY5EO_g.js:4084:3115)\n    at lg.render (http://localhost:3903/assets/three-CmY5EO_g.js:4108:33625)\n    at mS.render (http://localhost:3903/assets/index-BZo2Vl0A.js:831:64595)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:8685",
+          "uploads": [
+            {
+              "method": "texImage2D",
+              "args": [
+                3553,
+                0,
+                32856,
+                1024,
+                1024,
+                0,
+                6408,
+                5121
+              ]
+            }
+          ]
+        },
+        {
+          "id": 98,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at J (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at Ve (http://localhost:3903/assets/three-CmY5EO_g.js:4084:39008)\n    at et (http://localhost:3903/assets/three-CmY5EO_g.js:4084:40131)\n    at Jp.ke [as setupRenderTarget] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:44074)\n    at lg.setRenderTarget (http://localhost:3903/assets/three-CmY5EO_g.js:4108:47683)\n    at Kp.render (http://localhost:3903/assets/three-CmY5EO_g.js:4084:3115)\n    at lg.render (http://localhost:3903/assets/three-CmY5EO_g.js:4108:33625)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                1,
+                33190,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 99,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.setValue (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9383)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:44525)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                1,
+                34836,
+                8,
+                8
+              ]
+            }
+          ]
+        },
+        {
+          "id": 100,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                9,
+                35907,
+                256,
+                256
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "screen": "race",
+      "geometries": 234,
+      "textures": 83
+    },
+    {
+      "cycle": 1,
+      "screen": "menu",
+      "geometries": 62,
+      "textures": 41,
+      "gpuTextures": [
+        {
+          "id": 1,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9150)\n    at new $p (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9509)\n    at Se (http://localhost:3903/assets/three-CmY5EO_g.js:4108:24688)\n    at new lg (http://localhost:3903/assets/three-CmY5EO_g.js:4108:25273)\n    at new F6 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:8955)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:12921",
+          "uploads": [
+            {
+              "method": "texImage2D",
+              "args": [
+                3553,
+                0,
+                6408,
+                1,
+                1,
+                0,
+                6408,
+                5121
+              ]
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9150)\n    at new $p (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9563)\n    at Se (http://localhost:3903/assets/three-CmY5EO_g.js:4108:24688)\n    at new lg (http://localhost:3903/assets/three-CmY5EO_g.js:4108:25273)\n    at new F6 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:8955)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:12921",
+          "uploads": []
+        },
+        {
+          "id": 3,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9150)\n    at new $p (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9640)\n    at Se (http://localhost:3903/assets/three-CmY5EO_g.js:4108:24688)\n    at new lg (http://localhost:3903/assets/three-CmY5EO_g.js:4108:25273)\n    at new F6 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:8955)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:12921",
+          "uploads": [
+            {
+              "method": "texImage3D",
+              "args": [
+                35866,
+                0,
+                6408,
+                1,
+                1,
+                1,
+                0,
+                6408
+              ]
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9150)\n    at new $p (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9702)\n    at Se (http://localhost:3903/assets/three-CmY5EO_g.js:4108:24688)\n    at new lg (http://localhost:3903/assets/three-CmY5EO_g.js:4108:25273)\n    at new F6 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:8955)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:12921",
+          "uploads": [
+            {
+              "method": "texImage3D",
+              "args": [
+                32879,
+                0,
+                6408,
+                1,
+                1,
+                1,
+                0,
+                6408
+              ]
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at Jp.ke [as setupRenderTarget] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:41437)\n    at lg.setRenderTarget (http://localhost:3903/assets/three-CmY5EO_g.js:4108:47683)\n    at Za._textureToCubeUV (http://localhost:3903/assets/three-CmY5EO_g.js:3671:26922)\n    at Za._fromTexture (http://localhost:3903/assets/three-CmY5EO_g.js:3671:24788)\n    at Za.fromEquirectangular (http://localhost:3903/assets/three-CmY5EO_g.js:3671:23325)\n    at H1 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:6310)\n    at mS.start (http://localhost:3903/assets/index-BZo2Vl0A.js:831:61355)\n    at F6.setController (http://localhost:3903/assets/index-BZo2Vl0A.js:117:9896)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:831:108319",
+          "uploads": [
+            {
+              "method": "texImage2D",
+              "args": [
+                3553,
+                0,
+                34842,
+                384,
+                512,
+                0,
+                6408,
+                5131
+              ]
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                1,
+                33327,
+                16,
+                16
+              ]
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at Jp.ke [as setupRenderTarget] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:41437)\n    at lg.setRenderTarget (http://localhost:3903/assets/three-CmY5EO_g.js:4108:47683)\n    at Za._textureToCubeUV (http://localhost:3903/assets/three-CmY5EO_g.js:3671:26922)\n    at Za._fromTexture (http://localhost:3903/assets/three-CmY5EO_g.js:3671:24788)\n    at Za.fromEquirectangular (http://localhost:3903/assets/three-CmY5EO_g.js:3671:23325)\n    at H1 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:6310)\n    at GM.start (http://localhost:3903/assets/index-BZo2Vl0A.js:814:9960)\n    at F6.setController (http://localhost:3903/assets/index-BZo2Vl0A.js:117:9896)\n    at p (http://localhost:3903/assets/index-BZo2Vl0A.js:831:107781)",
+          "uploads": [
+            {
+              "method": "texImage2D",
+              "args": [
+                3553,
+                0,
+                34842,
+                384,
+                512,
+                0,
+                6408,
+                5131
+              ]
+            }
+          ]
+        },
+        {
+          "id": 25,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 28,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 44,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                12,
+                35907,
+                2048,
+                2048
+              ]
+            }
+          ]
+        },
+        {
+          "id": 46,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                1,
+                34842,
+                2048,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 47,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 48,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 49,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                9,
+                32856,
+                256,
+                256
+              ]
+            }
+          ]
+        },
+        {
+          "id": 50,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                256,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.j [as setTexture2DArray] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24452)\n    at tp.Df [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5441)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": []
+        },
+        {
+          "id": 52,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 56,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.j [as setTexture2DArray] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24452)\n    at tp.Df [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5441)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": []
+        },
+        {
+          "id": 57,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.j [as setTexture2DArray] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24452)\n    at tp.Df [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5441)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": []
+        },
+        {
+          "id": 58,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                12.321928094887362,
+                35907,
+                2048,
+                2560
+              ]
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                12.321928094887362,
+                32856,
+                2048,
+                2560
+              ]
+            }
+          ]
+        },
+        {
+          "id": 60,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                768
+              ]
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                384
+              ]
+            }
+          ]
+        },
+        {
+          "id": 62,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 63,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                35907,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 64,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 65,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 66,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 67,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 68,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 69,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 70,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 71,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 72,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 73,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 74,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 84,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 86,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                7,
+                35907,
+                64,
+                64
+              ]
+            }
+          ]
+        },
+        {
+          "id": 148,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at Jp.ke [as setupRenderTarget] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:41437)\n    at lg.setRenderTarget (http://localhost:3903/assets/three-CmY5EO_g.js:4108:47683)\n    at Kp.render (http://localhost:3903/assets/three-CmY5EO_g.js:4084:3115)\n    at lg.render (http://localhost:3903/assets/three-CmY5EO_g.js:4108:33625)\n    at mS.render (http://localhost:3903/assets/index-BZo2Vl0A.js:831:64595)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:8685",
+          "uploads": [
+            {
+              "method": "texImage2D",
+              "args": [
+                3553,
+                0,
+                32856,
+                1024,
+                1024,
+                0,
+                6408,
+                5121
+              ]
+            }
+          ]
+        },
+        {
+          "id": 149,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at J (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at Ve (http://localhost:3903/assets/three-CmY5EO_g.js:4084:39008)\n    at et (http://localhost:3903/assets/three-CmY5EO_g.js:4084:40131)\n    at Jp.ke [as setupRenderTarget] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:44074)\n    at lg.setRenderTarget (http://localhost:3903/assets/three-CmY5EO_g.js:4108:47683)\n    at Kp.render (http://localhost:3903/assets/three-CmY5EO_g.js:4084:3115)\n    at lg.render (http://localhost:3903/assets/three-CmY5EO_g.js:4108:33625)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                1,
+                33190,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 150,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.setValue (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9383)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:44525)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                1,
+                34836,
+                8,
+                8
+              ]
+            }
+          ]
+        },
+        {
+          "id": 151,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                9,
+                35907,
+                256,
+                256
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "screen": "race",
+      "geometries": 234,
+      "textures": 83
+    },
+    {
+      "cycle": 2,
+      "screen": "menu",
+      "geometries": 62,
+      "textures": 41,
+      "gpuTextures": [
+        {
+          "id": 1,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9150)\n    at new $p (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9509)\n    at Se (http://localhost:3903/assets/three-CmY5EO_g.js:4108:24688)\n    at new lg (http://localhost:3903/assets/three-CmY5EO_g.js:4108:25273)\n    at new F6 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:8955)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:12921",
+          "uploads": [
+            {
+              "method": "texImage2D",
+              "args": [
+                3553,
+                0,
+                6408,
+                1,
+                1,
+                0,
+                6408,
+                5121
+              ]
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9150)\n    at new $p (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9563)\n    at Se (http://localhost:3903/assets/three-CmY5EO_g.js:4108:24688)\n    at new lg (http://localhost:3903/assets/three-CmY5EO_g.js:4108:25273)\n    at new F6 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:8955)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:12921",
+          "uploads": []
+        },
+        {
+          "id": 3,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9150)\n    at new $p (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9640)\n    at Se (http://localhost:3903/assets/three-CmY5EO_g.js:4108:24688)\n    at new lg (http://localhost:3903/assets/three-CmY5EO_g.js:4108:25273)\n    at new F6 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:8955)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:12921",
+          "uploads": [
+            {
+              "method": "texImage3D",
+              "args": [
+                35866,
+                0,
+                6408,
+                1,
+                1,
+                1,
+                0,
+                6408
+              ]
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9150)\n    at new $p (http://localhost:3903/assets/three-CmY5EO_g.js:4084:9702)\n    at Se (http://localhost:3903/assets/three-CmY5EO_g.js:4108:24688)\n    at new lg (http://localhost:3903/assets/three-CmY5EO_g.js:4108:25273)\n    at new F6 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:8955)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:12921",
+          "uploads": [
+            {
+              "method": "texImage3D",
+              "args": [
+                32879,
+                0,
+                6408,
+                1,
+                1,
+                1,
+                0,
+                6408
+              ]
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at Jp.ke [as setupRenderTarget] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:41437)\n    at lg.setRenderTarget (http://localhost:3903/assets/three-CmY5EO_g.js:4108:47683)\n    at Za._textureToCubeUV (http://localhost:3903/assets/three-CmY5EO_g.js:3671:26922)\n    at Za._fromTexture (http://localhost:3903/assets/three-CmY5EO_g.js:3671:24788)\n    at Za.fromEquirectangular (http://localhost:3903/assets/three-CmY5EO_g.js:3671:23325)\n    at H1 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:6310)\n    at mS.start (http://localhost:3903/assets/index-BZo2Vl0A.js:831:61355)\n    at F6.setController (http://localhost:3903/assets/index-BZo2Vl0A.js:117:9896)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:831:108319",
+          "uploads": [
+            {
+              "method": "texImage2D",
+              "args": [
+                3553,
+                0,
+                34842,
+                384,
+                512,
+                0,
+                6408,
+                5131
+              ]
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                1,
+                33327,
+                16,
+                16
+              ]
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at Jp.ke [as setupRenderTarget] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:41437)\n    at lg.setRenderTarget (http://localhost:3903/assets/three-CmY5EO_g.js:4108:47683)\n    at Za._textureToCubeUV (http://localhost:3903/assets/three-CmY5EO_g.js:3671:26922)\n    at Za._fromTexture (http://localhost:3903/assets/three-CmY5EO_g.js:3671:24788)\n    at Za.fromEquirectangular (http://localhost:3903/assets/three-CmY5EO_g.js:3671:23325)\n    at H1 (http://localhost:3903/assets/index-BZo2Vl0A.js:117:6310)\n    at GM.start (http://localhost:3903/assets/index-BZo2Vl0A.js:814:9960)\n    at F6.setController (http://localhost:3903/assets/index-BZo2Vl0A.js:117:9896)\n    at p (http://localhost:3903/assets/index-BZo2Vl0A.js:831:107781)",
+          "uploads": [
+            {
+              "method": "texImage2D",
+              "args": [
+                3553,
+                0,
+                34842,
+                384,
+                512,
+                0,
+                6408,
+                5131
+              ]
+            }
+          ]
+        },
+        {
+          "id": 25,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 28,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 44,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                12,
+                35907,
+                2048,
+                2048
+              ]
+            }
+          ]
+        },
+        {
+          "id": 46,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                1,
+                34842,
+                2048,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 47,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 48,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 49,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                9,
+                32856,
+                256,
+                256
+              ]
+            }
+          ]
+        },
+        {
+          "id": 50,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                256,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.j [as setTexture2DArray] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24452)\n    at tp.Df [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5441)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": []
+        },
+        {
+          "id": 52,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 56,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.j [as setTexture2DArray] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24452)\n    at tp.Df [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5441)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": []
+        },
+        {
+          "id": 57,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.j [as setTexture2DArray] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24452)\n    at tp.Df [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5441)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": []
+        },
+        {
+          "id": 58,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                12.321928094887362,
+                35907,
+                2048,
+                2560
+              ]
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                12.321928094887362,
+                32856,
+                2048,
+                2560
+              ]
+            }
+          ]
+        },
+        {
+          "id": 60,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                768
+              ]
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                384
+              ]
+            }
+          ]
+        },
+        {
+          "id": 62,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 63,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                35907,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 64,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 65,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 66,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 67,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 68,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 69,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 70,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 71,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 72,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 73,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                35907,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 74,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                10,
+                32856,
+                512,
+                512
+              ]
+            }
+          ]
+        },
+        {
+          "id": 84,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                11,
+                32856,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 86,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                7,
+                35907,
+                64,
+                64
+              ]
+            }
+          ]
+        },
+        {
+          "id": 199,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at Jp.ke [as setupRenderTarget] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:41437)\n    at lg.setRenderTarget (http://localhost:3903/assets/three-CmY5EO_g.js:4108:47683)\n    at Kp.render (http://localhost:3903/assets/three-CmY5EO_g.js:4084:3115)\n    at lg.render (http://localhost:3903/assets/three-CmY5EO_g.js:4108:33625)\n    at mS.render (http://localhost:3903/assets/index-BZo2Vl0A.js:831:64595)\n    at http://localhost:3903/assets/index-BZo2Vl0A.js:117:8685",
+          "uploads": [
+            {
+              "method": "texImage2D",
+              "args": [
+                3553,
+                0,
+                32856,
+                1024,
+                1024,
+                0,
+                6408,
+                5121
+              ]
+            }
+          ]
+        },
+        {
+          "id": 200,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at J (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at Ve (http://localhost:3903/assets/three-CmY5EO_g.js:4084:39008)\n    at et (http://localhost:3903/assets/three-CmY5EO_g.js:4084:40131)\n    at Jp.ke [as setupRenderTarget] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:44074)\n    at lg.setRenderTarget (http://localhost:3903/assets/three-CmY5EO_g.js:4108:47683)\n    at Kp.render (http://localhost:3903/assets/three-CmY5EO_g.js:4084:3115)\n    at lg.render (http://localhost:3903/assets/three-CmY5EO_g.js:4108:33625)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                1,
+                33190,
+                1024,
+                1024
+              ]
+            }
+          ]
+        },
+        {
+          "id": 201,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.setValue (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9383)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:44525)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6274)\n    at v (http://localhost:3903/assets/three-CmY5EO_g.js:4084:6397)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                1,
+                34836,
+                8,
+                8
+              ]
+            }
+          ]
+        },
+        {
+          "id": 202,
+          "stack": "Error\n    at proto.createTexture (<anonymous>:7:119)\n    at $ (http://localhost:3903/assets/three-CmY5EO_g.js:4084:26765)\n    at Pe (http://localhost:3903/assets/three-CmY5EO_g.js:4084:28237)\n    at Jp.J [as setTexture2D] (http://localhost:3903/assets/three-CmY5EO_g.js:4084:24190)\n    at tp.Pf [as setValue] (http://localhost:3903/assets/three-CmY5EO_g.js:4006:5044)\n    at Mr.upload (http://localhost:3903/assets/three-CmY5EO_g.js:4006:9566)\n    at sl (http://localhost:3903/assets/three-CmY5EO_g.js:4108:45786)\n    at lg.renderBufferDirect (http://localhost:3903/assets/three-CmY5EO_g.js:4108:29432)\n    at Xs (http://localhost:3903/assets/three-CmY5EO_g.js:4108:38047)\n    at Oi (http://localhost:3903/assets/three-CmY5EO_g.js:4108:37627)",
+          "uploads": [
+            {
+              "method": "texStorage2D",
+              "args": [
+                3553,
+                9,
+                35907,
+                256,
+                256
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

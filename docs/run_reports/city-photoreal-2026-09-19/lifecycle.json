@@ -1,0 +1,42 @@
+{
+  "pass": true,
+  "samples": [
+    {
+      "cycle": 0,
+      "screen": "race",
+      "geometries": 158,
+      "textures": 27
+    },
+    {
+      "cycle": 0,
+      "screen": "menu",
+      "geometries": 45,
+      "textures": 21
+    },
+    {
+      "cycle": 1,
+      "screen": "race",
+      "geometries": 158,
+      "textures": 27
+    },
+    {
+      "cycle": 1,
+      "screen": "menu",
+      "geometries": 45,
+      "textures": 21
+    },
+    {
+      "cycle": 2,
+      "screen": "race",
+      "geometries": 158,
+      "textures": 27
+    },
+    {
+      "cycle": 2,
+      "screen": "menu",
+      "geometries": 45,
+      "textures": 21
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,79 @@
+{
+ "cell": 256,
+ "cols": 4,
+ "rows": 3,
+ "cardMetres": 2.6,
+ "albedo": "leaves_albedo.png",
+ "normal": "leaves_normal.png",
+ "bark": {
+  "albedo": "bark_albedo.webp",
+  "nr": "bark_nr.png",
+  "metres": 1.0
+ },
+ "species": {
+  "linden": [
+   {
+    "row": 0,
+    "col": 0,
+    "cover": 0.21
+   },
+   {
+    "row": 0,
+    "col": 1,
+    "cover": 0.237
+   },
+   {
+    "row": 0,
+    "col": 2,
+    "cover": 0.223
+   },
+   {
+    "row": 0,
+    "col": 3,
+    "cover": 0.264
+   },
+   {
+    "row": 1,
+    "col": 0,
+    "cover": 0.228
+   },
+   {
+    "row": 1,
+    "col": 1,
+    "cover": 0.195
+   },
+   {
+    "row": 1,
+    "col": 2,
+    "cover": 0.204
+   },
+   {
+    "row": 1,
+    "col": 3,
+    "cover": 0.194
+   }
+  ],
+  "poplar": [
+   {
+    "row": 2,
+    "col": 0,
+    "cover": 0.238
+   },
+   {
+    "row": 2,
+    "col": 1,
+    "cover": 0.165
+   },
+   {
+    "row": 2,
+    "col": 2,
+    "cover": 0.198
+   },
+   {
+    "row": 2,
+    "col": 3,
+    "cover": 0.213
+   }
+  ]
+ }
+}

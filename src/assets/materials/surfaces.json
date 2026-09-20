@@ -1,0 +1,456 @@
+{
+  "size": 512,
+  "tiles": [
+    {
+      "name": "brick_red",
+      "index": 0,
+      "metres": 3.0,
+      "source": "https://polyhaven.com/a/brick_wall_001",
+      "license": "CC0-1.0",
+      "authors": {
+        "Rob Tuytel": "Processing",
+        "Dimitrios Savva": "Photography"
+      },
+      "files": {
+        "albedo": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/brick_wall_001/brick_wall_001_diffuse_1k.png",
+          "md5": "0fb8052e42bd6bc7141b28c481437a8b"
+        },
+        "normal": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/brick_wall_001/brick_wall_001_nor_gl_1k.png",
+          "md5": "99200c9dd07ae8bc85f5a027deea4b78"
+        },
+        "rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/brick_wall_001/brick_wall_001_rough_1k.png",
+          "md5": "29388613a9bd406979e5d82ba58e7dec"
+        },
+        "ao": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/brick_wall_001/brick_wall_001_ao_1k.png",
+          "md5": "a7194fda48f7fc52a5f3c915b6ec40bb"
+        }
+      },
+      "seamless": true,
+      "meanLinear": [
+        0.13927200436592102,
+        0.07659199833869934,
+        0.05086300149559975
+      ]
+    },
+    {
+      "name": "brick_silicate",
+      "index": 1,
+      "metres": 1.8000000715255737,
+      "source": "https://polyhaven.com/a/painted_brick",
+      "license": "CC0-1.0",
+      "authors": {
+        "Amal Kumar": "All"
+      },
+      "files": {
+        "albedo": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/painted_brick/painted_brick_diff_1k.png",
+          "md5": "801b04ab4be9f377d054448e3a7fe5f4"
+        },
+        "normal": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/painted_brick/painted_brick_nor_gl_1k.png",
+          "md5": "5c6bd1b415b42fdb8235a3d3480981e7"
+        },
+        "rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/painted_brick/painted_brick_rough_1k.png",
+          "md5": "db89758c76c554a43df67d3b671653c2"
+        },
+        "ao": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/painted_brick/painted_brick_ao_1k.png",
+          "md5": "162dfd66f604df21db250a1fa147559f"
+        }
+      },
+      "seamless": true,
+      "meanLinear": [
+        0.19461199641227722,
+        0.35419899225234985,
+        0.4152359962463379
+      ]
+    },
+    {
+      "name": "plaster_smooth",
+      "index": 2,
+      "metres": 2.0,
+      "source": "https://polyhaven.com/a/painted_plaster_wall",
+      "license": "CC0-1.0",
+      "authors": {
+        "Amal Kumar": "All"
+      },
+      "files": {
+        "albedo": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/painted_plaster_wall/painted_plaster_wall_diff_1k.png",
+          "md5": "a579bdf62c32e5d8ada9b167da322416"
+        },
+        "normal": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/painted_plaster_wall/painted_plaster_wall_nor_gl_1k.png",
+          "md5": "a040e68bcbc18ce5f9bb84649c877d01"
+        },
+        "rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/painted_plaster_wall/painted_plaster_wall_rough_1k.png",
+          "md5": "d83a79ebf1c0a51f83c032a9ec87d435"
+        },
+        "ao": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/painted_plaster_wall/painted_plaster_wall_ao_1k.png",
+          "md5": "66611da5c54cf56968ec395219930fb7"
+        }
+      },
+      "seamless": true,
+      "meanLinear": [
+        0.4058690071105957,
+        0.36639899015426636,
+        0.35076799988746643
+      ]
+    },
+    {
+      "name": "plaster_rough",
+      "index": 3,
+      "metres": 1.0,
+      "source": "https://polyhaven.com/a/grey_plaster",
+      "license": "CC0-1.0",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "files": {
+        "albedo": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/grey_plaster/grey_plaster_diff_1k.png",
+          "md5": "2b0718d2ac9585f33beeb6412ae6f21a"
+        },
+        "normal": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/grey_plaster/grey_plaster_nor_gl_1k.png",
+          "md5": "4d5d05acb6bb356d6b07f7ab76f3acdc"
+        },
+        "rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/grey_plaster/grey_plaster_rough_1k.png",
+          "md5": "94ea0cad8dfc3bdb3c9bf3a9a7d2c3c0"
+        },
+        "ao": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/grey_plaster/grey_plaster_ao_1k.png",
+          "md5": "e4881bd8b599637f74d13ab5079bda50"
+        }
+      },
+      "seamless": true,
+      "meanLinear": [
+        0.26586300134658813,
+        0.24280999600887299,
+        0.1815129965543747
+      ]
+    },
+    {
+      "name": "panel_concrete",
+      "index": 4,
+      "metres": 3.0,
+      "meanLinear": [
+        0.4860279858112335,
+        0.4648059904575348,
+        0.4220289885997772
+      ]
+    },
+    {
+      "name": "granite",
+      "index": 5,
+      "metres": 2.299999952316284,
+      "source": "https://polyhaven.com/a/granite_tile",
+      "license": "CC0-1.0",
+      "authors": {
+        "Charlotte Baglioni": "All"
+      },
+      "files": {
+        "albedo": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/granite_tile/granite_tile_diff_1k.png",
+          "md5": "9fd5757ef0fed00109339a1b327518da"
+        },
+        "normal": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/granite_tile/granite_tile_nor_gl_1k.png",
+          "md5": "ae2c56d4217e526e2263c6b09d3bce26"
+        },
+        "rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/granite_tile/granite_tile_rough_1k.png",
+          "md5": "75a03a0d335b61a0c6c67ce1939feab1"
+        },
+        "ao": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/granite_tile/granite_tile_ao_1k.png",
+          "md5": "6c52b004e3e27933944369af8b3fde26"
+        }
+      },
+      "seamless": true,
+      "meanLinear": [
+        0.07588200271129608,
+        0.07638400048017502,
+        0.07722199708223343
+      ]
+    },
+    {
+      "name": "metal_cladding",
+      "index": 6,
+      "metres": 3.0,
+      "meanLinear": [
+        0.19274400174617767,
+        0.19550000131130219,
+        0.20380300283432007
+      ]
+    },
+    {
+      "name": "roof_bitumen",
+      "index": 7,
+      "metres": 3.0,
+      "meanLinear": [
+        0.13216300308704376,
+        0.13133500516414642,
+        0.1315159946680069
+      ]
+    },
+    {
+      "name": "roof_metal",
+      "index": 8,
+      "metres": 3.0,
+      "meanLinear": [
+        0.2721030116081238,
+        0.28535598516464233,
+        0.30160999298095703
+      ]
+    },
+    {
+      "name": "roof_tiles",
+      "index": 9,
+      "metres": 4.0,
+      "source": "https://polyhaven.com/a/clay_roof_tiles",
+      "license": "CC0-1.0",
+      "authors": {
+        "Amal Kumar": "All"
+      },
+      "files": {
+        "albedo": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/clay_roof_tiles/clay_roof_tiles_diff_1k.png",
+          "md5": "4e78adac16c769fa9df784e2a1ed80f0"
+        },
+        "normal": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/clay_roof_tiles/clay_roof_tiles_nor_gl_1k.png",
+          "md5": "4d77fe7956a96288a31cd357a12b218b"
+        },
+        "rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/clay_roof_tiles/clay_roof_tiles_rough_1k.png",
+          "md5": "0df576815543c5f633085f4c03e7bcc4"
+        },
+        "ao": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/clay_roof_tiles/clay_roof_tiles_ao_1k.png",
+          "md5": "1e383d9d55369710364d5006441c9afa"
+        }
+      },
+      "seamless": true,
+      "meanLinear": [
+        0.11421000212430954,
+        0.03670499846339226,
+        0.012772000394761562
+      ]
+    },
+    {
+      "name": "pavement_slabs",
+      "index": 10,
+      "metres": 1.8000000715255737,
+      "source": "https://polyhaven.com/a/concrete_pavement",
+      "license": "CC0-1.0",
+      "authors": {
+        "Charlotte Baglioni": "All"
+      },
+      "files": {
+        "albedo": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/concrete_pavement/concrete_pavement_diff_1k.png",
+          "md5": "17ed111caa1e92341a8eb741d91d2312"
+        },
+        "normal": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/concrete_pavement/concrete_pavement_nor_gl_1k.png",
+          "md5": "6676e0e60345c2697ff62aedeaaafe4f"
+        },
+        "rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/concrete_pavement/concrete_pavement_rough_1k.png",
+          "md5": "f888482083833815e8aa9cf3395660aa"
+        },
+        "ao": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/concrete_pavement/concrete_pavement_ao_1k.png",
+          "md5": "c0ba734236ee2e90ce8959a81a56be9a"
+        }
+      },
+      "seamless": true,
+      "meanLinear": [
+        0.2150990068912506,
+        0.17719900608062744,
+        0.13520799577236176
+      ]
+    },
+    {
+      "name": "cobbles",
+      "index": 11,
+      "metres": 2.5,
+      "source": "https://polyhaven.com/a/cobblestone_pavement",
+      "license": "CC0-1.0",
+      "authors": {
+        "Charlotte Baglioni": "All"
+      },
+      "files": {
+        "albedo": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/cobblestone_pavement/cobblestone_pavement_diff_1k.png",
+          "md5": "2ea3e16d9006113212a164e75c67f59f"
+        },
+        "normal": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/cobblestone_pavement/cobblestone_pavement_nor_gl_1k.png",
+          "md5": "61fcf95ed890c917877607e7172a13e3"
+        },
+        "rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/cobblestone_pavement/cobblestone_pavement_rough_1k.png",
+          "md5": "53f7e0247d84a4fdc6347159b3752487"
+        },
+        "ao": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/cobblestone_pavement/cobblestone_pavement_ao_1k.png",
+          "md5": "da56632dac0d1a995eaef7c7084af8b5"
+        }
+      },
+      "seamless": true,
+      "meanLinear": [
+        0.15021200478076935,
+        0.12518900632858276,
+        0.09840500354766846
+      ]
+    },
+    {
+      "name": "tarmac_yard",
+      "index": 12,
+      "metres": 3.000000238418579,
+      "source": "https://polyhaven.com/a/asphalt_02",
+      "license": "CC0-1.0",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "files": {
+        "albedo": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/asphalt_02/asphalt_02_diff_1k.png",
+          "md5": "ac3d05aae774a5dce71a31b8c761fa47"
+        },
+        "normal": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/asphalt_02/asphalt_02_nor_gl_1k.png",
+          "md5": "910d4b3882858368622eaa1b973bb290"
+        },
+        "rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/asphalt_02/asphalt_02_rough_1k.png",
+          "md5": "7db5fbd81763e89539cc0d808a97449e"
+        },
+        "ao": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/asphalt_02/asphalt_02_ao_1k.png",
+          "md5": "67782606ab946aee870e6cf8051501f6"
+        }
+      },
+      "seamless": true,
+      "meanLinear": [
+        0.1082959994673729,
+        0.1059660017490387,
+        0.09453999996185303
+      ]
+    },
+    {
+      "name": "grass",
+      "index": 13,
+      "metres": 2.0,
+      "source": "https://polyhaven.com/a/leafy_grass",
+      "license": "CC0-1.0",
+      "authors": {
+        "Charlotte Baglioni": "All"
+      },
+      "files": {
+        "albedo": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/leafy_grass/leafy_grass_diff_1k.png",
+          "md5": "7639691afa92caa8034236e6a0687bfe"
+        },
+        "normal": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/leafy_grass/leafy_grass_nor_gl_1k.png",
+          "md5": "a98f306f4dafb1e956d562b78503e174"
+        },
+        "rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/leafy_grass/leafy_grass_rough_1k.png",
+          "md5": "5dff12e1e81532a92d074e63473ab127"
+        },
+        "ao": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/leafy_grass/leafy_grass_ao_1k.png",
+          "md5": "30333f7caa6a2984bf3fcea54b0f95b1"
+        }
+      },
+      "seamless": true,
+      "meanLinear": [
+        0.31912100315093994,
+        0.23398399353027344,
+        0.10448600351810455
+      ]
+    },
+    {
+      "name": "gravel",
+      "index": 14,
+      "metres": 2.25,
+      "source": "https://polyhaven.com/a/gravel_floor",
+      "license": "CC0-1.0",
+      "authors": {
+        "Jenelle van Heerden": "Processing",
+        "Matterfield": "Photography"
+      },
+      "files": {
+        "albedo": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/gravel_floor/gravel_floor_diff_1k.png",
+          "md5": "18332fff217d2534f60211e000ce63a3"
+        },
+        "normal": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/gravel_floor/gravel_floor_nor_gl_1k.png",
+          "md5": "72915db5e8f062f6c30b5f328257c6b3"
+        },
+        "rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/gravel_floor/gravel_floor_rough_1k.png",
+          "md5": "dceef6f6f1be7b91c58662840cbe5b97"
+        },
+        "ao": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/gravel_floor/gravel_floor_ao_1k.png",
+          "md5": "2101a32a335bd1cd95820aa2ca0574fb"
+        }
+      },
+      "seamless": true,
+      "meanLinear": [
+        0.3779650032520294,
+        0.2516759932041168,
+        0.14444999396800995
+      ]
+    },
+    {
+      "name": "wood_planks",
+      "index": 15,
+      "metres": 1.7999999523162842,
+      "source": "https://polyhaven.com/a/weathered_brown_planks",
+      "license": "CC0-1.0",
+      "authors": {
+        "Dimitrios Savva": "Photography",
+        "Rico Cilliers": "Processing"
+      },
+      "files": {
+        "albedo": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/weathered_brown_planks/weathered_brown_planks_diff_1k.png",
+          "md5": "ebbac9c6aa5125cd87f80e3af9b7f412"
+        },
+        "normal": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/weathered_brown_planks/weathered_brown_planks_nor_gl_1k.png",
+          "md5": "1224e8e9f59141c9d59cea836e52e7a2"
+        },
+        "rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/weathered_brown_planks/weathered_brown_planks_rough_1k.png",
+          "md5": "28d60b5be47cc8914d6bdbe06a3c79de"
+        },
+        "ao": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/weathered_brown_planks/weathered_brown_planks_ao_1k.png",
+          "md5": "303db7fe7a71d19b39950dea9813c794"
+        }
+      },
+      "seamless": true,
+      "meanLinear": [
+        0.12014099955558777,
+        0.07370500266551971,
+        0.04379900172352791
+      ]
+    }
+  ]
+}
